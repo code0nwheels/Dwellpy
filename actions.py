@@ -17,7 +17,7 @@ class Actions:
             self.mouse_controller.click(Button.left, 1)
             print("Left click performed over app window.")
         else:
-            # Outside application window
+            # Perform the action based on current_action
             if self.current_action == 'left':
                 self.mouse_controller.click(Button.left, 1)
                 print("Left click performed.")
@@ -38,14 +38,12 @@ class Actions:
                     self.mouse_controller.release(Button.left)
                     self.dragging = False
                     print("Drag stopped.")
-                # Only reset current_action to default after ending the drag
-                if not self.dragging and self.current_action != self.default_action:
-                    self.current_action = self.default_action
-                    self.update_button_styles()
-        # Reset dwell detection variables to prevent immediate retriggering
-        self.dwell_start_time = None
-        self.dwell_triggered = False
-        self.initial_dwell_position = None
+        # Reset current_action to default if it's a TCS and not currently dragging
+        if self.current_action != self.default_action:
+            if self.current_action != 'drag' or (self.current_action == 'drag' and not self.dragging):
+                self.current_action = self.default_action
+                self.update_button_styles()
+        # Do not reset dwell detection variables here
 
     def trigger_button_action(self, action_type):
         if action_type == 'move':
