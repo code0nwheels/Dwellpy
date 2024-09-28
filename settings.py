@@ -75,6 +75,8 @@ class Settings:
         else:
             print("No settings file found. Using default settings.")
             self.geometry = '+100+100'
+            self.dwell_time = 0.4
+            self.radius = 10
 
     def save_settings(self):
         config = configparser.ConfigParser()

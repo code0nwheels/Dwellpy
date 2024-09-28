@@ -1,5 +1,4 @@
 # app.py
-import threading
 from pynput.mouse import Controller
 from gui import GUI
 from monitor import Monitor
@@ -18,11 +17,13 @@ class DwellClickerApp(GUI, Monitor, Actions, Settings):
         self.root.wm_attributes("-topmost", True)  # Always on top
 
         # Set window background color to match button color
-        self.root.config(bg="SystemButtonFace")
+        self.root.config(bg="lightgrey")
 
         # For transparency on Windows
         if os.name == 'nt':  # Check if OS is Windows
-            self.root.wm_attributes('-transparentcolor', 'SystemButtonFace')
+            self.root.wm_attributes('-transparentcolor', 'lightgrey')
+        else:  # For Linux
+            self.root.wm_attributes('-transparent', True)
 
         # Initialize variables
         self.is_running = True  # On/Off state

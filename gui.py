@@ -1,22 +1,23 @@
 # gui.py
 from tkinter import ttk
-import threading
 
 class GUI:
     def create_styles(self):
         # Create styles for buttons
         self.style = ttk.Style()
         self.style.theme_use('clam')
-        self.style.configure('DCS.TButton', background='light blue', foreground='black', width=10, height=15)
+        
+        # Increase vertical padding to make buttons taller
+        self.style.configure('DCS.TButton', background='light blue', foreground='black', padding=(2, 15))
         self.style.map('DCS.TButton', background=[('active', 'blue')])
 
-        self.style.configure('TCS.TButton', background='light coral', foreground='black', width=10, height=15)
+        self.style.configure('TCS.TButton', background='light coral', foreground='black', padding=(2, 15))
         self.style.map('TCS.TButton', background=[('active', 'red')])
 
-        self.style.configure('MoveOn.TButton', background='yellow', foreground='black', width=10, height=15)
+        self.style.configure('MoveOn.TButton', background='yellow', foreground='black', padding=(2, 15))
         self.style.map('MoveOn.TButton', background=[('active', 'gold')])
 
-        self.style.configure('Normal.TButton', foreground='black', width=10, height=15)
+        self.style.configure('Normal.TButton', foreground='black', padding=(2, 15))
 
     def create_widgets(self):
         # Main Frame
@@ -27,47 +28,47 @@ class GUI:
         self.buttons = []
 
         # On/Off Button
-        self.toggle_button = ttk.Button(self.main_frame, text="Turn Off", command=self.toggle_running)
-        self.toggle_button.grid(row=0, column=0, padx=2)
+        self.toggle_button = ttk.Button(self.main_frame, text="Turn Off", width=8, command=self.toggle_running)
+        self.toggle_button.grid(row=0, column=0)
         self.toggle_button.action_type = 'toggle'
         self.buttons.append(self.toggle_button)
 
         # Click Type Buttons
-        self.left_click_button = ttk.Button(self.main_frame, text="Left", command=lambda: self.trigger_button_action('left'))
-        self.left_click_button.grid(row=0, column=1, padx=2)
+        self.left_click_button = ttk.Button(self.main_frame, text="Left", width=4, command=lambda: self.trigger_button_action('left'))
+        self.left_click_button.grid(row=0, column=1)
         self.left_click_button.action_type = 'left'
         self.buttons.append(self.left_click_button)
 
-        self.double_click_button = ttk.Button(self.main_frame, text="Double", command=lambda: self.trigger_button_action('double'))
-        self.double_click_button.grid(row=0, column=2, padx=2)
+        self.double_click_button = ttk.Button(self.main_frame, text="Double", width=6, command=lambda: self.trigger_button_action('double'))
+        self.double_click_button.grid(row=0, column=2)
         self.double_click_button.action_type = 'double'
         self.buttons.append(self.double_click_button)
 
-        self.right_click_button = ttk.Button(self.main_frame, text="Right", command=lambda: self.trigger_button_action('right'))
-        self.right_click_button.grid(row=0, column=3, padx=2)
+        self.right_click_button = ttk.Button(self.main_frame, text="Right", width=5, command=lambda: self.trigger_button_action('right'))
+        self.right_click_button.grid(row=0, column=3)
         self.right_click_button.action_type = 'right'
         self.buttons.append(self.right_click_button)
 
-        self.drag_button = ttk.Button(self.main_frame, text="Drag", command=lambda: self.trigger_button_action('drag'))
-        self.drag_button.grid(row=0, column=4, padx=2)
+        self.drag_button = ttk.Button(self.main_frame, text="Drag", width=4, command=lambda: self.trigger_button_action('drag'))
+        self.drag_button.grid(row=0, column=4)
         self.drag_button.action_type = 'drag'
         self.buttons.append(self.drag_button)
 
         # Settings Button
-        self.settings_button = ttk.Button(self.main_frame, text="Settings", command=self.open_settings)
-        self.settings_button.grid(row=0, column=5, padx=2)
+        self.settings_button = ttk.Button(self.main_frame, text="Settings", width=8, command=self.open_settings)
+        self.settings_button.grid(row=0, column=5)
         self.settings_button.action_type = 'settings'
         self.buttons.append(self.settings_button)
 
         # Move Button
-        self.move_button = ttk.Button(self.main_frame, text="Move", command=self.toggle_move_mode)
-        self.move_button.grid(row=0, column=6, padx=2)
+        self.move_button = ttk.Button(self.main_frame, text="Move", width=4, command=self.toggle_move_mode)
+        self.move_button.grid(row=0, column=6)
         self.move_button.action_type = 'move'
         self.buttons.append(self.move_button)
 
         # Exit Button
-        self.exit_button = ttk.Button(self.main_frame, text="Exit", command=self.confirm_exit)
-        self.exit_button.grid(row=0, column=7, padx=2)
+        self.exit_button = ttk.Button(self.main_frame, text="Exit", width=4, command=self.confirm_exit)
+        self.exit_button.grid(row=0, column=7)
         self.exit_button.action_type = 'exit'
         self.buttons.append(self.exit_button)
 
