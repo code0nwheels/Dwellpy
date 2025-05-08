@@ -1,8 +1,42 @@
 import pyautogui
 import time
+import ctypes
+import platform
+
+# Mouse event constants
+MOUSEEVENTF_LEFTDOWN = 0x0002
+MOUSEEVENTF_LEFTUP = 0x0004
+MOUSEEVENTF_RIGHTDOWN = 0x0008
+MOUSEEVENTF_RIGHTUP = 0x0010
+MOUSEEVENTF_MIDDLEDOWN = 0x0020
+MOUSEEVENTF_MIDDLEUP = 0x0040
+INPUT_MOUSE = 0
+
+# Windows structures
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", ctypes.c_long),
+        ("dy", ctypes.c_long),
+        ("mouseData", ctypes.c_ulong),
+        ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
+        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong))
+    ]
+
+class INPUT_union(ctypes.Union):
+    _fields_ = [
+        ("mi", MOUSEINPUT),
+        # Keyboard and hardware input fields omitted
+    ]
+
+class INPUT(ctypes.Structure):
+    _fields_ = [
+        ("type", ctypes.c_ulong),
+        ("u", INPUT_union)
+    ]
 
 class ClickManager:
-    """Click manager that safely handles PyAutoGUI's fail-safe."""
+    """Click manager that handles mouse clicks using platform-specific methods."""
     
     def __init__(self, min_click_interval=0.5):
         self.min_click_interval = min_click_interval
@@ -11,6 +45,15 @@ class ClickManager:
         
         # Store the original failsafe setting so we can restore it later
         self.original_failsafe = pyautogui.FAILSAFE
+        
+        # Check if we're on Windows
+        self.use_sendinput = platform.system() == 'Windows'
+        
+        if self.use_sendinput:
+            # Setup for Windows SendInput
+            self.SendInput = ctypes.windll.user32.SendInput
+            self.SendInput.argtypes = (ctypes.c_uint, ctypes.POINTER(INPUT), ctypes.c_int)
+            self.SendInput.restype = ctypes.c_uint
         
     def can_click(self):
         """Check if enough time has passed since last click."""
@@ -22,22 +65,30 @@ class ClickManager:
             print(f"Click blocked: only {time_since_last:.2f}s since last click")
             
         return can_click
+    
+    def _send_mouse_event_windows(self, flags):
+        """Use SendInput for Windows mouse events."""
+        extra = ctypes.c_ulong(0)
+        i = INPUT()
+        i.type = INPUT_MOUSE
+        i.u.mi = MOUSEINPUT(0, 0, 0, flags, 0, ctypes.pointer(extra))
+        self.SendInput(1, ctypes.pointer(i), ctypes.sizeof(i))
         
-    def perform_left_click(self, position):
+    def perform_left_click(self, position=None):
         """Perform a left mouse click at the CURRENT mouse position safely."""
         if not self.can_click():
             return False
             
         try:
-            # IMPORTANT: We're not moving the mouse at all - just clicking at current position
-            # Temporarily disable fail-safe for the click operation
-            pyautogui.FAILSAFE = False
-            
-            # Perform the click without moving the mouse
-            pyautogui.click()
-            
-            # Restore the original fail-safe setting
-            pyautogui.FAILSAFE = self.original_failsafe
+            if self.use_sendinput:
+                # Use Windows SendInput
+                self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
+                self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
+            else:
+                # Use PyAutoGUI for non-Windows platforms
+                pyautogui.FAILSAFE = False
+                pyautogui.click()
+                pyautogui.FAILSAFE = self.original_failsafe
             
             self.last_click_time = time.time()
             
@@ -50,49 +101,57 @@ class ClickManager:
         except Exception as e:
             print(f"Error performing click: {e}")
             # Make sure fail-safe is restored even if there's an error
-            pyautogui.FAILSAFE = self.original_failsafe
+            if not self.use_sendinput:
+                pyautogui.FAILSAFE = self.original_failsafe
             return False
     
-    def perform_right_click(self, position):
+    def perform_right_click(self, position=None):
         """Perform a right mouse click without moving cursor."""
         if not self.can_click():
             return False
             
         try:
-            # Temporarily disable fail-safe for the click operation
-            pyautogui.FAILSAFE = False
-            
-            pyautogui.rightClick()
-            
-            # Restore the original fail-safe setting
-            pyautogui.FAILSAFE = self.original_failsafe
+            if self.use_sendinput:
+                # Use Windows SendInput
+                self._send_mouse_event_windows(MOUSEEVENTF_RIGHTDOWN)
+                self._send_mouse_event_windows(MOUSEEVENTF_RIGHTUP)
+            else:
+                # Use PyAutoGUI for non-Windows platforms
+                pyautogui.FAILSAFE = False
+                pyautogui.rightClick()
+                pyautogui.FAILSAFE = self.original_failsafe
             
             self.last_click_time = time.time()
             return True
         except Exception as e:
             print(f"Error performing right click: {e}")
-            # Make sure fail-safe is restored even if there's an error
-            pyautogui.FAILSAFE = self.original_failsafe
+            if not self.use_sendinput:
+                pyautogui.FAILSAFE = self.original_failsafe
             return False
     
-    def perform_double_click(self, position):
+    def perform_double_click(self, position=None):
         """Perform a double click without moving cursor."""
         if not self.can_click():
             return False
             
         try:
-            # Temporarily disable fail-safe for the click operation
-            pyautogui.FAILSAFE = False
-            
-            pyautogui.doubleClick()
-            
-            # Restore the original fail-safe setting
-            pyautogui.FAILSAFE = self.original_failsafe
+            if self.use_sendinput:
+                # Use Windows SendInput for double click
+                self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
+                self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
+                time.sleep(0.1)  # Brief pause between clicks
+                self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
+                self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
+            else:
+                # Use PyAutoGUI for non-Windows platforms
+                pyautogui.FAILSAFE = False
+                pyautogui.doubleClick()
+                pyautogui.FAILSAFE = self.original_failsafe
             
             self.last_click_time = time.time()
             return True
         except Exception as e:
             print(f"Error performing double click: {e}")
-            # Make sure fail-safe is restored even if there's an error
-            pyautogui.FAILSAFE = self.original_failsafe
+            if not self.use_sendinput:
+                pyautogui.FAILSAFE = self.original_failsafe
             return False
