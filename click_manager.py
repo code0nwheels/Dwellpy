@@ -81,8 +81,9 @@ class ClickManager:
             
         try:
             if self.use_sendinput:
-                # Use Windows SendInput
+                # Use Windows SendInput - MUCH faster delay for better responsiveness
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
+                time.sleep(0.02)  # Reduced from 0.1 to 0.02 seconds (20ms)
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
             else:
                 # Use PyAutoGUI for non-Windows platforms
@@ -104,7 +105,7 @@ class ClickManager:
             if not self.use_sendinput:
                 pyautogui.FAILSAFE = self.original_failsafe
             return False
-    
+
     def perform_right_click(self, position=None):
         """Perform a right mouse click without moving cursor."""
         if not self.can_click():
@@ -112,8 +113,9 @@ class ClickManager:
             
         try:
             if self.use_sendinput:
-                # Use Windows SendInput
+                # Use Windows SendInput with faster timing
                 self._send_mouse_event_windows(MOUSEEVENTF_RIGHTDOWN)
+                time.sleep(0.02)  # Reduced from 0.1 to 0.02 seconds (20ms)
                 self._send_mouse_event_windows(MOUSEEVENTF_RIGHTUP)
             else:
                 # Use PyAutoGUI for non-Windows platforms
@@ -128,7 +130,7 @@ class ClickManager:
             if not self.use_sendinput:
                 pyautogui.FAILSAFE = self.original_failsafe
             return False
-    
+
     def perform_double_click(self, position=None):
         """Perform a double click without moving cursor."""
         if not self.can_click():
@@ -136,11 +138,18 @@ class ClickManager:
             
         try:
             if self.use_sendinput:
-                # Use Windows SendInput for double click
+                # Use Windows SendInput for double click with proper timing
+                # First click
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
+                time.sleep(0.02)  # Faster down-up (20ms)
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
-                time.sleep(0.1)  # Brief pause between clicks
+                
+                # Brief pause between clicks (keep this a bit longer)
+                time.sleep(0.05)  # Slight pause between clicks
+                
+                # Second click
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
+                time.sleep(0.02)  # Faster down-up (20ms)
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
             else:
                 # Use PyAutoGUI for non-Windows platforms
@@ -152,6 +161,31 @@ class ClickManager:
             return True
         except Exception as e:
             print(f"Error performing double click: {e}")
+            if not self.use_sendinput:
+                pyautogui.FAILSAFE = self.original_failsafe
+            return False
+
+    def perform_middle_click(self, position=None):
+        """Perform a middle mouse click without moving cursor."""
+        if not self.can_click():
+            return False
+            
+        try:
+            if self.use_sendinput:
+                # Use Windows SendInput
+                self._send_mouse_event_windows(MOUSEEVENTF_MIDDLEDOWN)
+                time.sleep(0.1)  # Add small delay between down and up
+                self._send_mouse_event_windows(MOUSEEVENTF_MIDDLEUP)
+            else:
+                # Use PyAutoGUI for non-Windows platforms
+                pyautogui.FAILSAFE = False
+                pyautogui.middleClick()
+                pyautogui.FAILSAFE = self.original_failsafe
+            
+            self.last_click_time = time.time()
+            return True
+        except Exception as e:
+            print(f"Error performing middle click: {e}")
             if not self.use_sendinput:
                 pyautogui.FAILSAFE = self.original_failsafe
             return False

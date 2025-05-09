@@ -10,9 +10,16 @@ class DwellClicker:
     """Main dwell clicker application with UI."""
     
     def __init__(self):
-        # Initialize core components
-        self.detector = DwellDetector(radius=8, dwell_time=0.2)
-        self.input_manager = InputManager(sample_rate=0.01)
+        # Initialize core components with reasonable defaults
+        # The dwell detector uses:
+        # - move_limit: How many pixels the cursor can move while still considering it "dwelling"
+        # - dwell_time: How long (in seconds) the cursor must dwell to trigger an action
+        self.detector = DwellDetector(radius=10, dwell_time=0.2)
+        
+        # The input manager tracks cursor position and sends updates at regular intervals
+        self.input_manager = InputManager()
+        
+        # The click manager handles performing different types of mouse clicks
         self.click_manager = ClickManager()
         
         # Create UI
@@ -38,15 +45,26 @@ class DwellClicker:
         self.running = False
     
     def on_position_update(self, position):
-        """Handle new mouse position data."""
-        # Add position to detector
+        """
+        Handle new mouse position data at regular intervals.
+        
+        This method is called by the InputManager every 100ms with the
+        current mouse position. It adds the position to the dwell detector
+        and processes any dwell events that might be triggered.
+        
+        Args:
+            position: Tuple (x, y) representing cursor position
+        """
+        # Add position to detector's history
         self.detector.add_position(position)
         
-        # Check for dwell
+        # Check if a dwell has been detected
         is_dwelling, center = self.detector.check_dwell()
         
         # Process dwell event if detected
         if is_dwelling and center:
+            # Let the UI process the dwell event, which might
+            # result in clicking, button activation, etc.
             self.ui.process_dwell_event(center)
     
     def start(self):

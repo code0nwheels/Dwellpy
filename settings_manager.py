@@ -3,9 +3,24 @@ import json
 import os
 
 class SettingsManager:
-    """Manages settings UI and persistence for the Dwell Clicker."""
+    """
+    Manages settings UI and persistence for the Dwell Clicker.
+    
+    This class handles:
+    - Loading and saving settings to disk
+    - Generating and managing the settings UI dialog
+    - Applying settings to the dwell detector
+    """
     
     def __init__(self, root, dwell_detector, button_commander):
+        """
+        Initialize the settings manager.
+        
+        Args:
+            root: The main Tkinter window
+            dwell_detector: The DwellDetector instance to configure
+            button_commander: Object tracking button hover events
+        """
         self.root = root
         self.dwell_detector = dwell_detector
         self.button_commander = button_commander  # For handling button hover events
@@ -19,7 +34,12 @@ class SettingsManager:
         self.load_settings()
     
     def get_settings_path(self):
-        """Get the path to the settings file."""
+        """
+        Get the path to the settings file.
+        
+        Returns:
+            str: Path to the settings JSON file
+        """
         try:
             script_dir = os.path.dirname(os.path.abspath(__file__))
             return os.path.join(script_dir, "dwell_settings.json")
@@ -28,7 +48,12 @@ class SettingsManager:
             return os.path.join(os.getcwd(), "dwell_settings.json")
     
     def load_settings(self):
-        """Load settings from file."""
+        """
+        Load settings from JSON file and apply them to the dwell detector.
+        
+        This method ensures settings are immediately applied to the detector
+        with proper conversion between UI values and internal algorithm values.
+        """
         try:
             settings_file = self.get_settings_path()
             
@@ -39,38 +64,66 @@ class SettingsManager:
                 if 'window_position' in settings:
                     self.window_position = settings['window_position']
                 
-                if 'radius' in settings:
-                    self.dwell_detector.radius = settings['radius']
+                # Handle move_limit (could be stored as radius in older versions)
+                if 'move_limit' in settings:
+                    self.dwell_detector.move_limit = int(settings['move_limit'])
+                    print(f"Applied move_limit: {self.dwell_detector.move_limit}")
+                elif 'radius' in settings:
+                    self.dwell_detector.move_limit = int(settings['radius'])
+                    print(f"Applied radius as move_limit: {self.dwell_detector.move_limit}")
                 
+                # Handle dwell_time with proper conversion to click_time
                 if 'dwell_time' in settings:
-                    self.dwell_detector.dwell_time = settings['dwell_time']
+                    # Store original value in seconds
+                    dwell_time_seconds = float(settings['dwell_time'])
+                    self.dwell_detector.dwell_time = dwell_time_seconds
                     
-                if 'default_active' in settings:
-                    self.default_active = settings['default_active']
+                    # Convert to counter ticks (each tick = 100ms)
+                    self.dwell_detector.click_time = int(dwell_time_seconds / 0.1)
+                    print(f"Applied dwell_time: {dwell_time_seconds}s (click_time: {self.dwell_detector.click_time})")
                 
-                print(f"Settings loaded: {settings}")
+                # Default active setting
+                if 'default_active' in settings:
+                    self.default_active = bool(settings['default_active'])
+                
+                print(f"Settings loaded successfully: {settings}")
             else:
                 # Default position near center of screen
                 screen_width = self.root.winfo_screenwidth()
                 screen_height = self.root.winfo_screenheight()
-                
                 self.window_position = (screen_width // 2 - 150, screen_height // 2 - 25)
+                print("Settings file not found, using defaults")
                 
         except Exception as e:
             print(f"Error loading settings: {e}")
+            # Set fallback defaults if loading fails
+            self.dwell_detector.move_limit = 5
+            self.dwell_detector.dwell_time = 1.0
+            self.dwell_detector.click_time = 10  # 1.0 seconds / 0.1
+            print("Using fallback defaults due to error")
     
     def save_settings(self, window_position=None):
-        """Save all settings to file."""
+        """
+        Save all settings to JSON file.
+        
+        Args:
+            window_position: Optional tuple (x, y) to save as window position,
+                             defaults to current window position
+        """
         try:
             settings_file = self.get_settings_path()
             
             if window_position is None:
                 window_position = (self.root.winfo_x(), self.root.winfo_y())
             
+            # Get the dwell time in seconds, either from stored value or calculated
+            dwell_time = getattr(self.dwell_detector, 'dwell_time', 
+                                 self.dwell_detector.click_time * 0.1)
+            
             settings = {
                 'window_position': window_position,
-                'radius': self.dwell_detector.radius,
-                'dwell_time': self.dwell_detector.dwell_time,
+                'move_limit': self.dwell_detector.move_limit,
+                'dwell_time': dwell_time,
                 'default_active': self.default_active
             }
             
@@ -86,7 +139,12 @@ class SettingsManager:
         self.save_settings((self.root.winfo_x(), self.root.winfo_y()))
     
     def center_window(self, window):
-        """Center a window on the screen."""
+        """
+        Center a window on the screen.
+        
+        Args:
+            window: Tkinter window to center
+        """
         window.update_idletasks()
         
         # Get window size
@@ -105,7 +163,12 @@ class SettingsManager:
         window.geometry(f"+{x}+{y}")
     
     def open_setup(self):
-        """Open the setup dialog if not already open."""
+        """
+        Open the setup dialog if not already open.
+        
+        Creates and displays a settings window with controls for
+        move_limit, dwell_time, and startup state.
+        """
         # Check if setup window is already open
         if self.setup_window is not None and self.setup_window.winfo_exists():
             # Bring it to front
@@ -147,22 +210,23 @@ class SettingsManager:
                               bg='#f0f0f0', fg='#333333')
         title_label.pack(pady=(0, 20))
         
-        # Radius setting with improved styling
-        radius_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        radius_frame.pack(fill=tk.X, pady=8)
+        # Movement threshold setting (how far cursor can move while still considering it a dwell)
+        move_limit_frame = tk.Frame(main_frame, bg='#f0f0f0')
+        move_limit_frame.pack(fill=tk.X, pady=8)
         
-        radius_label = tk.Label(radius_frame, text="Radius (px):", anchor=tk.W, 
-                               font=("Segoe UI", 10), bg='#f0f0f0', fg='#333333',
-                               width=12)
-        radius_label.pack(side=tk.LEFT, padx=(0, 5))
+        move_limit_label = tk.Label(move_limit_frame, text="Move Limit (px):", anchor=tk.W, 
+                             font=("Segoe UI", 10), bg='#f0f0f0', fg='#333333',
+                             width=12)
+        move_limit_label.pack(side=tk.LEFT, padx=(0, 5))
         
-        radius_var = tk.IntVar(value=self.dwell_detector.radius)
+        # Get the current move limit from the detector
+        move_limit_var = tk.IntVar(value=self.dwell_detector.move_limit)
         
-        radius_slider = tk.Scale(
-            radius_frame, 
-            from_=3, 
-            to=20, 
-            variable=radius_var,
+        move_limit_slider = tk.Scale(
+            move_limit_frame, 
+            from_=3,    # Minimum sensitivity (small movement triggers reset)
+            to=20,      # Maximum sensitivity (larger movements allowed while dwelling)
+            variable=move_limit_var,
             orient=tk.HORIZONTAL,
             length=180,
             showvalue=0,
@@ -173,20 +237,20 @@ class SettingsManager:
             troughcolor='#d0d0d0',
             activebackground='#3498db'
         )
-        radius_slider.pack(side=tk.LEFT, padx=5)
+        move_limit_slider.pack(side=tk.LEFT, padx=5)
         
-        # Value label with better styling
-        radius_value = tk.Label(radius_frame, text=str(radius_var.get()), width=3, 
+        # Value label to show current setting
+        move_limit_value = tk.Label(move_limit_frame, text=str(move_limit_var.get()), width=3, 
                                font=("Segoe UI", 10, "bold"), bg='#f0f0f0', fg='#333333')
-        radius_value.pack(side=tk.LEFT, padx=5)
+        move_limit_value.pack(side=tk.LEFT, padx=5)
         
-        # Update radius value when slider moves
-        def update_radius_value(val):
-            radius_value.config(text=str(int(float(val))))
+        # Update value label when slider moves
+        def update_move_limit_value(val):
+            move_limit_value.config(text=str(int(float(val))))
         
-        radius_slider.config(command=update_radius_value)
+        move_limit_slider.config(command=update_move_limit_value)
         
-        # Dwell time setting with improved styling
+        # Dwell time setting (how long cursor must stay in place)
         time_frame = tk.Frame(main_frame, bg='#f0f0f0')
         time_frame.pack(fill=tk.X, pady=8)
         
@@ -195,12 +259,15 @@ class SettingsManager:
                              width=12)
         time_label.pack(side=tk.LEFT, padx=(0, 5))
         
-        time_var = tk.DoubleVar(value=self.dwell_detector.dwell_time)
+        # Get dwell time in seconds from the detector
+        dwell_time_seconds = getattr(self.dwell_detector, 'dwell_time', 
+                                    self.dwell_detector.click_time * 0.1)
+        time_var = tk.DoubleVar(value=dwell_time_seconds)
         
         time_slider = tk.Scale(
             time_frame, 
-            from_=0.1, 
-            to=2.0, 
+            from_=0.1,   # Minimum dwell time (very fast)
+            to=2.0,      # Maximum dwell time (very slow)
             resolution=0.1,
             variable=time_var,
             orient=tk.HORIZONTAL,
@@ -215,7 +282,7 @@ class SettingsManager:
         )
         time_slider.pack(side=tk.LEFT, padx=5)
         
-        # Value label with better styling
+        # Value label for dwell time
         time_value = tk.Label(time_frame, text=f"{time_var.get():.1f}", width=3, 
                              font=("Segoe UI", 10, "bold"), bg='#f0f0f0', fg='#333333')
         time_value.pack(side=tk.LEFT, padx=5)
@@ -246,15 +313,23 @@ class SettingsManager:
         
         # Apply button with improved styling
         def apply_settings():
-            self.dwell_detector.radius = radius_var.get()
-            self.dwell_detector.dwell_time = time_var.get()
+            # Update detector settings from UI values
+            self.dwell_detector.move_limit = move_limit_var.get()
+            
+            # Convert dwell time from seconds (UI) to counter ticks (internal)
+            dwell_time_seconds = time_var.get()
+            self.dwell_detector.click_time = int(dwell_time_seconds / 0.1)
+            
+            # Store original time value for UI representation and saving
+            self.dwell_detector.dwell_time = dwell_time_seconds
+            
             self.default_active = active_var.get()
             
             # Save settings
             self.save_settings()
             
-            print(f"Settings applied - Radius: {self.dwell_detector.radius}, "
-                f"Dwell Time: {self.dwell_detector.dwell_time}, "
+            print(f"Settings applied - Move Limit: {self.dwell_detector.move_limit}, "
+                f"Dwell Time: {self.dwell_detector.dwell_time}s, "
                 f"Default Active: {self.default_active}")
                 
             self.setup_window.destroy()
@@ -310,23 +385,14 @@ class SettingsManager:
         version_label.pack(side=tk.RIGHT, pady=(5, 0))
         
         # Update initial values
-        update_radius_value(radius_var.get())
+        update_move_limit_value(move_limit_var.get())
         update_time_value(time_var.get())
         
         # First update to calculate geometry
         self.setup_window.update_idletasks()
         
         # Center the window on screen
-        width = self.setup_window.winfo_width()
-        height = self.setup_window.winfo_height()
-        
-        screen_width = self.setup_window.winfo_screenwidth()
-        screen_height = self.setup_window.winfo_screenheight()
-        
-        x = (screen_width - width) // 2
-        y = (screen_height - height) // 2
-        
-        self.setup_window.geometry(f"{width}x{height}+{x}+{y}")
+        self.center_window(self.setup_window)
         
         # Now make the window visible
         self.setup_window.deiconify()

@@ -88,6 +88,17 @@ class DwellClickerUI:
         self.root.overrideredirect(True)
         self.root.attributes('-topmost', True)  # Always on top
         
+        # Add this code to periodically lift the window to the top; keeps it on top
+        # even over other windows
+        def keep_on_top():
+            self.root.lift()
+            self.root.attributes('-topmost', True)
+            # Schedule the function to run again after 100ms
+            self.root.after(100, keep_on_top)
+        
+        # Start the keep_on_top loop
+        keep_on_top()
+        
         # Create main frame with slightly more padding for height
         self.main_frame = ttk.Frame(self.root, padding=(0, 2))
         self.main_frame.pack(fill=tk.BOTH, expand=True)
@@ -205,45 +216,52 @@ class DwellClickerUI:
         print(f"Hovering over: {button_id}")
     
     def on_button_leave(self, button_id):
-        """Handle when mouse leaves a button."""
+        """
+        Handle when mouse leaves a button.
+        
+        Restores the appropriate button color based on its current state
+        (active, default, temporary, etc.)
+        """
         # Clear the hover button if it's this one
         if self.current_hover_button == button_id:
             self.current_hover_button = None
         
         # Remove highlight unless it's the selected mode
         if button_id in self.buttons:
-            # Instead of using state(), restore the appropriate color based on the button type
             button = self.buttons[button_id]
             
-            # Restore appropriate background based on button role and state
+            # Restore the appropriate background based on button role and state
             if button_id == "ON_OFF":
-                if self.is_active:
-                    button.config(bg='#2ecc71')
-                else:
-                    button.config(bg='#bdc3c7')
+                # ON/OFF button
+                button.config(bg='#2ecc71' if self.is_active else '#bdc3c7')
             
             elif button_id in ["LEFT", "DOUBLE", "DRAG", "RIGHT"]:
+                # Mode buttons - need to check if permanent or temporary
                 if button_id == self.current_mode:
                     if self.is_temporary_mode:
-                        button.config(bg='#e74c3c')  # Red for temporary
+                        # Temporary current mode - red
+                        button.config(bg='#e74c3c')
                     else:
-                        button.config(bg='#3498db')  # Blue for default
+                        # Permanent current mode - blue
+                        button.config(bg='#3498db')
+                elif button_id == self.default_mode:
+                    # Default mode (but not current) - blue
+                    button.config(bg='#3498db')
                 else:
-                    button.config(bg='#f0f0f0')  # Light gray for inactive
+                    # Inactive mode - light gray
+                    button.config(bg='#f0f0f0')
             
             elif button_id == "MOVE":
-                if self.move_mode:
-                    button.config(bg='#9b59b6')
-                else:
-                    button.config(bg='#bdc3c7')
+                # Move button
+                button.config(bg='#9b59b6' if self.move_mode else '#bdc3c7')
             
             elif button_id == "SETUP":
+                # Setup button
                 button.config(bg='#bdc3c7' if self.is_active else '#95a5a6')
             
             elif button_id == "EXIT":
+                # Exit button
                 button.config(bg='#e74c3c' if self.is_active else '#95a5a6')
-
-        print(f"Left button: {button_id}")
     
     def update_button_states(self):
         """Update button appearances to show temporary vs default modes."""
@@ -294,19 +312,30 @@ class DwellClickerUI:
             print("Dwell Clicker deactivated")
     
     def set_mode(self, mode):
-        """Set click mode with temporary/default behavior."""
+        """
+        Set click mode with improved temporary/default behavior.
+        
+        Logic:
+        - If selecting a different mode than current, it becomes temporary (red)
+        - If selecting a temporary mode again, it becomes permanent (blue)
+        - If selecting a permanent mode again, it stays permanent (no change)
+        """
         current_time = time.time()
         
-        # Check if this is a double selection (same mode within 3 seconds)
-        if (mode == self.last_mode_selection and 
-                current_time - self.last_selection_time < 3.0):
-            # Double selection - set as default mode
-            self.default_mode = mode
-            self.current_mode = mode
-            self.is_temporary_mode = False
-            print(f"Mode set to: {mode} (DEFAULT)")
+        # If selecting the current mode...
+        if mode == self.current_mode:
+            # If it's already permanent, do nothing (keep it permanent)
+            if not self.is_temporary_mode:
+                print(f"Mode {mode} is already the permanent default - ignoring")
+                return
+                
+            # If it's temporary, make it permanent
+            if self.is_temporary_mode:
+                self.default_mode = mode
+                self.is_temporary_mode = False
+                print(f"Mode set to: {mode} (DEFAULT/PERMANENT)")
         else:
-            # Single selection - set as temporary mode
+            # Selecting a different mode - make it temporary
             self.current_mode = mode
             self.is_temporary_mode = True
             print(f"Mode set to: {mode} (TEMPORARY)")
@@ -318,7 +347,7 @@ class DwellClickerUI:
         # Reset any active drag state
         self.drag_state = None
         
-        # Update UI
+        # Update UI to reflect new state
         self.update_button_states()
     
     def toggle_move_mode(self):
