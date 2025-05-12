@@ -1,6 +1,7 @@
 import tkinter as tk
 import json
 import os
+import sys
 
 class SettingsManager:
     """
@@ -34,18 +35,20 @@ class SettingsManager:
         self.load_settings()
     
     def get_settings_path(self):
-        """
-        Get the path to the settings file.
-        
-        Returns:
-            str: Path to the settings JSON file
-        """
+        """Get the path to the settings file."""
         try:
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            return os.path.join(script_dir, "dwell_settings.json")
-        except:
-            # Fallback to current working directory
-            return os.path.join(os.getcwd(), "dwell_settings.json")
+            # Get the base directory (works in both dev and PyInstaller)
+            if getattr(sys, 'frozen', False):
+                # PyInstaller creates a temp folder and stores path in _MEIPASS
+                base_dir = os.path.dirname(sys.executable)
+            else:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                
+            # Create a settings file in the same directory as the executable/script
+            return os.path.join(base_dir, "dwell_settings.json")
+        except Exception as e:
+            print(f"Error determining settings path: {e}")
+            return "dwell_settings.json"  # Fallback to current directory
     
     def load_settings(self):
         """

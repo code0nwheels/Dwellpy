@@ -150,9 +150,10 @@ class DwellClickerUI:
     
     def create_button(self, text, color, button_id):
         """Create a styled button with hover behavior."""
-        # Create a frame with the background color
-        frame = tk.Frame(self.button_frame, bg=color, bd=1)
+        # Create a frame with the background color and fixed pixel dimensions
+        frame = tk.Frame(self.button_frame, bg=color, bd=1, width=45, height=50)
         frame.pack(side=tk.LEFT, padx=1, fill=tk.Y)
+        frame.pack_propagate(False)  # Force frame to keep specified dimensions
         
         # Store frame for color changes
         self.button_frames[button_id] = frame
@@ -161,32 +162,23 @@ class DwellClickerUI:
         button = tk.Button(
             frame,
             text=text,
-            width=6,
-            font=("Segoe UI", 10),
+            font=("Segoe UI", 10),  # Smaller font to fit in tiny button
             bg='#3498db' if color == 'lightblue' else color,
             fg='white' if color in ['lightblue', 'green', 'salmon'] else '#333333',
             activebackground='#2980b9' if color == 'lightblue' else color,
             activeforeground='white' if color in ['lightblue', 'green', 'salmon'] else '#333333',
             relief=tk.FLAT,
-            padx=2,
-            pady=5,
-            cursor="hand2"
+            padx=0,
+            pady=0,
+            cursor="hand2",
+            command=lambda b=button_id: self.button_commands.get(b, lambda: None)()
         )
-        button.pack(padx=0, pady=0, fill=tk.BOTH, expand=True)
+        
+        # Fill the entire frame
+        button.pack(fill=tk.BOTH, expand=True)
         
         # Store button_id as an attribute of the button
         button.button_id = button_id
-        
-        # Bind hover enter event
-        def on_hover_enter(event, bid=button_id):
-            self.on_button_hover(bid)
-        
-        # Bind hover leave event
-        def on_hover_leave(event, bid=button_id):
-            self.on_button_leave(bid)
-        
-        button.bind('<Enter>', on_hover_enter)
-        button.bind('<Leave>', on_hover_leave)
         
         return button
     
@@ -216,12 +208,7 @@ class DwellClickerUI:
         print(f"Hovering over: {button_id}")
     
     def on_button_leave(self, button_id):
-        """
-        Handle when mouse leaves a button.
-        
-        Restores the appropriate button color based on its current state
-        (active, default, temporary, etc.)
-        """
+        """Handle when mouse leaves a button."""
         # Clear the hover button if it's this one
         if self.current_hover_button == button_id:
             self.current_hover_button = None
@@ -235,7 +222,7 @@ class DwellClickerUI:
                 # ON/OFF button
                 button.config(bg='#2ecc71' if self.is_active else '#bdc3c7')
             
-            elif button_id in ["LEFT", "DOUBLE", "DRAG", "RIGHT"]:
+            elif button_id in ["LEFT", "DOUBLE", "DRAG", "RIGHT", "MOVE"]:  # Added MOVE
                 # Mode buttons - need to check if permanent or temporary
                 if button_id == self.current_mode:
                     if self.is_temporary_mode:
@@ -251,10 +238,6 @@ class DwellClickerUI:
                     # Inactive mode - light gray
                     button.config(bg='#f0f0f0')
             
-            elif button_id == "MOVE":
-                # Move button
-                button.config(bg='#9b59b6' if self.move_mode else '#bdc3c7')
-            
             elif button_id == "SETUP":
                 # Setup button
                 button.config(bg='#bdc3c7' if self.is_active else '#95a5a6')
@@ -266,7 +249,7 @@ class DwellClickerUI:
     def update_button_states(self):
         """Update button appearances to show temporary vs default modes."""
         # Reset all click type buttons
-        for button_name in ["LEFT", "DOUBLE", "DRAG", "RIGHT"]:
+        for button_name in ["LEFT", "DOUBLE", "DRAG", "RIGHT", "MOVE"]:  # Added MOVE to the list
             # Get the button
             button = self.buttons[button_name]
             
@@ -289,12 +272,6 @@ class DwellClickerUI:
         else:
             self.buttons["ON_OFF"].config(bg='#bdc3c7', fg='#333333', activebackground='#95a5a6', activeforeground='#333333')
         
-        # Update MOVE button if in move mode
-        if self.move_mode:
-            self.buttons["MOVE"].config(bg='#9b59b6', fg='white', activebackground='#8e44ad', activeforeground='white')
-        else:
-            self.buttons["MOVE"].config(bg='#bdc3c7', fg='#333333', activebackground='#95a5a6', activeforeground='#333333')
-            
         # Style SETUP and EXIT buttons
         self.buttons["SETUP"].config(bg='#bdc3c7' if self.is_active else '#95a5a6', 
                                     fg='#333333' if self.is_active else '#555555')
@@ -351,35 +328,15 @@ class DwellClickerUI:
         self.update_button_states()
     
     def toggle_move_mode(self):
-        """Toggle window move mode - make window follow cursor until next click."""
+        """Toggle to move mode which uses drag operations to move window."""
         # Don't allow move mode when clicker is off
         if not self.is_active:
             print("Move mode not available when clicker is off")
             return
             
-        self.move_mode = not self.move_mode
-        self.update_button_states()
-        
-        if self.move_mode:
-            print("Move mode activated - UI will follow cursor until next click")
-            # Start the move tracking thread
-            self.move_thread_running = True
-            self.move_tracking_thread = threading.Thread(target=self.track_cursor)
-            self.move_tracking_thread.daemon = True
-            self.move_tracking_thread.start()
-            
-            # Update reference in exit manager
-            if self.exit_manager:
-                self.exit_manager.set_move_thread(self.move_tracking_thread, self.move_thread_running)
-        else:
-            # Stop the move tracking thread
-            self.move_thread_running = False
-            if self.move_tracking_thread:
-                self.move_tracking_thread.join(timeout=1.0)
-            print("Move mode deactivated")
-            # Save the position
-            if self.settings_manager:
-                self.settings_manager.save_window_position()
+        # Simply set the current mode to MOVE - the drag handler will do the rest
+        self.set_mode("MOVE")
+        print("MOVE mode activated - Use two dwells to drag the window")
     
     def track_cursor(self):
         """Track cursor position in a separate thread and update window position."""
@@ -421,37 +378,30 @@ class DwellClickerUI:
                 self.button_commands[self.current_hover_button]()
                 return
         
-        # If in move mode, exit move mode when dwell is detected (click)
-        if self.move_mode:
-            self.move_mode = False
-            self.move_thread_running = False
-            if self.move_tracking_thread:
-                self.move_tracking_thread.join(timeout=1.0)
-            self.update_button_states()
-            if self.settings_manager:
-                self.settings_manager.save_window_position()
-            print("Move mode deactivated by dwell")
-            return
-            
         # Otherwise process normal click modes if active
         if not self.is_active:
             return
         
         print(f"Processing dwell in {self.current_mode} mode")
         
-        # Perform the appropriate click action
+        # Handle DRAG and MOVE modes
+        if self.current_mode == "DRAG" or self.current_mode == "MOVE":
+            self.handle_drag(center)
+            # Start position updates if this is the first dwell in move mode
+            if self.current_mode == "MOVE" and self.drag_state == "down":
+                self.update_window_position()
+            return  # Don't reset temporary mode for drag/move operations
+        
+        # Perform the appropriate click action for other modes
         if self.current_mode == "LEFT":
             self.click_manager.perform_left_click(center)
         elif self.current_mode == "RIGHT":
             self.click_manager.perform_right_click(center)
         elif self.current_mode == "DOUBLE":
             self.click_manager.perform_double_click(center)
-        elif self.current_mode == "DRAG":
-            self.handle_drag(center)
-            return  # Don't reset temporary mode for drag operations
         
         # If this was a temporary mode, switch back to default
-        if self.is_temporary_mode and self.current_mode != "DRAG":
+        if self.is_temporary_mode:
             self.current_mode = self.default_mode
             self.is_temporary_mode = False
             print(f"Returned to default mode: {self.default_mode}")
@@ -459,30 +409,91 @@ class DwellClickerUI:
     
     def handle_drag(self, center):
         """Handle drag operations that require two dwells."""
-        import pyautogui
         
+        # Check if we're in MOVE mode
+        if self.current_mode == "MOVE":
+            if self.drag_state is None:
+                # First dwell - mouse down and capture initial positions
+                self.drag_start_pos = center  # Store the starting position
+                self.window_start_pos = (self.root.winfo_x(), self.root.winfo_y())
+                self.drag_state = "down"
+                print("Window MOVE started at", center)
+                
+            elif self.drag_state == "down":
+                # Second dwell - finish the move
+                self.drag_state = None
+                print("Window MOVE ended at", center)
+                
+                # After completing move, switch back to default if temporary
+                if self.is_temporary_mode:
+                    self.current_mode = self.default_mode
+                    self.is_temporary_mode = False
+                    print(f"Move completed, returned to default mode: {self.default_mode}")
+                    
+                # Save the new window position
+                if self.settings_manager:
+                    self.settings_manager.save_window_position()
+                    
+            self.update_button_states()
+            return
+            
+        # Regular drag operation for mouse
         if self.drag_state is None:
             # First dwell - mouse down
-            pyautogui.FAILSAFE = False
-            pyautogui.mouseDown()
-            pyautogui.FAILSAFE = True
+            success = self.click_manager.mouse_down()
             
-            self.drag_state = "down"
-            print("Mouse DOWN at", center)
-            
+            if success:
+                self.drag_state = "down"
+                print("Mouse DOWN at", center)
+        
         elif self.drag_state == "down":
             # Second dwell - mouse up
-            pyautogui.FAILSAFE = False
-            pyautogui.mouseUp()
-            pyautogui.FAILSAFE = True
+            success = self.click_manager.mouse_up()
             
-            self.drag_state = None
-            print("Mouse UP at", center)
-            
-            # After completing drag, switch back to default if temporary
-            if self.is_temporary_mode:
-                self.current_mode = self.default_mode
-                self.is_temporary_mode = False
-                print(f"Drag completed, returned to default mode: {self.default_mode}")
+            if success:
+                self.drag_state = None
+                print("Mouse UP at", center)
+                
+                # After completing drag, switch back to default if temporary
+                if self.is_temporary_mode:
+                    self.current_mode = self.default_mode
+                    self.is_temporary_mode = False
+                    print(f"Drag completed, returned to default mode: {self.default_mode}")
         
         self.update_button_states()
+    
+    def update_window_position(self):
+        """Update window position during drag move operation with bounds checking."""
+        if self.current_mode == "MOVE" and self.drag_state == "down":
+            try:
+                # Get current mouse position
+                x, y = pyautogui.position()
+                
+                # Calculate delta from drag start
+                dx = x - self.drag_start_pos[0]
+                dy = y - self.drag_start_pos[1]
+                
+                # Calculate new window position
+                new_x = self.window_start_pos[0] + dx
+                new_y = self.window_start_pos[1] + dy
+                
+                # Get screen dimensions
+                screen_width = self.root.winfo_screenwidth()
+                screen_height = self.root.winfo_screenheight()
+                
+                # Get window dimensions
+                window_width = self.root.winfo_width()
+                window_height = self.root.winfo_height()
+                
+                # Ensure window stays on screen
+                new_x = max(0, min(new_x, screen_width - window_width))
+                new_y = max(0, min(new_y, screen_height - window_height))
+                
+                # Update window position
+                self.root.geometry(f"+{new_x}+{new_y}")
+                
+            except Exception as e:
+                print(f"Error updating window position: {e}")
+            
+            # Schedule next update if still in drag mode
+            self.root.after(10, self.update_window_position)

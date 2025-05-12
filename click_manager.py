@@ -189,3 +189,46 @@ class ClickManager:
             if not self.use_sendinput:
                 pyautogui.FAILSAFE = self.original_failsafe
             return False
+
+    def mouse_down(self):
+        """Press and hold the left mouse button."""
+        try:
+            if self.use_sendinput:
+                # Use Windows SendInput for better responsiveness
+                self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
+            else:
+                # Use PyAutoGUI for non-Windows platforms
+                pyautogui.FAILSAFE = False
+                pyautogui.mouseDown()
+                pyautogui.FAILSAFE = self.original_failsafe
+            
+            self.last_click_time = time.time()
+            if self.debug_mode:
+                print(f"MOUSE DOWN at {pyautogui.position()}")
+            return True
+        except Exception as e:
+            print(f"Error in mouse down: {e}")
+            if not self.use_sendinput:
+                pyautogui.FAILSAFE = self.original_failsafe
+            return False
+
+    def mouse_up(self):
+        """Release the left mouse button."""
+        try:
+            if self.use_sendinput:
+                # Use Windows SendInput for better responsiveness
+                self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
+            else:
+                # Use PyAutoGUI for non-Windows platforms
+                pyautogui.FAILSAFE = False
+                pyautogui.mouseUp()
+                pyautogui.FAILSAFE = self.original_failsafe
+            
+            if self.debug_mode:
+                print(f"MOUSE UP at {pyautogui.position()}")
+            return True
+        except Exception as e:
+            print(f"Error in mouse up: {e}")
+            if not self.use_sendinput:
+                pyautogui.FAILSAFE = self.original_failsafe
+            return False

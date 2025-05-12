@@ -32,6 +32,9 @@ class DwellClicker:
         # Initialize UI first without managers
         self.ui = DwellClickerUI(self.root, self.click_manager, self.detector, self)
         
+        # Force reconnect button commands after UI initialization
+        self.button_commands = self.ui.button_commands
+        
         # Initialize managers
         self.settings_manager = SettingsManager(self.root, self.detector, self)
         self.exit_manager = ExitManager(self.root, self.settings_manager, self)
