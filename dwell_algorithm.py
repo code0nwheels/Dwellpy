@@ -16,6 +16,8 @@ class DwellDetector:
         self.last_position = None        # Last recorded mouse position
         self.dwell_counter = 0           # Counter that tracks how long cursor has been dwelling
         self.debug_mode = False          # Enable/disable debug output
+        self.waiting_for_exit = False    # Track if we're waiting for cursor to leave radius
+        self.last_dwell_point = None     # Last position where dwell was detected
     
     def add_position(self, position):
         """
@@ -80,3 +82,49 @@ class DwellDetector:
             return True, self.last_position
             
         return False, None
+
+    def calculate_distance(self, position1, position2):
+        """
+        Calculate the Euclidean distance between two positions.
+        
+        Args:
+            position1: Tuple (x, y) representing the first position.
+            position2: Tuple (x, y) representing the second position.
+        
+        Returns:
+            float: The Euclidean distance between the two positions.
+        """
+        dx = position1[0] - position2[0]
+        dy = position1[1] - position2[1]
+        return (dx ** 2 + dy ** 2) ** 0.5
+
+    def update(self, current_position):
+        """
+        Update the dwell detection logic with the current cursor position.
+        
+        Args:
+            current_position: Tuple (x, y) representing the current cursor position.
+        
+        Returns:
+            bool: True if a dwell action is detected, False otherwise.
+        """
+        # If we're waiting for cursor to exit radius
+        if self.waiting_for_exit:
+            # Check if cursor has moved outside previous dwell point
+            distance = self.calculate_distance(current_position, self.last_dwell_point)
+            if distance > self.move_limit:
+                # Reset the waiting flag when cursor leaves radius
+                self.waiting_for_exit = False
+            return False  # Don't trigger clicks while waiting for exit
+        
+        # Regular dwell detection logic
+        self.add_position(current_position)
+        dwell_detected, position = self.check_dwell()
+        
+        # When dwell is detected and click performed:
+        if dwell_detected:
+            self.last_dwell_point = current_position
+            self.waiting_for_exit = True  # Set flag to wait for cursor to exit radius
+            return True
+        
+        return False
