@@ -42,17 +42,23 @@ class DwellClickerUI:
         # Store original button frames for color changes
         self.button_frames = {}
         
+        # Window moving variables
+        self.is_dragging = False
+        self.drag_start_x = 0
+        self.drag_start_y = 0
+        self.window_start_x = 0
+        self.window_start_y = 0
+        
         # UI setup
         self.setup_ui()
         
-        # Button commands dictionary for hover clicks
+        # Button commands dictionary - these execute on physical click only
         self.button_commands = {
             "ON_OFF": self.toggle_active,
             "LEFT": lambda: self.set_mode("LEFT"),
             "DOUBLE": lambda: self.set_mode("DOUBLE"),
             "DRAG": lambda: self.set_mode("DRAG"),
             "RIGHT": lambda: self.set_mode("RIGHT"),
-            "MOVE": self.toggle_move_mode,
             # SETUP and EXIT will be set later
         }
         
@@ -169,10 +175,16 @@ class DwellClickerUI:
             activeforeground='white' if color in ['lightblue', 'green', 'salmon'] else '#333333',
             relief=tk.FLAT,
             padx=0,
-            pady=0,
-            cursor="hand2",
-            command=lambda b=button_id: self.button_commands.get(b, lambda: None)()
+            pady=0
         )
+        
+        # Add command for all buttons except MOVE
+        if button_id != "MOVE":
+            # Only allow certain buttons when clicker is off
+            button.config(command=lambda b=button_id: self.on_button_click(b))
+        else:
+            # Special handling for MOVE button - bind press/drag events directly
+            button.bind("<ButtonPress-1>", self.start_drag)
         
         # Fill the entire frame
         button.pack(fill=tk.BOTH, expand=True)
@@ -180,105 +192,95 @@ class DwellClickerUI:
         # Store button_id as an attribute of the button
         button.button_id = button_id
         
-        # Add special bindings for the MOVE button
-        if button_id == "MOVE":
-            button.bind("<ButtonPress-1>", self._start_window_move)
-            button.bind("<ButtonRelease-1>", self._stop_window_move)
-            # Prevent normal click from firing
-            button.config(command=lambda: None)
+        # Add hover event bindings for all buttons (for visual feedback and dwell tracking)
+        button.bind("<Enter>", lambda event, b=button_id: self.on_button_hover(b))
+        button.bind("<Leave>", lambda event, b=button_id: self.on_button_leave(b))
         
         return button
+    
+    def on_button_click(self, button_id):
+        """Handle physical clicks on buttons."""
+        # For ON/OFF button, always allow regardless of active state
+        if button_id == "ON_OFF":
+            self.toggle_active()
+            return
+            
+        # Don't allow other buttons if clicker is off
+        if not self.is_active and button_id not in ["ON_OFF"]:
+            print(f"Button {button_id} disabled when clicker is off")
+            return
+            
+        # Execute the appropriate command
+        if button_id in self.button_commands:
+            print(f"Button clicked: {button_id}")
+            self.button_commands[button_id]()
 
-    def _start_window_move(self, event):
-        """Start moving the window when mouse is pressed on MOVE button."""
-        # Only allow move when clicker is active
+    def start_drag(self, event):
+        """Start the drag operation when MOVE button is clicked."""
         if not self.is_active:
             print("Move mode not available when clicker is off")
             return
+
+        # Mark that we're dragging
+        self.is_dragging = True
         
-        # Change button appearance to indicate active state
+        # Highlight button to show it's active
         self.buttons["MOVE"].config(bg='#e74c3c', fg='white')
         
-        # Record initial mouse and window positions
+        # Store initial positions
         self.drag_start_x = event.x_root
         self.drag_start_y = event.y_root
         self.window_start_x = self.root.winfo_x()
         self.window_start_y = self.root.winfo_y()
         
-        # Flag to indicate we're in move mode
-        self.move_mode = True
+        # Bind motion and release events TO THE ENTIRE ROOT WINDOW
+        # This is critical - when dragging, the mouse will move outside the button
+        self.root.bind("<B1-Motion>", self.update_drag_position)
+        self.root.bind("<ButtonRelease-1>", self.stop_drag)
         
-        # Start tracking mouse motion
-        self.root.bind("<Motion>", self._update_window_position)
-        
-        print("Window move started")
+        print("Window drag started")
 
-    def _stop_window_move(self, event):
-        """Stop moving the window when mouse button is released."""
-        # Only process if we're actually in move mode
-        if not self.move_mode:
+    def update_drag_position(self, event):
+        """Update window position during drag."""
+        if not self.is_dragging:
             return
+            
+        # Calculate movement delta
+        dx = event.x_root - self.drag_start_x
+        dy = event.y_root - self.drag_start_y
         
-        # Reset move mode
-        self.move_mode = False
+        # Calculate new position
+        new_x = self.window_start_x + dx
+        new_y = self.window_start_y + dy
+        
+        # Move the window
+        self.root.geometry(f"+{new_x}+{new_y}")
+
+    def stop_drag(self, event):
+        """Stop the drag operation when mouse is released."""
+        if not self.is_dragging:
+            return
+            
+        # Reset drag flag
+        self.is_dragging = False
+        
+        # Unbind events from root window
+        self.root.unbind("<B1-Motion>")
+        self.root.unbind("<ButtonRelease-1>")
         
         # Restore button appearance
         self.update_button_states()
         
-        # Stop tracking mouse motion
-        self.root.unbind("<Motion>")
-        
-        # Save the new window position
+        # Save the new position
         if self.settings_manager:
             self.settings_manager.save_window_position()
-        
-        print("Window move completed")
-
-    def _update_window_position(self, event):
-        """Update window position during drag move operation with bounds checking."""
-        if self.move_mode:
-            try:
-                # Calculate the offset from the drag start position
-                dx = event.x_root - self.drag_start_x
-                dy = event.y_root - self.drag_start_y
-                
-                # Calculate new window position
-                new_x = self.window_start_x + dx
-                new_y = self.window_start_y + dy
-                
-                # Get screen dimensions
-                screen_width = self.root.winfo_screenwidth()
-                screen_height = self.root.winfo_screenheight()
-                
-                # Get window dimensions
-                window_width = self.root.winfo_width()
-                window_height = self.root.winfo_height()
-                
-                # Ensure window stays on screen
-                new_x = max(0, min(new_x, screen_width - window_width))
-                new_y = max(0, min(new_y, screen_height - window_height))
-                
-                # Update window position
-                self.root.geometry(f"+{new_x}+{new_y}")
-                
-            except Exception as e:
-                print(f"Error updating window position: {e}")
-
-    # This method can be simplified since direct dragging is now implemented
-    def toggle_move_mode(self):
-        """Legacy method kept for compatibility."""
-        # The actual move functionality is now handled by direct button dragging
-        print("Move functionality is now handled by clicking and dragging the MOVE button")
+            
+        print("Window drag completed")
 
     def on_button_hover(self, button_id):
-        """Handle when mouse hovers over a button."""
+        """Handle when mouse hovers over a button - visual feedback only."""
         # Store the current hover button
         self.current_hover_button = button_id
-        
-        # Don't activate SETUP, MOVE or EXIT buttons when clicker is off
-        if not self.is_active and button_id in ["SETUP", "MOVE", "EXIT"]:
-            print(f"Button {button_id} disabled when clicker is off")
-            return
         
         # Highlight the button visually by making it slightly darker
         if button_id in self.buttons:
@@ -292,15 +294,21 @@ class DwellClickerUI:
                 button.config(bg='#c0392b')
             elif current_bg == '#2ecc71':  # Green button
                 button.config(bg='#27ae60')
+            elif button_id == "ON_OFF" and current_bg == '#bdc3c7':  # OFF state
+                button.config(bg='#95a5a6')  # Darker gray when hovering
                 
         print(f"Hovering over: {button_id}")
     
     def on_button_leave(self, button_id):
-        """Handle when mouse leaves a button."""
+        """Handle when mouse leaves a button - visual feedback only."""
         # Clear the hover button if it's this one
         if self.current_hover_button == button_id:
             self.current_hover_button = None
         
+        # Don't clear MOVE button hover status while dragging
+        if button_id == "MOVE" and self.is_dragging:
+            return
+            
         # Remove highlight unless it's the selected mode
         if button_id in self.buttons:
             button = self.buttons[button_id]
@@ -416,22 +424,43 @@ class DwellClickerUI:
         self.update_button_states()
     
     def process_dwell_event(self, center):
-        """Process a dwell event with temporary mode support."""
-        # First check if we're hovering over a UI button and activate it if so
+        """
+        Process a dwell event with selective button handling.
+        
+        Implements the following rules:
+        1. When active (ON/OFF=on), override current click method with left click on all buttons except MOVE
+        2. When deactivated, only the ON/OFF button responds to dwell
+        """
+        # Check if we're hovering over a button
         if self.current_hover_button is not None:
-            print(f"Activating button: {self.current_hover_button}")
+            button_id = self.current_hover_button
+            print(f"Dwell detected on button: {button_id}")
             
-            # Don't activate SETUP, MOVE or EXIT buttons when clicker is off
-            if not self.is_active and self.current_hover_button in ["SETUP", "MOVE", "EXIT"]:
-                print(f"Button {self.current_hover_button} not available when clicker is off")
+            # Always allow ON/OFF button to be toggled regardless of active state
+            if button_id == "ON_OFF":
+                print("Toggling ON/OFF via dwell")
+                self.toggle_active()
                 return
                 
-            # Call the appropriate command for the button
-            if self.current_hover_button in self.button_commands:
-                self.button_commands[self.current_hover_button]()
+            # For all other buttons (except MOVE), only act if clicker is active
+            if self.is_active and button_id != "MOVE":
+                # Override with left click for all buttons except MOVE
+                print(f"Performing left click on {button_id}")
+                self.click_manager.perform_left_click()
+                return
+            
+            """# Special case - don't respond to dwells on MOVE button
+            if button_id == "MOVE":
+                print("MOVE button ignored for dwell events")
+                return"""
+                
+            # If clicker is inactive, don't process other buttons
+            if not self.is_active:
+                print(f"Button {button_id} ignored - clicker not active")
                 return
         
-        # Otherwise process normal click modes if active
+        # No button detected or button handling complete, process normal dwell clicks
+        # Only process if clicker is active
         if not self.is_active:
             return
         

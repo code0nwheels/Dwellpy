@@ -81,10 +81,8 @@ class ClickManager:
             
         try:
             if self.use_sendinput:
-                # Use Windows SendInput - MUCH faster delay for better responsiveness
-                self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
-                time.sleep(0.02)  # Reduced from 0.1 to 0.02 seconds (20ms)
-                self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
+                # Use Windows SendInput
+                self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN + MOUSEEVENTF_LEFTUP)
             else:
                 # Use PyAutoGUI for non-Windows platforms
                 pyautogui.FAILSAFE = False
@@ -113,10 +111,8 @@ class ClickManager:
             
         try:
             if self.use_sendinput:
-                # Use Windows SendInput with faster timing
-                self._send_mouse_event_windows(MOUSEEVENTF_RIGHTDOWN)
-                time.sleep(0.02)  # Reduced from 0.1 to 0.02 seconds (20ms)
-                self._send_mouse_event_windows(MOUSEEVENTF_RIGHTUP)
+                # Use Windows SendInput
+                self._send_mouse_event_windows(MOUSEEVENTF_RIGHTDOWN + MOUSEEVENTF_RIGHTUP)
             else:
                 # Use PyAutoGUI for non-Windows platforms
                 pyautogui.FAILSAFE = False
@@ -141,7 +137,7 @@ class ClickManager:
                 # Use Windows SendInput for double click with proper timing
                 # First click
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
-                time.sleep(0.02)  # Faster down-up (20ms)
+                time.sleep(0.002)  # Faster down-up (20ms)
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
                 
                 # Brief pause between clicks (keep this a bit longer)
@@ -149,7 +145,7 @@ class ClickManager:
                 
                 # Second click
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTDOWN)
-                time.sleep(0.02)  # Faster down-up (20ms)
+                time.sleep(0.002)  # Faster down-up (20ms)
                 self._send_mouse_event_windows(MOUSEEVENTF_LEFTUP)
             else:
                 # Use PyAutoGUI for non-Windows platforms
@@ -173,9 +169,7 @@ class ClickManager:
         try:
             if self.use_sendinput:
                 # Use Windows SendInput
-                self._send_mouse_event_windows(MOUSEEVENTF_MIDDLEDOWN)
-                time.sleep(0.1)  # Add small delay between down and up
-                self._send_mouse_event_windows(MOUSEEVENTF_MIDDLEUP)
+                self._send_mouse_event_windows(MOUSEEVENTF_MIDDLEDOWN + MOUSEEVENTF_MIDDLEUP)
             else:
                 # Use PyAutoGUI for non-Windows platforms
                 pyautogui.FAILSAFE = False
