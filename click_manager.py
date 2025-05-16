@@ -42,6 +42,8 @@ class ClickManager:
         self.min_click_interval = min_click_interval
         self.last_click_time = 0
         self.debug_mode = False
+        self.last_click_position = (0, 0)  # Track position of last click
+        self.min_move_distance = 10  # Minimum pixels to move before allowing another click
         
         # Store the original failsafe setting so we can restore it later
         self.original_failsafe = pyautogui.FAILSAFE
@@ -54,16 +56,27 @@ class ClickManager:
             self.SendInput = ctypes.windll.user32.SendInput
             self.SendInput.argtypes = (ctypes.c_uint, ctypes.POINTER(INPUT), ctypes.c_int)
             self.SendInput.restype = ctypes.c_uint
-        
+    
     def can_click(self):
-        """Check if enough time has passed since last click."""
-        current_time = time.time()
-        time_since_last = current_time - self.last_click_time
-        can_click = time_since_last >= self.min_click_interval
+        """
+        Check if a click can be performed based on movement distance.
+        Block additional clicks until the cursor moves outside the radius from the last click position.
+        """
+        current_position = pyautogui.position()
+        
+        # Calculate how far we've moved from the last click position
+        dx = current_position.x - self.last_click_position[0]
+        dy = current_position.y - self.last_click_position[1]
+        distance = (dx**2 + dy**2)**0.5  # Euclidean distance
+        
+        # Allow click only if:
+        # 1. This is the first click ever (last_click_time == 0)
+        # 2. The cursor has moved outside the minimum distance
+        can_click = distance >= self.min_move_distance or self.last_click_time == 0
         
         if not can_click and self.debug_mode:
-            print(f"Click blocked: only {time_since_last:.2f}s since last click")
-            
+            print(f"Click blocked: only moved {distance:.1f}px from last click position")
+        
         return can_click
     
     def _send_mouse_event_windows(self, flags):
@@ -78,6 +91,8 @@ class ClickManager:
         """Perform a left mouse click at the CURRENT mouse position safely."""
         if not self.can_click():
             return False
+        
+        print(f"Performing left click at {pyautogui.position()}")
             
         try:
             if self.use_sendinput:
@@ -90,6 +105,7 @@ class ClickManager:
                 pyautogui.FAILSAFE = self.original_failsafe
             
             self.last_click_time = time.time()
+            self.last_click_position = pyautogui.position()
             
             if self.debug_mode:
                 current_pos = pyautogui.position()

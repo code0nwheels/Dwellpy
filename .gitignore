@@ -3,3 +3,9 @@ config.ini
 /__pycache__
 /.vscode
 /build
+dist/Dwellpy.exe
+Dwellpy.manifest
+dwell_settings.json
+dwell_settings.json
+dwell_settings.json
+Dwellpy.spec

@@ -464,7 +464,7 @@ class DwellClickerUI:
         if not self.is_active:
             return
         
-        print(f"Processing dwell in {self.current_mode} mode")
+        #print(f"Processing dwell in {self.current_mode} mode")
         
         # Handle DRAG and MOVE modes
         if self.current_mode == "DRAG" or self.current_mode == "MOVE":
