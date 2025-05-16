@@ -1,6 +1,6 @@
 # Dwellpy
 
-Dwellpy is an accessibility application designed for people with motor disabilities that allows users to perform mouse clicks by simply hovering (or "dwelling") their cursor over a target area for a short period of time. No physical button presses required! This tool is particularly helpful for individuals with cerebral palsy, hand tremors, repetitive strain injuries, limited dexterity, or conditions like Parkinson's, arthritis, or muscular dystrophy.
+Dwellpy is an accessibility application designed for people with motor disabilities that allows users to perform mouse clicks by simply hovering (or "dwelling") their cursor over a target area for a short period of time. No physical button presses required! This tool is particularly helpful for individuals who use head trackers or alternative mouse controls where physical clicking isn't possible, as well as for those with cerebral palsy, hand tremors, repetitive strain injuries, limited dexterity, or conditions like Parkinson's, arthritis, or muscular dystrophy.
 
 ## Features
 
@@ -20,17 +20,53 @@ Dwellpy is an accessibility application designed for people with motor disabilit
   - pyautogui
   - tkinter (usually included with Python installation)
 
-### Setup
+### Installing Dependencies
 
-1. Clone or download this repository
-2. Install required packages:
+1. **Install Python**: Download and install from [python.org](https://www.python.org/downloads/)
+
+2. **Install pyautogui**:
    ```bash
    pip install pyautogui
    ```
-3. Run the application:
+
+3. **Install tkinter** (if not included with your Python installation):
+   - **Windows**: Tkinter usually comes with Python. If missing:
+     ```bash
+     pip install tk
+     ```
+   
+   - **macOS**: Using Homebrew:
+     ```bash
+     brew install python-tk
+     ```
+   
+   - **Ubuntu/Debian**:
+     ```bash
+     sudo apt-get update
+     sudo apt-get install python3-tk
+     ```
+   
+   - **Fedora**:
+     ```bash
+     sudo dnf install python3-tkinter
+     ```
+   
+   - **Arch Linux**:
+     ```bash
+     sudo pacman -S tk
+     ```
+
+### Setup
+
+1. Clone or download this repository
+2. Run the application:
    ```bash
    python main.py
    ```
+
+### Platform Notes
+
+- **Linux Compatibility**: Currently only X11 is supported. Wayland does not easily allow injection of mouse and keyboard events system-wide, as these can only be implemented at the desktop environment level (currently under investigation).
 
 ## Usage
 
@@ -64,12 +100,14 @@ The Dwellpy interface consists of a small toolbar with the following buttons:
 Access the settings dialog by clicking or dwelling on the SETUP button. Options include:
 
 - **Move Limit**: The number of pixels the cursor can move while still being considered "dwelling" (3-20px)
+  * For head tracker users: Medium-high values (8-15px) accommodate slight head movement
   * For people with hand tremors or cerebral palsy: Higher values (10-20px) accommodate more movement
   * For people with good cursor stability: Lower values (3-8px) provide more precision
 
 - **Dwell Time**: How long the cursor must remain still to trigger a click (0.1-2.0 seconds)
   * For users with fatigue issues: Shorter times (0.1-0.5s) require less sustained focus
   * For users who need to avoid accidental clicks: Longer times (0.8-2.0s) prevent unintended actions
+  * For head tracker users: Medium times (0.5-0.8s) provide a good balance between responsiveness and accuracy
 
 - **Start active on launch**: Automatically activates Dwellpy when the application starts, making it ready to use immediately
 
@@ -77,6 +115,7 @@ Access the settings dialog by clicking or dwelling on the SETUP button. Options 
 
 ### For Different Motor Challenges
 
+- **Head Tracker Users**: Set a moderate Move Limit (8-15px) to accommodate natural head movement while maintaining reasonable precision. Consider using a medium Dwell Time (0.5-0.8s) for a balance of control and ease of use.
 - **Cerebral Palsy**: Adjust Move Limit based on your specific movement patterns, and use temporary mode for precision tasks
 - **Hand Tremors**: Set a higher Move Limit (12-20px) to accommodate natural hand movement
 - **Fatigue or Muscle Weakness**: Use shorter Dwell Times (0.1-0.5s) to minimize the time needed to hold position
@@ -113,6 +152,7 @@ Temporary mode is perfect for precision tasks that require different settings th
 - **Adaptive Movement Threshold**: Detects movement in both X and Y directions for precise control, accommodating different types of hand movements
 - **Position Tracking**: Background thread monitors cursor position at fixed intervals
 - **Drag Support**: Two-phase drag operations (press and release) that don't require holding buttons
+- **Linux Support**: Currently works with X11 window systems. Wayland support is under investigation as it requires desktop environment level implementation.
 
 ## Troubleshooting
 
