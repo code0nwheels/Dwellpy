@@ -5,44 +5,50 @@ from click_manager import ClickManager
 from settings_manager import SettingsManager
 from exit_manager import ExitManager
 from ui_manager import DwellClickerUI
+from button_manager import ButtonManager
+from window_manager import WindowManager
 
 class DwellClicker:
     """Main dwell clicker application with UI."""
     
     def __init__(self):
-        # Initialize core components with reasonable defaults
-        # The dwell detector uses:
-        # - move_limit: How many pixels the cursor can move while still considering it "dwelling"
-        # - dwell_time: How long (in seconds) the cursor must dwell to trigger an action
-        self.detector = DwellDetector(radius=10, dwell_time=0.2)
-        
-        # The input manager tracks cursor position and sends updates at regular intervals
-        self.input_manager = InputManager()
-        
-        # The click manager handles performing different types of mouse clicks
-        self.click_manager = ClickManager()
-        
-        # Create UI
+        # Create the root window
         self.root = tk.Tk()
         
-        # Create shared button commands dictionary
-        self.button_commands = {}
-        self.current_hover_button = None
+        # Create managers first
+        self.button_manager = ButtonManager()
+        self.detector = DwellDetector(radius=10, dwell_time=0.2)
+        self.input_manager = InputManager()
+        self.click_manager = ClickManager()
+        self.settings_manager = SettingsManager(self.root, self.detector)
+        self.window_manager = WindowManager(self.root, self.settings_manager)
         
-        # Initialize UI first without managers
-        self.ui = DwellClickerUI(self.root, self.click_manager, self.detector, self)
+        # Create UI with references to managers
+        self.ui = DwellClickerUI(
+            self.root, 
+            self.click_manager, 
+            self.detector,
+            self.button_manager,
+            self.window_manager
+        )
         
-        # Force reconnect button commands after UI initialization
-        self.button_commands = self.ui.button_commands
+        # Create exit manager after UI
+        self.exit_manager = ExitManager(
+            self.root, 
+            self.settings_manager, 
+            self.button_manager
+        )
         
-        # Initialize managers
-        self.settings_manager = SettingsManager(self.root, self.detector, self)
-        self.exit_manager = ExitManager(self.root, self.settings_manager, self)
-        
-        # Connect managers to UI
+        # Connect components
         self.ui.connect_managers(self.settings_manager, self.exit_manager)
         
-        # Register callback for position updates
+        # Register settings manager open command with button manager
+        self.button_manager.register_command(
+            "SETUP", 
+            lambda: self.settings_manager.open_setup(self.button_manager)
+        )
+        
+        # Setup input callback
         self.input_manager.on_position_update = self.on_position_update
         
         self.running = False
@@ -54,9 +60,6 @@ class DwellClicker:
         This method is called by the InputManager every 100ms with the
         current mouse position. It adds the position to the dwell detector
         and processes any dwell events that might be triggered.
-        
-        Args:
-            position: Tuple (x, y) representing cursor position
         """
         # Add position to detector's history
         self.detector.add_position(position)
@@ -66,13 +69,15 @@ class DwellClicker:
         
         # Process dwell event if detected
         if is_dwelling and center:
-            # Let the UI process the dwell event, which might
-            # result in clicking, button activation, etc.
+            # Let the UI process the dwell event
             self.ui.process_dwell_event(center)
     
     def start(self):
         """Start the dwell clicker application."""
         print("Starting Dwell Clicker application...")
+        
+        # Load window position
+        self.window_manager.load_position()
         
         self.running = True
         self.input_manager.start()
@@ -89,6 +94,10 @@ class DwellClicker:
         """Stop the dwell clicker application."""
         self.running = False
         self.input_manager.stop()
+        
+        # Save settings before exit
+        self.settings_manager.save_settings()
+        
         print("Application stopped.")
 
 if __name__ == "__main__":

@@ -1,43 +1,28 @@
+"""Exit functionality for the Dwell Clicker application."""
+
 import tkinter as tk
+from utils import center_window
 
 class ExitManager:
     """Manages exit confirmation dialog and exit functionality."""
     
-    def __init__(self, root, settings_manager, button_commander):
+    def __init__(self, root, settings_manager, button_manager):
         self.root = root
         self.settings_manager = settings_manager
-        self.button_commander = button_commander  # For handling button hover events
+        self.button_manager = button_manager
         self.confirm_dialog = None  # Track confirmation dialog
         self.move_tracking_thread = None  # Reference to move tracking thread if needed
+        self.move_thread_running_flag = False  # Flag for thread state
         
-        # Add commands to button commander
-        self.button_commander.button_commands["EXIT"] = self.show_exit_dialog
-        self.button_commander.button_commands["EXIT_YES"] = self.confirm_exit
-        self.button_commander.button_commands["EXIT_NO"] = self.cancel_exit
+        # Register button commands
+        self.button_manager.register_command("EXIT", self.show_exit_dialog)
+        self.button_manager.register_command("EXIT_YES", self.confirm_exit)
+        self.button_manager.register_command("EXIT_NO", self.cancel_exit)
     
     def set_move_thread(self, thread_ref, thread_running_flag):
         """Set reference to move thread for cleanup on exit."""
         self.move_tracking_thread = thread_ref
         self.move_thread_running_flag = thread_running_flag
-    
-    def center_window(self, window):
-        """Center a window on the screen."""
-        window.update_idletasks()
-        
-        # Get window size
-        width = window.winfo_width()
-        height = window.winfo_height()
-        
-        # Get screen size
-        screen_width = window.winfo_screenwidth()
-        screen_height = window.winfo_screenheight()
-        
-        # Calculate position
-        x = (screen_width - width) // 2
-        y = (screen_height - height) // 2
-        
-        # Set window position
-        window.geometry(f"+{x}+{y}")
     
     def show_exit_dialog(self):
         """Show exit confirmation dialog."""
@@ -46,23 +31,15 @@ class ExitManager:
             self.confirm_dialog.lift()
             return
         
-        # Calculate center position
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        
         # Pre-define window size
         width = 300
         height = 150
         
-        # Calculate center position
-        x = (screen_width - width) // 2
-        y = (screen_height - height) // 2
-        
-        # Create confirmation dialog WITH position
+        # Create confirmation dialog
         self.confirm_dialog = tk.Toplevel(self.root)
-        self.confirm_dialog.geometry(f"{width}x{height}+{x}+{y}")
+        self.confirm_dialog.geometry(f"{width}x{height}")
         
-        # Configure window after positioning
+        # Configure window
         self.confirm_dialog.title("Exit Confirmation")
         self.confirm_dialog.resizable(False, False)
         self.confirm_dialog.transient(self.root)
@@ -82,6 +59,9 @@ class ExitManager:
         
         buttons_frame = tk.Frame(frame, bg='#f0f0f0')
         buttons_frame.pack(pady=10)
+        
+        # Mark EXIT_YES and EXIT_NO as physical-click-only buttons
+        self.button_manager.mark_as_physical_click_only(["EXIT_YES", "EXIT_NO"])
         
         # Yes button - red styling like "EXIT"
         yes_button = tk.Button(
@@ -124,26 +104,20 @@ class ExitManager:
         no_button.button_id = "EXIT_NO"
         
         def on_yes_hover(event):
-            self.button_commander.current_hover_button = "EXIT_YES"
+            self.button_manager.set_hover("EXIT_YES")
             yes_button.config(bg='#c0392b')  # Darker red
-            print("Hovering over Yes button")
             
         def on_yes_leave(event):
-            if self.button_commander.current_hover_button == "EXIT_YES":
-                self.button_commander.current_hover_button = None
+            self.button_manager.clear_hover("EXIT_YES")
             yes_button.config(bg='#e74c3c')  # Back to normal red
-            print("Left Yes button")
             
         def on_no_hover(event):
-            self.button_commander.current_hover_button = "EXIT_NO"
+            self.button_manager.set_hover("EXIT_NO")
             no_button.config(bg='#2980b9')  # Darker blue
-            print("Hovering over No button")
             
         def on_no_leave(event):
-            if self.button_commander.current_hover_button == "EXIT_NO":
-                self.button_commander.current_hover_button = None
+            self.button_manager.clear_hover("EXIT_NO")
             no_button.config(bg='#3498db')  # Back to normal blue
-            print("Left No button")
         
         yes_button.bind('<Enter>', on_yes_hover)
         yes_button.bind('<Leave>', on_yes_leave)
@@ -152,7 +126,7 @@ class ExitManager:
         
         # Center the window on screen
         self.confirm_dialog.update_idletasks()
-        self.center_window(self.confirm_dialog)
+        center_window(self.confirm_dialog)
         
         # Now make the window visible
         self.confirm_dialog.deiconify()
