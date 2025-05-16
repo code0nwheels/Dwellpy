@@ -1,4 +1,4 @@
-"""Utility functions for the Dwell Clicker application."""
+"""Utility functions for the Dwellpy application."""
 
 import tkinter as tk
 

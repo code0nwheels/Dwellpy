@@ -1,4 +1,4 @@
-"""Button management for the Dwell Clicker application."""
+"""Button management for the Dwellpy application."""
 
 class ButtonManager:
     """
@@ -12,9 +12,6 @@ class ButtonManager:
         
         # Track which button is being hovered over
         self.current_hover_button = None
-        
-        # Buttons that should only respond to physical clicks, not dwell clicks
-        self.physical_click_only_buttons = ["EXIT_YES", "EXIT_NO"]
     
     def register_command(self, button_id, command):
         """Register a command for a button."""
@@ -30,12 +27,8 @@ class ButtonManager:
     
     def set_hover(self, button_id):
         """Set the current hover button."""
-        # Don't track hover for buttons that should only respond to physical clicks
-        if button_id not in self.physical_click_only_buttons:
-            self.current_hover_button = button_id
-            print(f"Hovering over: {button_id}")
-        else:
-            print(f"Hovering over physical-click-only button: {button_id}")
+        self.current_hover_button = button_id
+        print(f"Hovering over: {button_id}")
     
     def clear_hover(self, button_id=None):
         """Clear hover state if it matches the given button_id or if none given."""
@@ -45,10 +38,3 @@ class ButtonManager:
     def get_current_hover(self):
         """Get the ID of the currently hovered button."""
         return self.current_hover_button
-    
-    def mark_as_physical_click_only(self, button_ids):
-        """Mark buttons that should only respond to physical clicks, not dwells."""
-        if isinstance(button_ids, list):
-            self.physical_click_only_buttons.extend(button_ids)
-        else:
-            self.physical_click_only_buttons.append(button_ids)

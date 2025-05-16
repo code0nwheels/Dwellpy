@@ -1,4 +1,4 @@
-"""Window management for the Dwell Clicker application."""
+"""Window management for the Dwellpy application."""
 
 import tkinter as tk
 from utils import center_window

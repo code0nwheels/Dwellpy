@@ -1,4 +1,4 @@
-"""Settings management for the Dwell Clicker application."""
+"""Settings management for the Dwellpy application."""
 
 import tkinter as tk
 import json
@@ -8,7 +8,7 @@ from utils import center_window
 
 class SettingsManager:
     """
-    Manages settings UI and persistence for the Dwell Clicker.
+    Manages settings UI and persistence for Dwellpy.
     
     This class handles:
     - Loading and saving settings to disk
@@ -143,6 +143,9 @@ class SettingsManager:
         self.setup_window.transient(self.root)
         self.setup_window.attributes('-topmost', True)
         self.setup_window.configure(background='#f0f0f0')  # Light gray background
+        
+        # Hide window until all elements are added
+        self.setup_window.withdraw()
         
         # Bind close event to clear reference
         self.setup_window.protocol("WM_DELETE_WINDOW", self.on_setup_window_close)
@@ -286,9 +289,6 @@ class SettingsManager:
         ok_frame = tk.Frame(main_frame, bg='#f0f0f0')
         ok_frame.pack(pady=15)
         
-        # Mark the OK_SETTINGS button as physical-click-only
-        button_manager.mark_as_physical_click_only("OK_SETTINGS")
-        
         ok_button = tk.Button(
             ok_frame, 
             text="OK", 
@@ -306,20 +306,6 @@ class SettingsManager:
         )
         ok_button.pack()
         
-        # Make button dwell-clickable
-        ok_button.button_id = "OK_SETTINGS"
-        
-        def on_ok_hover(event):
-            button_manager.set_hover("OK_SETTINGS")
-            ok_button.config(bg='#2980b9')
-            
-        def on_ok_leave(event):
-            button_manager.clear_hover("OK_SETTINGS")
-            ok_button.config(bg='#3498db')
-            
-        ok_button.bind('<Enter>', on_ok_hover)
-        ok_button.bind('<Leave>', on_ok_leave)
-        
         # Register OK command
         button_manager.register_command("OK_SETTINGS", ok_button_click)
         
@@ -328,7 +314,7 @@ class SettingsManager:
         separator.pack(fill=tk.X, pady=10)
         
         # Version info with subtle styling
-        version_label = tk.Label(main_frame, text="Dwell Clicker v1.0", 
+        version_label = tk.Label(main_frame, text="Dwellpy v1.0", 
                                 font=("Segoe UI", 8), bg='#f0f0f0', fg='#999999')
         version_label.pack(side=tk.RIGHT, pady=(5, 0))
         
@@ -336,8 +322,10 @@ class SettingsManager:
         update_move_limit_value(move_limit_var.get())
         update_time_value(time_var.get())
         
-        # Center the window on screen
+        # Force the window to update and calculate its true size after all widgets are added
         self.setup_window.update_idletasks()
+        
+        # Center the window on screen
         center_window(self.setup_window)
         
         # Now make the window visible

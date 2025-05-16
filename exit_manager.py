@@ -1,4 +1,4 @@
-"""Exit functionality for the Dwell Clicker application."""
+"""Exit functionality for the Dwellpy application."""
 
 import tkinter as tk
 from utils import center_window
@@ -60,9 +60,6 @@ class ExitManager:
         buttons_frame = tk.Frame(frame, bg='#f0f0f0')
         buttons_frame.pack(pady=10)
         
-        # Mark EXIT_YES and EXIT_NO as physical-click-only buttons
-        self.button_manager.mark_as_physical_click_only(["EXIT_YES", "EXIT_NO"])
-        
         # Yes button - red styling like "EXIT"
         yes_button = tk.Button(
             buttons_frame, 
@@ -98,31 +95,6 @@ class ExitManager:
             cursor="hand2"
         )
         no_button.pack(side=tk.LEFT, padx=10)
-        
-        # Make buttons dwell-clickable
-        yes_button.button_id = "EXIT_YES"
-        no_button.button_id = "EXIT_NO"
-        
-        def on_yes_hover(event):
-            self.button_manager.set_hover("EXIT_YES")
-            yes_button.config(bg='#c0392b')  # Darker red
-            
-        def on_yes_leave(event):
-            self.button_manager.clear_hover("EXIT_YES")
-            yes_button.config(bg='#e74c3c')  # Back to normal red
-            
-        def on_no_hover(event):
-            self.button_manager.set_hover("EXIT_NO")
-            no_button.config(bg='#2980b9')  # Darker blue
-            
-        def on_no_leave(event):
-            self.button_manager.clear_hover("EXIT_NO")
-            no_button.config(bg='#3498db')  # Back to normal blue
-        
-        yes_button.bind('<Enter>', on_yes_hover)
-        yes_button.bind('<Leave>', on_yes_leave)
-        no_button.bind('<Enter>', on_no_hover)
-        no_button.bind('<Leave>', on_no_leave)
         
         # Center the window on screen
         self.confirm_dialog.update_idletasks()

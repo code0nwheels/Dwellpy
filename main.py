@@ -8,7 +8,7 @@ from ui_manager import DwellClickerUI
 from button_manager import ButtonManager
 from window_manager import WindowManager
 
-class DwellClicker:
+class Dwellpy:
     """Main dwell clicker application with UI."""
     
     def __init__(self):
@@ -102,5 +102,5 @@ class DwellClicker:
 
 if __name__ == "__main__":
     # Create and start the dwell clicker application
-    clicker = DwellClicker()
+    clicker = Dwellpy()
     clicker.start()
