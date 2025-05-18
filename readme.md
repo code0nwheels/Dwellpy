@@ -8,7 +8,7 @@ Dwellpy is an accessibility application designed for people with motor disabilit
 - **Adaptive Sensitivity**: Customize dwell detection radius and timing to accommodate different types of motor challenges
 - **Temporary/Default Modes**: Easily switch between click types with temporary or permanent mode selection
 - **Accessible Interface**: Small, always-on-top UI with high-contrast buttons that can be positioned anywhere on screen
-- **Cross-platform Support**: Works on Windows, macOS, and Linux (with platform-specific optimizations)
+- **Cross-platform Support**: Works on Windows, macOS, and Linux with consistent behavior
 - **Persistent Settings**: Your preferences are saved between sessions, so you only need to configure once
 
 ## Installation
@@ -17,16 +17,16 @@ Dwellpy is an accessibility application designed for people with motor disabilit
 
 - Python 3.6 or higher
 - Required Python packages:
-  - pyautogui
+  - pynput
   - tkinter (usually included with Python installation)
 
 ### Installing Dependencies
 
 1. **Install Python**: Download and install from [python.org](https://www.python.org/downloads/)
 
-2. **Install pyautogui**:
+2. **Install pynput**:
    ```bash
-   pip install pyautogui
+   pip install pynput
    ```
 
 3. **Install tkinter** (if not included with your Python installation):
@@ -147,7 +147,7 @@ Temporary mode is perfect for precision tasks that require different settings th
 
 ## Technical Details
 
-- **Platform-specific Click Methods**: Uses native SendInput on Windows for better responsiveness
+- **Cross-platform Mouse Control**: Uses pynput library for consistent behavior across platforms
 - **Counter-based Dwell Detection**: Efficient algorithm that reduces CPU usage
 - **Adaptive Movement Threshold**: Detects movement in both X and Y directions for precise control, accommodating different types of hand movements
 - **Position Tracking**: Background thread monitors cursor position at fixed intervals

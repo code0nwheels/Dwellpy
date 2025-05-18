@@ -1,6 +1,6 @@
-import pyautogui
 import threading
 import time
+from pynput.mouse import Controller
 
 class InputManager:
     """
@@ -17,6 +17,7 @@ class InputManager:
         self.thread = None               # Reference to background thread
         self.current_position = (0, 0)   # Current cursor position
         self.on_position_update = None   # Callback function for position updates
+        self.mouse = Controller()        # pynput mouse controller
         
     def start(self):
         """
@@ -53,9 +54,9 @@ class InputManager:
         
         while self.running:
             try:
-                # Get current mouse position
-                pos = pyautogui.position()
-                self.current_position = (pos.x, pos.y)
+                # Get current mouse position using pynput
+                pos = self.mouse.position
+                self.current_position = pos
                 
                 # Only send updates at fixed intervals
                 # This ensures consistent timing for dwell detection
