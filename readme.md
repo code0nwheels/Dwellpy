@@ -18,7 +18,7 @@ Dwellpy is an accessibility application designed for people with motor disabilit
 - Python 3.6 or higher
 - Required Python packages:
   - pynput
-  - tkinter (usually included with Python installation)
+  - PyQt6
 
 ### Installing Dependencies
 
@@ -29,31 +29,40 @@ Dwellpy is an accessibility application designed for people with motor disabilit
    pip install pynput
    ```
 
-3. **Install tkinter** (if not included with your Python installation):
-   - **Windows**: Tkinter usually comes with Python. If missing:
-     ```bash
-     pip install tk
-     ```
+3. **Install PyQt6**:
+   ```bash
+   pip install PyQt6
+   ```
+
+   - **Windows**: Generally, the above command is sufficient.
    
-   - **macOS**: Using Homebrew:
+   - **macOS**: Using Homebrew (recommended for dependencies):
      ```bash
-     brew install python-tk
+     brew install qt@6
+     pip install PyQt6
      ```
    
    - **Ubuntu/Debian**:
      ```bash
      sudo apt-get update
-     sudo apt-get install python3-tk
+     sudo apt-get install python3-pyqt6
+     ```
+     Alternatively:
+     ```bash
+     sudo apt-get install qt6-base-dev
+     pip install PyQt6
      ```
    
    - **Fedora**:
      ```bash
-     sudo dnf install python3-tkinter
+     sudo dnf install qt6-qtbase-devel
+     pip install PyQt6
      ```
    
    - **Arch Linux**:
      ```bash
-     sudo pacman -S tk
+     sudo pacman -S qt6-base
+     pip install PyQt6
      ```
 
 ### Setup
@@ -111,6 +120,17 @@ Access the settings dialog by clicking or dwelling on the SETUP button. Options 
 
 - **Start active on launch**: Automatically activates Dwellpy when the application starts, making it ready to use immediately
 
+#### Adjusting Settings with Hover Control
+
+The settings sliders include an accessibility feature that allows adjustment without clicking:
+
+- **Hover-to-Adjust**: Simply hover your cursor over the "+" or "-" buttons beside any slider
+- **Delayed Activation**: After hovering for 0.5 seconds, the button will activate once
+- **Continuous Adjustment**: If you continue hovering, the button will repeatedly activate every 0.5 seconds
+- **Exit Control**: Move your cursor away from the button to stop the adjustment
+
+This hover-triggered control makes settings adjustment possible for users who have difficulty with precise clicking or maintaining button presses, providing a fully accessible configuration experience.
+
 ## Accessibility Tips
 
 ### For Different Motor Challenges
@@ -150,7 +170,7 @@ Temporary mode is perfect for precision tasks that require different settings th
 - **Cross-platform Mouse Control**: Uses pynput library for consistent behavior across platforms
 - **Counter-based Dwell Detection**: Efficient algorithm that reduces CPU usage
 - **Adaptive Movement Threshold**: Detects movement in both X and Y directions for precise control, accommodating different types of hand movements
-- **Position Tracking**: Background thread monitors cursor position at fixed intervals
+- **Position Tracking**: Uses Qt's timer mechanism for monitoring cursor position at fixed intervals
 - **Drag Support**: Two-phase drag operations (press and release) that don't require holding buttons
 - **Linux Support**: Currently works with X11 window systems. Wayland support is under investigation as it requires desktop environment level implementation.
 

@@ -1,6 +1,7 @@
 """Window management for the Dwellpy application."""
 
-import tkinter as tk
+from PyQt6.QtCore import QPoint
+from PyQt6.QtWidgets import QMainWindow
 from utils import center_window
 
 class WindowManager:
@@ -9,63 +10,67 @@ class WindowManager:
     Centralizes window-related functionality.
     """
     
-    def __init__(self, root, settings_manager):
-        self.root = root
+    def __init__(self, settings_manager):
         self.settings_manager = settings_manager
         
         # Window dragging state
         self.is_dragging = False
-        self.drag_start_x = 0
-        self.drag_start_y = 0
-        self.window_start_x = 0
-        self.window_start_y = 0
+        self.drag_start_position = None
+        self.window_start_position = None
     
-    def load_position(self):
+    def load_position(self, window):
         """Load window position from settings and apply it."""
         position = self.settings_manager.get_setting('window_position', (100, 100))
         x, y = position
-        self.root.geometry(f"+{x}+{y}")
+        window.move(x, y)
     
-    def save_position(self):
+    def save_position(self, window):
         """Save current window position to settings."""
-        position = (self.root.winfo_x(), self.root.winfo_y())
+        position = (window.x(), window.y())
         self.settings_manager.set_setting('window_position', position)
         self.settings_manager.save_settings()
     
-    def start_drag(self, event):
+    def start_drag(self, event, window):
         """Start window drag operation."""
         # Mark that we're dragging
         self.is_dragging = True
         
         # Store initial positions
-        self.drag_start_x = event.x_root
-        self.drag_start_y = event.y_root
-        self.window_start_x = self.root.winfo_x()
-        self.window_start_y = self.root.winfo_y()
+        self.drag_start_position = event.globalPosition().toPoint()
+        self.window_start_position = window.pos()
         
-        # Bind motion and release events to the entire root window
-        self.root.bind("<B1-Motion>", self.update_drag_position)
-        self.root.bind("<ButtonRelease-1>", self.stop_drag)
+        # Set mouse tracking on the window
+        window.setMouseTracking(True)
+        
+        # Remember original event handlers
+        if not hasattr(window, 'original_mouseMoveEvent'):
+            window.original_mouseMoveEvent = window.mouseMoveEvent
+        if not hasattr(window, 'original_mouseReleaseEvent'):
+            window.original_mouseReleaseEvent = window.mouseReleaseEvent
+        
+        # Capture mouse events - using lambda to pass window reference
+        window.mouseMoveEvent = lambda e: self.update_drag_position(e, window)
+        window.mouseReleaseEvent = lambda e: self.stop_drag(e, window)
         
         print("Window drag started")
     
-    def update_drag_position(self, event):
+    def update_drag_position(self, event, window):
         """Update window position during drag."""
         if not self.is_dragging:
             return
             
         # Calculate movement delta
-        dx = event.x_root - self.drag_start_x
-        dy = event.y_root - self.drag_start_y
+        # In PyQt6, need to use globalPosition().toPoint() to get QPoint
+        current_pos = event.globalPosition().toPoint()
+        delta = current_pos - self.drag_start_position
         
-        # Calculate new position
-        new_x = self.window_start_x + dx
-        new_y = self.window_start_y + dy
+        # Calculate new position (QPoint + QPoint = QPoint)
+        new_position = self.window_start_position + delta
         
         # Move the window
-        self.root.geometry(f"+{new_x}+{new_y}")
+        window.move(new_position)
     
-    def stop_drag(self, event):
+    def stop_drag(self, event, window):
         """Stop the drag operation when mouse is released."""
         if not self.is_dragging:
             return
@@ -73,18 +78,20 @@ class WindowManager:
         # Reset drag flag
         self.is_dragging = False
         
-        # Unbind events from root window
-        self.root.unbind("<B1-Motion>")
-        self.root.unbind("<ButtonRelease-1>")
+        # Reset mouse tracking
+        window.setMouseTracking(False)
+        
+        # Reset event handlers to original ones
+        if hasattr(window, 'original_mouseMoveEvent'):
+            window.mouseMoveEvent = window.original_mouseMoveEvent
+        if hasattr(window, 'original_mouseReleaseEvent'):
+            window.mouseReleaseEvent = window.original_mouseReleaseEvent
         
         # Save the new position
-        self.save_position()
+        self.save_position(window)
             
         print("Window drag completed")
     
-    def center_window(self, window=None):
+    def center_window(self, window):
         """Center a window on the screen."""
-        if window is None:
-            window = self.root
-            
         center_window(window)

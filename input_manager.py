@@ -1,5 +1,6 @@
-import threading
-import time
+"""Input manager for the Dwellpy application."""
+
+from PyQt6.QtCore import QTimer
 from pynput.mouse import Controller
 
 class InputManager:
@@ -7,69 +8,54 @@ class InputManager:
     Manages mouse position tracking and dispatches position updates
     at regular intervals to the dwell detection system.
     
-    This class runs a background thread that continuously tracks
-    the cursor position, but only sends updates at fixed intervals
-    (100ms) to match the timing precision needed for dwell detection.
+    Uses Qt's timer mechanism instead of threading for better
+    compatibility with the Qt event loop.
     """
     
     def __init__(self):
-        self.running = False             # Thread control flag
-        self.thread = None               # Reference to background thread
+        self.running = False             # Timer control flag
         self.current_position = (0, 0)   # Current cursor position
         self.on_position_update = None   # Callback function for position updates
         self.mouse = Controller()        # pynput mouse controller
         
+        # Create timer for position polling
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._update_position)
+        self.timer.setInterval(100)  # 100ms interval
+        
     def start(self):
         """
-        Start the mouse position tracking thread.
+        Start the mouse position tracking timer.
         Does nothing if already running.
         """
         if self.running:
             return
             
         self.running = True
-        self.thread = threading.Thread(target=self._track_mouse)
-        self.thread.daemon = True  # Thread will terminate when main program exits
-        self.thread.start()
+        self.timer.start()
+        print("Input manager started")
         
     def stop(self):
         """
-        Stop the mouse position tracking thread.
-        Attempts to gracefully terminate the thread.
+        Stop the mouse position tracking timer.
         """
         self.running = False
-        if self.thread:
-            self.thread.join(timeout=1.0)  # Wait up to 1 second for thread to exit
+        self.timer.stop()
+        print("Input manager stopped")
             
-    def _track_mouse(self):
+    def _update_position(self):
         """
-        Background thread function that continuously monitors
-        mouse position and triggers updates at fixed intervals.
-        
-        Updates are triggered every 100ms to provide consistent
-        timing for dwell detection while keeping CPU usage low.
+        Timer callback that gets the current mouse position
+        and triggers the position update callback.
         """
-        last_update_time = 0
-        update_interval = 0.1  # 100ms interval for position updates
-        
-        while self.running:
-            try:
-                # Get current mouse position using pynput
-                pos = self.mouse.position
-                self.current_position = pos
+        try:
+            # Get current mouse position using pynput
+            pos = self.mouse.position
+            self.current_position = pos
+            
+            # Call the position update callback
+            if self.on_position_update:
+                self.on_position_update(self.current_position)
                 
-                # Only send updates at fixed intervals
-                # This ensures consistent timing for dwell detection
-                current_time = time.time()
-                if current_time - last_update_time >= update_interval:
-                    if self.on_position_update:
-                        self.on_position_update(self.current_position)
-                    last_update_time = current_time
-                    
-                # Small sleep to prevent high CPU usage
-                # This doesn't affect timing precision since we track actual time
-                time.sleep(0.01)
-                
-            except Exception as e:
-                print(f"Error tracking mouse: {e}")
-                time.sleep(0.1)  # Avoid tight loop on error
+        except Exception as e:
+            print(f"Error tracking mouse: {e}")

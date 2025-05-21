@@ -1,24 +1,28 @@
 """UI management for the Dwell Clicker application."""
 
-import tkinter as tk
-from tkinter import ttk
-import pyautogui
-import threading
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QPushButton, 
+                           QHBoxLayout, QVBoxLayout, QFrame)
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QColor
 import time
+
+# Dark theme color constants
+DARK_BG = "#1e1e1e"        # Dark background
+DARK_BUTTON_BG = "#2d2d2d"  # Dark button background
+TEXT_COLOR = "#ffffff"      # White text
+BLUE_ACCENT = "#0078d7"     # Blue accent color
+GREEN_ACCENT = "#2ecc71"    # Green accent
+RED_ACCENT = "#e74c3c"      # Red accent
+BORDER_COLOR = "#3c3c3c"    # Slight border color for depth
 
 class DwellClickerUI:
     """UI Manager for the Dwell Clicker application with temporary/default modes."""
     
-    def __init__(self, root, click_manager, dwell_detector, button_manager, window_manager):
-        self.root = root
+    def __init__(self, click_manager, dwell_detector, button_manager, window_manager):
         self.click_manager = click_manager
         self.dwell_detector = dwell_detector
         self.button_manager = button_manager
         self.window_manager = window_manager
-        
-        # Create a custom style for taller buttons with better proportions
-        self.style = ttk.Style()
-        self.style.configure("Tall.TButton", padding=(3, 8))
         
         # These will be set later
         self.settings_manager = None
@@ -36,10 +40,8 @@ class DwellClickerUI:
         
         self.drag_state = None  # Can be None, "down", or "up"
         
-        # Window dragging handled by WindowManager
-        
-        # Store original button frames for color changes
-        self.button_frames = {}
+        # Store button references
+        self.buttons = {}
         
         # UI setup
         self.setup_ui()
@@ -70,110 +72,155 @@ class DwellClickerUI:
     
     def setup_ui(self):
         """Set up the main UI components."""
-        # Remove title bar
-        self.root.overrideredirect(True)
-        self.root.attributes('-topmost', True)  # Always on top
+        # Create main window without frame
+        self.window = QMainWindow()
+        self.window.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+        self.window.setFixedHeight(60)  # Set fixed height for the toolbar (increased for better visibility)
+        self.window.setStyleSheet(f"background-color: {DARK_BG};")
         
-        # Add this code to periodically lift the window to the top
-        def keep_on_top():
-            self.root.lift()
-            self.root.attributes('-topmost', True)
-            # Schedule the function to run again after 100ms
-            self.root.after(100, keep_on_top)
+        # Create central widget
+        central_widget = QWidget()
+        central_widget.setStyleSheet(f"background-color: {DARK_BG};")
+        self.window.setCentralWidget(central_widget)
         
-        # Start the keep_on_top loop
-        keep_on_top()
-        
-        # Create main frame with slightly more padding for height
-        self.main_frame = ttk.Frame(self.root, padding=(0, 2))
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Create button frame with minimum height
-        self.button_frame = ttk.Frame(self.main_frame, height=40)
-        self.button_frame.pack(fill=tk.X)
+        # Create button layout
+        button_layout = QHBoxLayout(central_widget)
+        button_layout.setContentsMargins(2, 2, 2, 2)
+        button_layout.setSpacing(2)
         
         # Create buttons
-        self.buttons = {}
-        
         # ON/OFF button
-        self.buttons["ON_OFF"] = self.create_button(
-            "ON/OFF", "green", "ON_OFF"
-        )
+        self.buttons["ON_OFF"] = self.create_button("ON/OFF", "green", "ON_OFF")
+        button_layout.addWidget(self.buttons["ON_OFF"])
         
         # Click type buttons
-        self.buttons["LEFT"] = self.create_button(
-            "LEFT", "lightblue", "LEFT"
-        )
+        self.buttons["LEFT"] = self.create_button("LEFT", "blue", "LEFT")
+        button_layout.addWidget(self.buttons["LEFT"])
         
-        self.buttons["DOUBLE"] = self.create_button(
-            "DOUBLE", "lightblue", "DOUBLE"
-        )
+        self.buttons["DOUBLE"] = self.create_button("DOUBLE", "blue", "DOUBLE")
+        button_layout.addWidget(self.buttons["DOUBLE"])
         
-        self.buttons["DRAG"] = self.create_button(
-            "DRAG", "lightblue", "DRAG"
-        )
+        self.buttons["DRAG"] = self.create_button("DRAG", "blue", "DRAG")
+        button_layout.addWidget(self.buttons["DRAG"])
         
-        self.buttons["RIGHT"] = self.create_button(
-            "RIGHT", "lightblue", "RIGHT"
-        )
+        self.buttons["RIGHT"] = self.create_button("RIGHT", "blue", "RIGHT")
+        button_layout.addWidget(self.buttons["RIGHT"])
         
         # Utility buttons
-        self.buttons["SETUP"] = self.create_button(
-            "SETUP", "lightgray", "SETUP"
-        )
+        self.buttons["SETUP"] = self.create_button("SETUP", "gray", "SETUP")
+        button_layout.addWidget(self.buttons["SETUP"])
         
-        self.buttons["MOVE"] = self.create_button(
-            "MOVE", "lightgray", "MOVE"
-        )
+        self.buttons["MOVE"] = self.create_button("MOVE", "gray", "MOVE")
+        button_layout.addWidget(self.buttons["MOVE"])
         
-        self.buttons["EXIT"] = self.create_button(
-            "EXIT", "salmon", "EXIT"
-        )
+        self.buttons["EXIT"] = self.create_button("EXIT", "red", "EXIT")
+        button_layout.addWidget(self.buttons["EXIT"])
         
         # Highlight initial mode
         self.update_button_states()
     
     def create_button(self, text, color, button_id):
         """Create a styled button with hover behavior."""
-        # Create a frame with the background color and fixed pixel dimensions
-        frame = tk.Frame(self.button_frame, bg=color, bd=1, width=45, height=50)
-        frame.pack(side=tk.LEFT, padx=1, fill=tk.Y)
-        frame.pack_propagate(False)  # Force frame to keep specified dimensions
+        # Create button with fixed size
+        button = QPushButton(text)
+        button.setFixedSize(QSize(55, 55))  # Increased size for better visibility
+        button.setObjectName(button_id)  # Store ID as object name
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
         
-        # Store frame for color changes
-        self.button_frames[button_id] = frame
+        # Style the button using Qt stylesheets
+        if color == "blue":
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {DARK_BUTTON_BG};
+                    border: 1px solid {BLUE_ACCENT};
+                }}
+            """)
+        elif color == "green":
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {DARK_BUTTON_BG};
+                    border: 1px solid {GREEN_ACCENT};
+                }}
+            """)
+        elif color == "gray":
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #3d3d3d;
+                    border: 1px solid #5d5d5d;
+                }}
+            """)
+        elif color == "red":
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {DARK_BUTTON_BG};
+                    border: 1px solid {RED_ACCENT};
+                }}
+            """)
         
-        # Create button inside the frame using tk.Button with modern styling
-        button = tk.Button(
-            frame,
-            text=text,
-            font=("Segoe UI", 10),  # Smaller font to fit in tiny button
-            bg='#3498db' if color == 'lightblue' else color,
-            fg='white' if color in ['lightblue', 'green', 'salmon'] else '#333333',
-            activebackground='#2980b9' if color == 'lightblue' else color,
-            activeforeground='white' if color in ['lightblue', 'green', 'salmon'] else '#333333',
-            relief=tk.FLAT,
-            padx=0,
-            pady=0
-        )
+        # Connect signals
+        button.clicked.connect(lambda: self.on_button_click(button_id))
         
-        # Add command for all buttons except MOVE
-        if button_id != "MOVE":
-            # Only allow certain buttons when clicker is off
-            button.config(command=lambda b=button_id: self.on_button_click(b))
-        else:
-            # Special handling for MOVE button - bind to window manager
-            button.bind("<ButtonPress-1>", self.window_manager.start_drag)
+        # Store original event handlers for the button
+        original_enter_event = button.enterEvent
+        original_leave_event = button.leaveEvent
         
-        # Fill the entire frame
-        button.pack(fill=tk.BOTH, expand=True)
+        # Create custom event handlers
+        def custom_enter_event(event):
+            self.on_button_hover(button_id, event)
+            # Call original handler if it exists
+            if original_enter_event:
+                original_enter_event(event)
         
-        # Store button_id as an attribute of the button
-        button.button_id = button_id
+        def custom_leave_event(event):
+            self.on_button_leave(button_id, event)
+            # Call original handler if it exists
+            if original_leave_event:
+                original_leave_event(event)
         
-        # Add hover event bindings for all buttons
-        button.bind("<Enter>", lambda event, b=button_id: self.on_button_hover(b))
-        button.bind("<Leave>", lambda event, b=button_id: self.on_button_leave(b))
+        # Replace event handlers
+        button.enterEvent = custom_enter_event
+        button.leaveEvent = custom_leave_event
+        
+        # Special handling for MOVE button
+        if button_id == "MOVE":
+            original_mouse_press_event = button.mousePressEvent
+            button.mousePressEvent = lambda event: self.window_manager.start_drag(event, self.window)
         
         return button
     
@@ -192,27 +239,12 @@ class DwellClickerUI:
         # Execute the appropriate command via button manager
         self.button_manager.execute_command(button_id)
 
-    def on_button_hover(self, button_id):
+    def on_button_hover(self, button_id, event):
         """Handle when mouse hovers over a button - visual feedback only."""
         # Store the current hover button in button manager
         self.button_manager.set_hover(button_id)
-        
-        # Highlight the button visually by making it slightly darker
-        if button_id in self.buttons:
-            button = self.buttons[button_id]
-            current_bg = button.cget("bg")
-            
-            # Make button appear pressed
-            if current_bg == '#3498db':  # Blue button
-                button.config(bg='#2980b9')
-            elif current_bg == '#e74c3c':  # Red button
-                button.config(bg='#c0392b')
-            elif current_bg == '#2ecc71':  # Green button
-                button.config(bg='#27ae60')
-            elif button_id == "ON_OFF" and current_bg == '#bdc3c7':  # OFF state
-                button.config(bg='#95a5a6')  # Darker gray when hovering
     
-    def on_button_leave(self, button_id):
+    def on_button_leave(self, button_id, event):
         """Handle when mouse leaves a button - visual feedback only."""
         # Clear the hover button in the button manager
         self.button_manager.clear_hover(button_id)
@@ -220,71 +252,187 @@ class DwellClickerUI:
         # Don't clear MOVE button hover status while dragging
         if button_id == "MOVE" and self.window_manager.is_dragging:
             return
-            
-        # Remove highlight unless it's the selected mode
-        if button_id in self.buttons:
-            button = self.buttons[button_id]
-            
-            # Restore the appropriate background based on button role and state
-            if button_id == "ON_OFF":
-                # ON/OFF button
-                button.config(bg='#2ecc71' if self.is_active else '#bdc3c7')
-            
-            elif button_id in ["LEFT", "DOUBLE", "DRAG", "RIGHT", "MOVE"]:
-                # Mode buttons - need to check if permanent or temporary
-                if button_id == self.current_mode:
-                    if self.is_temporary_mode:
-                        # Temporary current mode - red
-                        button.config(bg='#e74c3c')
-                    else:
-                        # Permanent current mode - blue
-                        button.config(bg='#3498db')
-                elif button_id == self.default_mode:
-                    # Default mode (but not current) - blue
-                    button.config(bg='#3498db')
-                else:
-                    # Inactive mode - light gray
-                    button.config(bg='#f0f0f0')
-            
-            elif button_id == "SETUP":
-                # Setup button
-                button.config(bg='#bdc3c7' if self.is_active else '#95a5a6')
-            
-            elif button_id == "EXIT":
-                # Exit button
-                button.config(bg='#e74c3c' if self.is_active else '#95a5a6')
     
     def update_button_states(self):
         """Update button appearances to show temporary vs default modes."""
         # Reset all click type buttons
-        for button_name in ["LEFT", "DOUBLE", "DRAG", "RIGHT", "MOVE"]:
+        for button_name in ["LEFT", "DOUBLE", "DRAG", "RIGHT"]:
             # Get the button
             button = self.buttons[button_name]
             
             # Set default styling
             if button_name == self.default_mode:
                 # Default mode button - blue
-                button.config(bg='#3498db', fg='white', activebackground='#2980b9', activeforeground='white')
+                button.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {BLUE_ACCENT};
+                        color: {TEXT_COLOR};
+                        border: 1px solid {BLUE_ACCENT};
+                        border-radius: 5px;
+                        font-family: 'Segoe UI';
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #0069c0;
+                        border: 1px solid #0069c0;
+                    }}
+                """)
             else:
-                # Non-default modes - light gray
-                button.config(bg='#f0f0f0', fg='#333333', activebackground='#e0e0e0', activeforeground='#333333')
+                # Non-default modes - dark gray
+                button.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {DARK_BUTTON_BG};
+                        color: {TEXT_COLOR};
+                        border: 1px solid {BORDER_COLOR};
+                        border-radius: 5px;
+                        font-family: 'Segoe UI';
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #3d3d3d;
+                        border: 1px solid {BLUE_ACCENT};
+                    }}
+                """)
         
         # Highlight current mode
         if self.is_temporary_mode:
             # Temporary mode - red
-            self.buttons[self.current_mode].config(bg='#e74c3c', fg='white', activebackground='#c0392b', activeforeground='white')
+            self.buttons[self.current_mode].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {RED_ACCENT};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {RED_ACCENT};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #d63031;
+                    border: 1px solid #d63031;
+                }}
+            """)
         
         # Update ON/OFF button
         if self.is_active:
-            self.buttons["ON_OFF"].config(bg='#2ecc71', fg='white', activebackground='#27ae60', activeforeground='white')
+            self.buttons["ON_OFF"].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {GREEN_ACCENT};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {GREEN_ACCENT};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #27ae60;
+                    border: 1px solid #27ae60;
+                }}
+            """)
         else:
-            self.buttons["ON_OFF"].config(bg='#bdc3c7', fg='#333333', activebackground='#95a5a6', activeforeground='#333333')
+            self.buttons["ON_OFF"].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #3d3d3d;
+                    border: 1px solid {GREEN_ACCENT};
+                }}
+            """)
         
-        # Style SETUP and EXIT buttons
-        self.buttons["SETUP"].config(bg='#bdc3c7' if self.is_active else '#95a5a6', 
-                                    fg='#333333' if self.is_active else '#555555')
-        self.buttons["EXIT"].config(bg='#e74c3c' if self.is_active else '#95a5a6',
-                                    fg='white' if self.is_active else '#555555')
+        # Style SETUP button
+        if self.is_active:
+            self.buttons["SETUP"].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #3d3d3d;
+                    border: 1px solid #5d5d5d;
+                }}
+            """)
+        else:
+            self.buttons["SETUP"].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: #999999;
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #3d3d3d;
+                    border: 1px solid #5d5d5d;
+                }}
+            """)
+            
+        # Style MOVE button similar to SETUP
+        self.buttons["MOVE"].setStyleSheet(f"""
+            QPushButton {{
+                background-color: {DARK_BUTTON_BG};
+                color: {TEXT_COLOR};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 5px;
+                font-family: 'Segoe UI';
+                font-size: 9pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #3d3d3d;
+                border: 1px solid #5d5d5d;
+            }}
+        """)
+            
+        # Style EXIT button
+        if self.is_active:
+            self.buttons["EXIT"].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #3d3d3d;
+                    border: 1px solid {RED_ACCENT};
+                }}
+            """)
+        else:
+            self.buttons["EXIT"].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: #999999;
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #3d3d3d;
+                    border: 1px solid {RED_ACCENT};
+                }}
+            """)
     
     def toggle_active(self):
         """Toggle the active state of the dwell clicker."""
@@ -373,8 +521,6 @@ class DwellClickerUI:
         # Only process if clicker is active
         if not self.is_active:
             return
-        
-        #print(f"Processing dwell in {self.current_mode} mode")
         
         # Handle DRAG mode
         if self.current_mode == "DRAG":

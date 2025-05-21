@@ -1,27 +1,23 @@
 """Utility functions for the Dwellpy application."""
 
-import tkinter as tk
+from PyQt6.QtGui import QGuiApplication
 
 def center_window(window):
     """
     Center a window on the screen.
     
     Args:
-        window: Tkinter window to center
+        window: QWidget/QMainWindow/QDialog to center
     """
-    window.update_idletasks()
+    # In PyQt6, QDesktopWidget is removed, use QScreen instead
+    screen = QGuiApplication.primaryScreen().geometry()
     
     # Get window size
-    width = window.winfo_width()
-    height = window.winfo_height()
-    
-    # Get screen size
-    screen_width = window.winfo_screenwidth()
-    screen_height = window.winfo_screenheight()
+    window_size = window.frameGeometry()
     
     # Calculate position
-    x = (screen_width - width) // 2
-    y = (screen_height - height) // 2
+    x = (screen.width() - window_size.width()) // 2
+    y = (screen.height() - window_size.height()) // 2
     
     # Set window position
-    window.geometry(f"+{x}+{y}")
+    window.move(x, y)

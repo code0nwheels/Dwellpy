@@ -1,10 +1,22 @@
 """Settings management for the Dwellpy application."""
 
-import tkinter as tk
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
+                           QPushButton, QSlider, QCheckBox, QFrame)
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QGuiApplication, QFont
 import json
 import os
 import sys
 from utils import center_window
+from __version__ import __version__  # Add this at the top
+
+# Dark theme color constants
+DARK_BG = "#1a1a1a"         # Dark background - darker for contrast
+DARK_BUTTON_BG = "#2d2d2d"  # Dark button background
+TEXT_COLOR = "#ffffff"      # White text
+BLUE_ACCENT = "#0078d7"     # Blue accent color
+SLIDER_TRACK = "#444444"    # Slider track color
+BORDER_COLOR = "#3c3c3c"    # Slight border color for depth
 
 class SettingsManager:
     """
@@ -16,17 +28,25 @@ class SettingsManager:
     - Applying settings to the dwell detector
     """
     
-    def __init__(self, root, dwell_detector):
+    def __init__(self, dwell_detector):
         """
         Initialize the settings manager.
         
         Args:
-            root: The main Tkinter window
             dwell_detector: The DwellDetector instance to configure
         """
-        self.root = root
         self.dwell_detector = dwell_detector
-        self.setup_window = None  # Track settings window
+        self.setup_dialog = None  # Track settings dialog
+        
+        # Initialize timers to None
+        self.move_minus_timer = None
+        self.move_plus_timer = None
+        self.time_minus_timer = None
+        self.time_plus_timer = None
+        self.move_minus_repeat = None
+        self.move_plus_repeat = None
+        self.time_minus_repeat = None
+        self.time_plus_repeat = None
         
         # All application settings stored here
         self.settings = {
@@ -92,9 +112,13 @@ class SettingsManager:
                 print(f"Settings loaded successfully: {self.settings}")
             else:
                 # Default position near center of screen
-                screen_width = self.root.winfo_screenwidth()
-                screen_height = self.root.winfo_screenheight()
-                self.settings['window_position'] = (screen_width // 2 - 150, screen_height // 2 - 25)
+                # In PyQt6, QDesktopWidget is removed, use QScreen instead
+                primary_screen = QGuiApplication.primaryScreen()
+                if primary_screen:
+                    screen_geometry = primary_screen.geometry()
+                    screen_width = screen_geometry.width()
+                    screen_height = screen_geometry.height()
+                    self.settings['window_position'] = (screen_width // 2 - 150, screen_height // 2 - 25)
                 print("Settings file not found, using defaults")
                 
         except Exception as e:
@@ -116,225 +140,512 @@ class SettingsManager:
         except Exception as e:
             print(f"Error saving settings: {e}")
     
-    def open_setup(self, button_manager):
+    def open_setup(self, button_manager, parent_window=None):
         """
         Open the setup dialog if not already open.
         
         Args:
             button_manager: ButtonManager instance for button hover tracking
+            parent_window: Parent window for the dialog
         """
-        # Check if setup window is already open
-        if self.setup_window is not None and self.setup_window.winfo_exists():
+        # Check if setup dialog is already open
+        if self.setup_dialog is not None and self.setup_dialog.isVisible():
             # Bring it to front
-            self.setup_window.lift()
+            self.setup_dialog.raise_()
+            self.setup_dialog.activateWindow()
             return
         
-        # Pre-define window size with more room for improved UI
-        width = 380
-        height = 280
+        # Create timers for hover delay functionality
+        self.move_minus_timer = QTimer()
+        self.move_minus_timer.setSingleShot(True)
+        self.move_minus_timer.timeout.connect(self.start_minus_move_repeat)
         
-        # Create new setup window
-        self.setup_window = tk.Toplevel(self.root)
-        self.setup_window.geometry(f"{width}x{height}")
+        self.move_plus_timer = QTimer()
+        self.move_plus_timer.setSingleShot(True)
+        self.move_plus_timer.timeout.connect(self.start_plus_move_repeat)
         
-        # Configure window
-        self.setup_window.title("Dwellpy Setup")
-        self.setup_window.resizable(False, False)
-        self.setup_window.transient(self.root)
-        self.setup_window.attributes('-topmost', True)
-        self.setup_window.configure(background='#f0f0f0')  # Light gray background
+        self.time_minus_timer = QTimer()
+        self.time_minus_timer.setSingleShot(True)
+        self.time_minus_timer.timeout.connect(self.start_minus_time_repeat)
         
-        # Hide window until all elements are added
-        self.setup_window.withdraw()
+        self.time_plus_timer = QTimer()
+        self.time_plus_timer.setSingleShot(True)
+        self.time_plus_timer.timeout.connect(self.start_plus_time_repeat)
         
-        # Bind close event to clear reference
-        self.setup_window.protocol("WM_DELETE_WINDOW", self.on_setup_window_close)
+        # Repeat timers (will trigger repeatedly after initial delay)
+        self.move_minus_repeat = QTimer()
+        self.move_minus_repeat.timeout.connect(self.on_hover_minus_move_limit)
         
-        # Main frame with padding
-        main_frame = tk.Frame(self.setup_window, padx=25, pady=20, bg='#f0f0f0')
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        self.move_plus_repeat = QTimer()
+        self.move_plus_repeat.timeout.connect(self.on_hover_plus_move_limit)
         
-        # Settings title with improved typography
-        title_label = tk.Label(main_frame, text="Dwellpy Settings", font=("Segoe UI", 16, "bold"), 
-                              bg='#f0f0f0', fg='#333333')
-        title_label.pack(pady=(0, 20))
+        self.time_minus_repeat = QTimer()
+        self.time_minus_repeat.timeout.connect(self.on_hover_minus_dwell_time)
         
-        # Movement threshold setting
-        move_limit_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        move_limit_frame.pack(fill=tk.X, pady=8)
+        self.time_plus_repeat = QTimer()
+        self.time_plus_repeat.timeout.connect(self.on_hover_plus_dwell_time)
         
-        move_limit_label = tk.Label(move_limit_frame, text="Move Limit (px):", anchor=tk.W, 
-                             font=("Segoe UI", 10), bg='#f0f0f0', fg='#333333',
-                             width=12)
-        move_limit_label.pack(side=tk.LEFT, padx=(0, 5))
+        # Create new setup dialog
+        self.setup_dialog = QDialog(parent_window)
+        self.setup_dialog.setFixedSize(350, 350)  # Adjusted height to match screenshot
         
-        # Get the current move limit from settings
-        move_limit_var = tk.IntVar(value=self.settings['move_limit'])
-        
-        move_limit_slider = tk.Scale(
-            move_limit_frame, 
-            from_=3,    # Minimum sensitivity
-            to=20,      # Maximum sensitivity
-            variable=move_limit_var,
-            orient=tk.HORIZONTAL,
-            length=180,
-            showvalue=0,
-            bd=0,
-            highlightthickness=0,
-            sliderrelief=tk.FLAT,
-            bg='#f0f0f0',
-            troughcolor='#d0d0d0',
-            activebackground='#3498db'
+        # Set window flags for frameless window
+        self.setup_dialog.setWindowFlags(
+            Qt.WindowType.Dialog | 
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.FramelessWindowHint  # No title bar
         )
-        move_limit_slider.pack(side=tk.LEFT, padx=5)
         
-        # Value label to show current setting
-        move_limit_value = tk.Label(move_limit_frame, text=str(move_limit_var.get()), width=3, 
-                               font=("Segoe UI", 10, "bold"), bg='#f0f0f0', fg='#333333')
-        move_limit_value.pack(side=tk.LEFT, padx=5)
+        # Make dialog non-modal to allow dwell clicking to continue
+        self.setup_dialog.setModal(False)
         
-        # Update value label when slider moves and apply settings immediately
-        def update_move_limit_value(val):
-            val = int(float(val))
-            move_limit_value.config(text=str(val))
-            # Apply setting immediately
-            self.settings['move_limit'] = val
-            self.dwell_detector.move_limit = val
-            print(f"Move limit updated to: {val}")
+        # Apply dark theme with subtle border
+        self.setup_dialog.setStyleSheet(f"""
+            QDialog {{
+                background-color: {DARK_BG};
+                color: {TEXT_COLOR};
+                border: 1px solid {BORDER_COLOR};
+            }}
+        """)
         
-        move_limit_slider.config(command=update_move_limit_value)
+        # Main layout
+        main_layout = QVBoxLayout(self.setup_dialog)
+        main_layout.setContentsMargins(20, 15, 20, 10)
+        main_layout.setSpacing(10)  # Reduced global spacing between elements
         
-        # Dwell time setting
-        time_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        time_frame.pack(fill=tk.X, pady=8)
+        # Title area with close button
+        title_frame = QFrame(self.setup_dialog)
+        title_layout = QHBoxLayout(title_frame)
+        title_layout.setContentsMargins(0, 0, 0, 0)
         
-        time_label = tk.Label(time_frame, text="Dwell Time (s):", anchor=tk.W, 
-                             font=("Segoe UI", 10), bg='#f0f0f0', fg='#333333',
-                             width=12)
-        time_label.pack(side=tk.LEFT, padx=(0, 5))
+        # Title label
+        title_label = QLabel("Dwellpy Settings", title_frame)
+        title_label.setStyleSheet(f"""
+            font-family: 'Segoe UI', Arial;
+            font-size: 16pt;
+            font-weight: bold;
+            color: {TEXT_COLOR};
+        """)
+        title_layout.addWidget(title_label)
         
-        # Get dwell time from settings
-        time_var = tk.DoubleVar(value=self.settings['dwell_time'])
+        # Close button
+        close_button = QPushButton("×", title_frame)
+        close_button.setFixedSize(24, 24)
+        close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {TEXT_COLOR};
+                border: none;
+                font-size: 16pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                color: #aaaaaa;
+            }}
+        """)
+        close_button.clicked.connect(self.on_ok_button_click)
+        title_layout.addWidget(close_button)
         
-        time_slider = tk.Scale(
-            time_frame, 
-            from_=0.1,   # Minimum dwell time
-            to=2.0,      # Maximum dwell time
-            resolution=0.1,
-            variable=time_var,
-            orient=tk.HORIZONTAL,
-            length=180,
-            showvalue=0,
-            bd=0,
-            highlightthickness=0,
-            sliderrelief=tk.FLAT,
-            bg='#f0f0f0',
-            troughcolor='#d0d0d0',
-            activebackground='#3498db'
-        )
-        time_slider.pack(side=tk.LEFT, padx=5)
+        main_layout.addWidget(title_frame)
         
-        # Value label for dwell time
-        time_value = tk.Label(time_frame, text=f"{time_var.get():.1f}", width=3, 
-                             font=("Segoe UI", 10, "bold"), bg='#f0f0f0', fg='#333333')
-        time_value.pack(side=tk.LEFT, padx=5)
+        # Move Limit label
+        move_label = QLabel("Move Limit (px):", self.setup_dialog)
+        move_label.setFont(QFont("Segoe UI", 11))  # Slightly smaller font
+        move_label.setStyleSheet(f"color: {TEXT_COLOR}; font-weight: bold;")
+        main_layout.addWidget(move_label)
         
-        # Update time value when slider moves and apply settings immediately
-        def update_time_value(val):
-            val = float(val)
-            time_value.config(text=f"{val:.1f}")
-            # Apply setting immediately
-            self.settings['dwell_time'] = val
-            self.dwell_detector.dwell_time = val
-            self.dwell_detector.click_time = int(val / 0.1)
-            print(f"Dwell time updated to: {val}s")
+        # First slider group - Move Limit
+        move_limit_frame = QFrame(self.setup_dialog)
+        move_limit_layout = QHBoxLayout(move_limit_frame)
+        move_limit_layout.setContentsMargins(0, 0, 0, 0)
+        move_limit_layout.setSpacing(5)  # Reduced spacing between buttons and slider
         
-        time_slider.config(command=update_time_value)
+        # Minus button
+        move_minus_btn = QPushButton("-", move_limit_frame)
+        move_minus_btn.setFixedSize(20, 20)
+        move_minus_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        move_minus_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {DARK_BUTTON_BG};
+                color: {TEXT_COLOR};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 10px;
+                font-weight: bold;
+            }}
+        """)
+        move_minus_btn.enterEvent = lambda e: self.on_enter_minus_move()
+        move_minus_btn.leaveEvent = lambda e: self.on_leave_minus_move()
+        move_limit_layout.addWidget(move_minus_btn)
+        
+        # Slider
+        self.move_limit_slider = QSlider(Qt.Orientation.Horizontal, move_limit_frame)
+        self.move_limit_slider.setRange(3, 20)
+        self.move_limit_slider.setValue(self.settings['move_limit'])
+        self.move_limit_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                background: {SLIDER_TRACK};
+                height: 4px;
+                border-radius: 2px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {BLUE_ACCENT};
+                width: 16px;
+                height: 16px;
+                margin: -6px 0;
+                border-radius: 8px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: {BLUE_ACCENT};
+                height: 4px;
+                border-radius: 2px;
+            }}
+        """)
+        move_limit_layout.addWidget(self.move_limit_slider)
+        
+        # Plus button
+        move_plus_btn = QPushButton("+", move_limit_frame)
+        move_plus_btn.setFixedSize(20, 20)
+        move_plus_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        move_plus_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {DARK_BUTTON_BG};
+                color: {TEXT_COLOR};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 10px;
+                font-weight: bold;
+            }}
+        """)
+        move_plus_btn.enterEvent = lambda e: self.on_enter_plus_move()
+        move_plus_btn.leaveEvent = lambda e: self.on_leave_plus_move()
+        move_limit_layout.addWidget(move_plus_btn)
+        
+        # Value label
+        self.move_limit_value = QLabel(str(self.settings['move_limit']), move_limit_frame)
+        self.move_limit_value.setStyleSheet(f"""
+            font-family: 'Segoe UI', Arial;
+            font-size: 12pt;
+            font-weight: bold;
+            color: {TEXT_COLOR};
+        """)
+        self.move_limit_value.setFixedWidth(30)
+        move_limit_layout.addWidget(self.move_limit_value)
+        
+        main_layout.addWidget(move_limit_frame)
+        
+        # Add visual separator
+        separator = QFrame(self.setup_dialog)
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setMaximumHeight(1)
+        separator.setStyleSheet(f"background-color: {BORDER_COLOR};")
+        main_layout.addWidget(separator)
+        
+        # Dwell Time label
+        time_label = QLabel("Dwell Time (s):", self.setup_dialog)
+        time_label.setFont(QFont("Segoe UI", 11))  # Slightly smaller font
+        time_label.setStyleSheet(f"color: {TEXT_COLOR}; font-weight: bold;")
+        main_layout.addWidget(time_label)
+        
+        # Second slider group - Dwell Time
+        time_frame = QFrame(self.setup_dialog)
+        time_layout = QHBoxLayout(time_frame)
+        time_layout.setContentsMargins(0, 0, 0, 0)
+        time_layout.setSpacing(5)  # Reduced spacing between buttons and slider
+        
+        # Minus button
+        time_minus_btn = QPushButton("-", time_frame)
+        time_minus_btn.setFixedSize(20, 20)
+        time_minus_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        time_minus_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {DARK_BUTTON_BG};
+                color: {TEXT_COLOR};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 10px;
+                font-weight: bold;
+            }}
+        """)
+        time_minus_btn.enterEvent = lambda e: self.on_enter_minus_time()
+        time_minus_btn.leaveEvent = lambda e: self.on_leave_minus_time()
+        time_layout.addWidget(time_minus_btn)
+        
+        # Slider
+        self.time_slider = QSlider(Qt.Orientation.Horizontal, time_frame)
+        self.time_slider.setRange(1, 20)  # 0.1 to 2.0 seconds (x10 for smoother slider)
+        self.time_slider.setValue(int(self.settings['dwell_time'] * 10))
+        self.time_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                background: {SLIDER_TRACK};
+                height: 4px;
+                border-radius: 2px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {BLUE_ACCENT};
+                width: 16px;
+                height: 16px;
+                margin: -6px 0;
+                border-radius: 8px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: {BLUE_ACCENT};
+                height: 4px;
+                border-radius: 2px;
+            }}
+        """)
+        time_layout.addWidget(self.time_slider)
+        
+        # Plus button
+        time_plus_btn = QPushButton("+", time_frame)
+        time_plus_btn.setFixedSize(20, 20)
+        time_plus_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        time_plus_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {DARK_BUTTON_BG};
+                color: {TEXT_COLOR};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 10px;
+                font-weight: bold;
+            }}
+        """)
+        time_plus_btn.enterEvent = lambda e: self.on_enter_plus_time()
+        time_plus_btn.leaveEvent = lambda e: self.on_leave_plus_time()
+        time_layout.addWidget(time_plus_btn)
+        
+        # Value label
+        self.time_value = QLabel(f"{self.settings['dwell_time']:.1f}", time_frame)
+        self.time_value.setStyleSheet(f"""
+            font-family: 'Segoe UI', Arial;
+            font-size: 12pt;
+            font-weight: bold;
+            color: {TEXT_COLOR};
+        """)
+        self.time_value.setFixedWidth(30)
+        time_layout.addWidget(self.time_value)
+        
+        main_layout.addWidget(time_frame)
         
         # Default on state
-        active_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        active_frame.pack(fill=tk.X, pady=15)
+        active_frame = QFrame(self.setup_dialog)
+        active_layout = QHBoxLayout(active_frame)
+        active_layout.setContentsMargins(0, 0, 0, 0)
+        active_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
-        active_var = tk.BooleanVar(value=self.settings['default_active'])
-        active_check = tk.Checkbutton(
-            active_frame, 
-            text="Start active on launch", 
-            variable=active_var,
-            font=("Segoe UI", 10),
-            bg='#f0f0f0',
-            fg='#333333',
-            activebackground='#f0f0f0',
-            selectcolor='#f0f0f0',
-            highlightthickness=0
-        )
+        self.active_check = QCheckBox("Start active on launch", active_frame)
+        self.active_check.setChecked(self.settings['default_active'])
+        self.active_check.setFont(QFont("Segoe UI", 11))  # Slightly smaller font
+        self.active_check.setStyleSheet(f"""
+            QCheckBox {{
+                color: {TEXT_COLOR};
+                spacing: 10px;
+            }}
+            QCheckBox::indicator {{
+                width: 16px;
+                height: 16px;
+                background-color: {DARK_BG};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 3px;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {BLUE_ACCENT};
+                border: 1px solid {BLUE_ACCENT};
+            }}
+        """)
+        active_layout.addWidget(self.active_check)
         
-        # Add a callback for the checkbutton
-        def on_active_toggle():
-            is_active = active_var.get()
-            self.settings['default_active'] = is_active
-            print(f"Default active state updated to: {is_active}")
-            
-        active_check.config(command=on_active_toggle)
-        active_check.pack(padx=5)
+        main_layout.addWidget(active_frame)
         
-        # OK button - just closes the dialog and saves settings
-        def ok_button_click():
-            # Save settings
-            self.save_settings()
-            print(f"Settings saved")
-                
-            self.setup_window.destroy()
-            self.setup_window = None
+        # OK button
+        ok_button = QPushButton("OK", self.setup_dialog)
+        ok_button.setFixedSize(250, 35)
+        ok_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        ok_button.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        ok_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {BLUE_ACCENT};
+                color: {TEXT_COLOR};
+                border: none;
+                border-radius: 3px;
+            }}
+            QPushButton:hover {{
+                background-color: #0069c0;
+            }}
+        """)
+        ok_button.clicked.connect(self.on_ok_button_click)
         
-        ok_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        ok_frame.pack(pady=15)
+        main_layout.addWidget(ok_button, 0, Qt.AlignmentFlag.AlignCenter)
         
-        ok_button = tk.Button(
-            ok_frame, 
-            text="OK", 
-            command=ok_button_click, 
-            width=12,
-            font=("Segoe UI", 10),
-            bg='#3498db',
-            fg='white',
-            activebackground='#2980b9',
-            activeforeground='white',
-            relief=tk.FLAT,
-            padx=10,
-            pady=5,
-            cursor="hand2"
-        )
-        ok_button.pack()
+        # Bottom separator and version
+        bottom_frame = QFrame(self.setup_dialog)
+        bottom_layout = QVBoxLayout(bottom_frame)
+        bottom_layout.setContentsMargins(0, 5, 0, 0)
+        bottom_layout.setSpacing(5)
         
-        # Register OK command
-        button_manager.register_command("OK_SETTINGS", ok_button_click)
+        # Separator
+        bottom_separator = QFrame(self.setup_dialog)
+        bottom_separator.setFrameShape(QFrame.Shape.HLine)
+        bottom_separator.setFrameShadow(QFrame.Shadow.Sunken)
+        bottom_separator.setStyleSheet(f"background-color: {BORDER_COLOR};")
+        bottom_layout.addWidget(bottom_separator)
         
-        # Separator for visual appeal
-        separator = tk.Frame(main_frame, height=1, bg='#d0d0d0')
-        separator.pack(fill=tk.X, pady=10)
+        # Version info
+        version_label = QLabel(f"Dwellpy v{__version__}", self.setup_dialog)
+        version_label.setStyleSheet("""
+            font-family: 'Segoe UI', Arial;
+            font-size: 9pt;
+            color: #999999;
+        """)
+        version_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        bottom_layout.addWidget(version_label)
         
-        # Version info with subtle styling
-        version_label = tk.Label(main_frame, text="Dwellpy v1.0", 
-                                font=("Segoe UI", 8), bg='#f0f0f0', fg='#999999')
-        version_label.pack(side=tk.RIGHT, pady=(5, 0))
+        main_layout.addWidget(bottom_frame)
         
-        # Update initial values
-        update_move_limit_value(move_limit_var.get())
-        update_time_value(time_var.get())
+        # Connect signals
+        self.move_limit_slider.valueChanged.connect(self.update_move_limit_value)
+        self.time_slider.valueChanged.connect(self.update_time_value)
+        self.active_check.stateChanged.connect(self.on_active_toggle)
         
-        # Force the window to update and calculate its true size after all widgets are added
-        self.setup_window.update_idletasks()
+        # Register button command
+        button_manager.register_command("OK_SETTINGS", self.on_ok_button_click)
         
-        # Center the window on screen
-        center_window(self.setup_window)
+        # Center the dialog on screen
+        center_window(self.setup_dialog)
         
-        # Now make the window visible
-        self.setup_window.deiconify()
+        # Show the dialog (non-modal)
+        self.setup_dialog.show()
     
-    def on_setup_window_close(self):
-        """Handle setup window closing."""
-        if self.setup_window:
-            # Save settings when closing the window
-            self.save_settings()
-            self.setup_window.destroy()
-            self.setup_window = None
+    # New hover enter/leave methods
+    def on_enter_minus_move(self):
+        """Start the timer when mouse enters minus move button."""
+        self.move_minus_timer.start(500)  # 500 ms = 0.5 seconds
+
+    def on_leave_minus_move(self):
+        """Stop all timers when mouse leaves minus move button."""
+        self.move_minus_timer.stop()
+        self.move_minus_repeat.stop()
+
+    def on_enter_plus_move(self):
+        """Start the timer when mouse enters plus move button."""
+        self.move_plus_timer.start(500)
+
+    def on_leave_plus_move(self):
+        """Stop all timers when mouse leaves plus move button."""
+        self.move_plus_timer.stop()
+        self.move_plus_repeat.stop()
+
+    def on_enter_minus_time(self):
+        """Start the timer when mouse enters minus time button."""
+        self.time_minus_timer.start(500)
+
+    def on_leave_minus_time(self):
+        """Stop all timers when mouse leaves minus time button."""
+        self.time_minus_timer.stop()
+        self.time_minus_repeat.stop()
+
+    def on_enter_plus_time(self):
+        """Start the timer when mouse enters plus time button."""
+        self.time_plus_timer.start(500)
+
+    def on_leave_plus_time(self):
+        """Stop all timers when mouse leaves plus time button."""
+        self.time_plus_timer.stop()
+        self.time_plus_repeat.stop()
+
+    # New methods to start repeating timers
+    def start_minus_move_repeat(self):
+        """After initial delay, start repeating."""
+        self.on_hover_minus_move_limit()  # Trigger once immediately
+        self.move_minus_repeat.start(500)  # Then repeat every 0.5 seconds
+
+    def start_plus_move_repeat(self):
+        """After initial delay, start repeating."""
+        self.on_hover_plus_move_limit()  # Trigger once immediately
+        self.move_plus_repeat.start(500)  # Then repeat every 0.5 seconds
+
+    def start_minus_time_repeat(self):
+        """After initial delay, start repeating."""
+        self.on_hover_minus_dwell_time()  # Trigger once immediately
+        self.time_minus_repeat.start(500)  # Then repeat every 0.5 seconds
+
+    def start_plus_time_repeat(self):
+        """After initial delay, start repeating."""
+        self.on_hover_plus_dwell_time()  # Trigger once immediately
+        self.time_plus_repeat.start(500)  # Then repeat every 0.5 seconds
+    
+    def on_hover_minus_move_limit(self):
+        """Handle hover over minus button for move limit."""
+        if self.move_limit_slider.value() > self.move_limit_slider.minimum():
+            # Decrement the slider value
+            self.move_limit_slider.setValue(self.move_limit_slider.value() - 1)
+    
+    def on_hover_plus_move_limit(self):
+        """Handle hover over plus button for move limit."""
+        if self.move_limit_slider.value() < self.move_limit_slider.maximum():
+            # Increment the slider value
+            self.move_limit_slider.setValue(self.move_limit_slider.value() + 1)
+    
+    def on_hover_minus_dwell_time(self):
+        """Handle hover over minus button for dwell time."""
+        if self.time_slider.value() > self.time_slider.minimum():
+            # Decrement the slider value
+            self.time_slider.setValue(self.time_slider.value() - 1)
+    
+    def on_hover_plus_dwell_time(self):
+        """Handle hover over plus button for dwell time."""
+        if self.time_slider.value() < self.time_slider.maximum():
+            # Increment the slider value
+            self.time_slider.setValue(self.time_slider.value() + 1)
+    
+    def update_move_limit_value(self, value):
+        """Update move limit value and apply setting."""
+        self.move_limit_value.setText(str(value))
+        # Apply setting immediately
+        self.settings['move_limit'] = value
+        self.dwell_detector.move_limit = value
+        print(f"Move limit updated to: {value}")
+    
+    def update_time_value(self, value):
+        """Update dwell time value and apply setting."""
+        # Convert slider value (1-20) to seconds (0.1-2.0)
+        seconds = value / 10.0
+        self.time_value.setText(f"{seconds:.1f}")
+        # Apply setting immediately
+        self.settings['dwell_time'] = seconds
+        self.dwell_detector.dwell_time = seconds
+        self.dwell_detector.click_time = int(seconds / 0.1)
+        print(f"Dwell time updated to: {seconds}s")
+    
+    def on_active_toggle(self, state):
+        """Handle active checkbox toggle."""
+        is_active = state == Qt.CheckState.Checked
+        self.settings['default_active'] = is_active
+        print(f"Default active state updated to: {is_active}")
+    
+    def on_ok_button_click(self):
+        """Handle OK button click."""
+        # Stop all timers if they exist
+        if hasattr(self, 'move_minus_timer') and self.move_minus_timer:
+            self.move_minus_timer.stop()
+        if hasattr(self, 'move_plus_timer') and self.move_plus_timer:
+            self.move_plus_timer.stop()
+        if hasattr(self, 'time_minus_timer') and self.time_minus_timer:
+            self.time_minus_timer.stop()
+        if hasattr(self, 'time_plus_timer') and self.time_plus_timer:
+            self.time_plus_timer.stop()
+        if hasattr(self, 'move_minus_repeat') and self.move_minus_repeat:
+            self.move_minus_repeat.stop()
+        if hasattr(self, 'move_plus_repeat') and self.move_plus_repeat:
+            self.move_plus_repeat.stop()
+        if hasattr(self, 'time_minus_repeat') and self.time_minus_repeat:
+            self.time_minus_repeat.stop()
+        if hasattr(self, 'time_plus_repeat') and self.time_plus_repeat:
+            self.time_plus_repeat.stop()
+        
+        # Save settings
+        self.save_settings()
+        print(f"Settings saved")
+        
+        # Close dialog
+        if self.setup_dialog and self.setup_dialog.isVisible():
+            self.setup_dialog.close()
+            self.setup_dialog = None

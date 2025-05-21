@@ -1,4 +1,7 @@
-import tkinter as tk
+"""Main module for the Dwellpy application."""
+
+import sys
+from PyQt6.QtWidgets import QApplication
 from dwell_algorithm import DwellDetector
 from input_manager import InputManager
 from click_manager import ClickManager
@@ -8,24 +11,25 @@ from ui_manager import DwellClickerUI
 from button_manager import ButtonManager
 from window_manager import WindowManager
 
+from __version__ import __version__
+
 class Dwellpy:
     """Main dwell clicker application with UI."""
     
     def __init__(self):
-        # Create the root window
-        self.root = tk.Tk()
+        # Create the application first
+        self.app = QApplication(sys.argv)
         
         # Create managers first
         self.button_manager = ButtonManager()
         self.detector = DwellDetector(radius=10, dwell_time=0.2)
         self.input_manager = InputManager()
         self.click_manager = ClickManager()
-        self.settings_manager = SettingsManager(self.root, self.detector)
-        self.window_manager = WindowManager(self.root, self.settings_manager)
+        self.settings_manager = SettingsManager(self.detector)
+        self.window_manager = WindowManager(self.settings_manager)
         
         # Create UI with references to managers
         self.ui = DwellClickerUI(
-            self.root, 
             self.click_manager, 
             self.detector,
             self.button_manager,
@@ -34,9 +38,9 @@ class Dwellpy:
         
         # Create exit manager after UI
         self.exit_manager = ExitManager(
-            self.root, 
             self.settings_manager, 
-            self.button_manager
+            self.button_manager,
+            self.ui.window
         )
         
         # Connect components
@@ -45,7 +49,7 @@ class Dwellpy:
         # Register settings manager open command with button manager
         self.button_manager.register_command(
             "SETUP", 
-            lambda: self.settings_manager.open_setup(self.button_manager)
+            lambda: self.settings_manager.open_setup(self.button_manager, self.ui.window)
         )
         
         # Setup input callback
@@ -77,14 +81,17 @@ class Dwellpy:
         print("Starting Dwell Clicker application...")
         
         # Load window position
-        self.window_manager.load_position()
+        self.window_manager.load_position(self.ui.window)
         
         self.running = True
         self.input_manager.start()
         
+        # Show the main window
+        self.ui.window.show()
+        
         try:
-            # Main loop - tkinter will handle events
-            self.root.mainloop()
+            # Start the Qt event loop
+            sys.exit(self.app.exec())
         except KeyboardInterrupt:
             print("\nStopping application...")
         finally:
