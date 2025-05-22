@@ -38,7 +38,7 @@ This tool is particularly helpful for individuals who use head trackers or alter
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/username/dwellpy.git
+   git clone https://github.com/code0nwheels/dwellpy.git
    cd dwellpy
    ```
 
@@ -170,7 +170,7 @@ dwellpy/
 
 ```bash
 # Clone repository
-git clone https://github.com/username/dwellpy.git
+git clone https://github.com/code0nwheels/dwellpy.git
 cd dwellpy
 
 # Install in development mode
@@ -190,9 +190,9 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ## 💡 Support
 
-- **Issues**: Report bugs on [GitHub Issues](https://github.com/username/dwellpy/issues)
-- **Discussions**: Join conversations on [GitHub Discussions](https://github.com/username/dwellpy/discussions)
-- **Documentation**: Visit the [Wiki](https://github.com/username/dwellpy/wiki)
+- **Issues**: Report bugs on [GitHub Issues](https://github.com/code0nwheels/dwellpy/issues)
+- **Discussions**: Join conversations on [GitHub Discussions](https://github.com/code0nwheels/dwellpy/discussions)
+- **Documentation**: Visit the [Wiki](https://github.com/code0nwheels/dwellpy/wiki)
 
 ---
 
