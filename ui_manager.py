@@ -260,30 +260,12 @@ class DwellClickerUI:
             # Get the button
             button = self.buttons[button_name]
             
-            # Set default styling
-            if button_name == self.default_mode:
-                # Default mode button - blue
-                button.setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {BLUE_ACCENT};
-                        color: {TEXT_COLOR};
-                        border: 1px solid {BLUE_ACCENT};
-                        border-radius: 5px;
-                        font-family: 'Segoe UI';
-                        font-size: 9pt;
-                        font-weight: bold;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #0069c0;
-                        border: 1px solid #0069c0;
-                    }}
-                """)
-            else:
-                # Non-default modes - dark gray
+            # Check if clicker is inactive - if so, gray out all click buttons
+            if not self.is_active:
                 button.setStyleSheet(f"""
                     QPushButton {{
                         background-color: {DARK_BUTTON_BG};
-                        color: {TEXT_COLOR};
+                        color: #999999;
                         border: 1px solid {BORDER_COLOR};
                         border-radius: 5px;
                         font-family: 'Segoe UI';
@@ -292,12 +274,48 @@ class DwellClickerUI:
                     }}
                     QPushButton:hover {{
                         background-color: #3d3d3d;
-                        border: 1px solid {BLUE_ACCENT};
+                        border: 1px solid #5d5d5d;
                     }}
                 """)
+            else:
+                # Set default styling when active
+                if button_name == self.default_mode:
+                    # Default mode button - blue
+                    button.setStyleSheet(f"""
+                        QPushButton {{
+                            background-color: {BLUE_ACCENT};
+                            color: {TEXT_COLOR};
+                            border: 1px solid {BLUE_ACCENT};
+                            border-radius: 5px;
+                            font-family: 'Segoe UI';
+                            font-size: 9pt;
+                            font-weight: bold;
+                        }}
+                        QPushButton:hover {{
+                            background-color: #0069c0;
+                            border: 1px solid #0069c0;
+                        }}
+                    """)
+                else:
+                    # Non-default modes - dark gray
+                    button.setStyleSheet(f"""
+                        QPushButton {{
+                            background-color: {DARK_BUTTON_BG};
+                            color: {TEXT_COLOR};
+                            border: 1px solid {BORDER_COLOR};
+                            border-radius: 5px;
+                            font-family: 'Segoe UI';
+                            font-size: 9pt;
+                            font-weight: bold;
+                        }}
+                        QPushButton:hover {{
+                            background-color: #3d3d3d;
+                            border: 1px solid {BLUE_ACCENT};
+                        }}
+                    """)
         
-        # Highlight current mode
-        if self.is_temporary_mode:
+        # Highlight current mode (only when active)
+        if self.is_active and self.is_temporary_mode:
             # Temporary mode - red
             self.buttons[self.current_mode].setStyleSheet(f"""
                 QPushButton {{
@@ -335,21 +353,21 @@ class DwellClickerUI:
         else:
             self.buttons["ON_OFF"].setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {DARK_BUTTON_BG};
+                    background-color: {RED_ACCENT};
                     color: {TEXT_COLOR};
-                    border: 1px solid {BORDER_COLOR};
+                    border: 1px solid {RED_ACCENT};
                     border-radius: 5px;
                     font-family: 'Segoe UI';
                     font-size: 9pt;
                     font-weight: bold;
                 }}
                 QPushButton:hover {{
-                    background-color: #3d3d3d;
-                    border: 1px solid {GREEN_ACCENT};
+                    background-color: #d63031;
+                    border: 1px solid #d63031;
                 }}
             """)
         
-        # Style SETUP button
+        # Style SETUP button - gray out when inactive
         if self.is_active:
             self.buttons["SETUP"].setStyleSheet(f"""
                 QPushButton {{
@@ -383,24 +401,41 @@ class DwellClickerUI:
                 }}
             """)
             
-        # Style MOVE button similar to SETUP
-        self.buttons["MOVE"].setStyleSheet(f"""
-            QPushButton {{
-                background-color: {DARK_BUTTON_BG};
-                color: {TEXT_COLOR};
-                border: 1px solid {BORDER_COLOR};
-                border-radius: 5px;
-                font-family: 'Segoe UI';
-                font-size: 9pt;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: #3d3d3d;
-                border: 1px solid #5d5d5d;
-            }}
-        """)
+        # Style MOVE button - gray out when inactive
+        if self.is_active:
+            self.buttons["MOVE"].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: {TEXT_COLOR};
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #3d3d3d;
+                    border: 1px solid #5d5d5d;
+                }}
+            """)
+        else:
+            self.buttons["MOVE"].setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {DARK_BUTTON_BG};
+                    color: #999999;
+                    border: 1px solid {BORDER_COLOR};
+                    border-radius: 5px;
+                    font-family: 'Segoe UI';
+                    font-size: 9pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #3d3d3d;
+                    border: 1px solid #5d5d5d;
+                }}
+            """)
             
-        # Style EXIT button
+        # Style EXIT button - gray out when inactive
         if self.is_active:
             self.buttons["EXIT"].setStyleSheet(f"""
                 QPushButton {{

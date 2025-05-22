@@ -22,48 +22,73 @@ Dwellpy is an accessibility application designed for people with motor disabilit
 
 ### Installing Dependencies
 
+**Note**: If you get "command not found" errors for `python` or `pip`, try using `python3` and `pip3` instead. This is common on macOS and many Linux distributions.
+
 1. **Install Python**: Download and install from [python.org](https://www.python.org/downloads/)
 
 2. **Install pynput**:
    ```bash
    pip install pynput
    ```
+   If the above doesn't work, try:
+   ```bash
+   pip3 install pynput
+   ```
 
 3. **Install PyQt6**:
    ```bash
    pip install PyQt6
    ```
+   If the above doesn't work, try:
+   ```bash
+   pip3 install PyQt6
+   ```
 
-   - **Windows**: Generally, the above command is sufficient.
-   
-   - **macOS**: Using Homebrew (recommended for dependencies):
-     ```bash
-     brew install qt@6
-     pip install PyQt6
-     ```
-   
-   - **Ubuntu/Debian**:
-     ```bash
-     sudo apt-get update
-     sudo apt-get install python3-pyqt6
-     ```
-     Alternatively:
-     ```bash
-     sudo apt-get install qt6-base-dev
-     pip install PyQt6
-     ```
-   
-   - **Fedora**:
-     ```bash
-     sudo dnf install qt6-qtbase-devel
-     pip install PyQt6
-     ```
-   
-   - **Arch Linux**:
-     ```bash
-     sudo pacman -S qt6-base
-     pip install PyQt6
-     ```
+#### Platform-Specific Instructions:
+
+- **Windows**: Generally, the above commands are sufficient.
+
+- **macOS**: 
+  - **Option 1 - Simple Installation** (recommended for most users):
+    ```bash
+    pip3 install PyQt6
+    ```
+    
+  - **Option 2 - Using Homebrew** (if you need Qt development tools):
+    
+    First, install Homebrew if you don't have it:
+    ```bash
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    ```
+    
+    Then install Qt and PyQt6:
+    ```bash
+    brew install qt@6
+    pip3 install PyQt6
+    ```
+
+- **Ubuntu/Debian**:
+  ```bash
+  sudo apt-get update
+  sudo apt-get install python3-pyqt6
+  ```
+  Alternatively:
+  ```bash
+  sudo apt-get install qt6-base-dev
+  pip3 install PyQt6
+  ```
+
+- **Fedora**:
+  ```bash
+  sudo dnf install qt6-qtbase-devel
+  pip3 install PyQt6
+  ```
+
+- **Arch Linux**:
+  ```bash
+  sudo pacman -S qt6-base
+  pip3 install PyQt6
+  ```
 
 ### Setup
 
@@ -71,6 +96,10 @@ Dwellpy is an accessibility application designed for people with motor disabilit
 2. Run the application:
    ```bash
    python main.py
+   ```
+   If the above doesn't work, try:
+   ```bash
+   python3 main.py
    ```
 
 ### Platform Notes
@@ -176,6 +205,7 @@ Temporary mode is perfect for precision tasks that require different settings th
 
 ## Troubleshooting
 
+- **"Command not found" for python/pip**: Try using `python3` and `pip3` instead
 - **Clicks not triggering**: Try increasing the Move Limit if you have hand tremors or cerebral palsy, or decreasing the Dwell Time if you have difficulty holding position
 - **Too many accidental clicks**: Try decreasing the Move Limit or increasing the Dwell Time
 - **Difficulty with precision tasks**: Try the temporary mode feature to quickly switch to a more precise setting for specific actions
