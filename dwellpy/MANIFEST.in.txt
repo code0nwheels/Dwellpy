@@ -1,0 +1,22 @@
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+recursive-include docs *.md
+
+# Include requirements
+include requirements.txt
+
+# Include configuration files
+recursive-include dwellpy/config *.json
+
+# Exclude development files
+exclude .gitignore
+exclude *.pyc
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+
+# Exclude build artifacts
+exclude build
+exclude dist
+exclude *.egg-info

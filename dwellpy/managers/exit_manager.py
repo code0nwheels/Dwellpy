@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                            QPushButton, QFrame)
 from PyQt6.QtCore import Qt
-from utils import center_window
+from ..utils import center_window
 
 # Dark theme color constants
 DARK_BG = "#222222"         # Dark background
