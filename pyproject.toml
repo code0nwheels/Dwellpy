@@ -81,21 +81,18 @@ filename = "dwellpy/__version__.py"
 search = '__version__ = "{current_version}"'
 replace = '__version__ = "{new_version}"'
 
-[[tool.bumpversion.files]]
-filename = "docs/README.md"
-search = "Dwellpy v{current_version}"
-replace = "Dwellpy v{new_version}"
+# Only include files that actually exist and contain the version string
+# Remove or comment out files that don't have the exact version format
 
-[[tool.bumpversion.files]]
-filename = "BUILD_INFO.md"
-search = "Dwellpy v{current_version}"
-replace = "Dwellpy v{new_version}"
-
-# Optional: Update any hardcoded versions in other files
 # [[tool.bumpversion.files]]
-# filename = "dwellpy/ui/dialogs/settings_dialog.py"
-# search = '__version__ = "{current_version}"'
-# replace = '__version__ = "{new_version}"'
+# filename = "docs/README.md"
+# search = "Dwellpy v{current_version}"
+# replace = "Dwellpy v{new_version}"
+
+# [[tool.bumpversion.files]]
+# filename = "BUILD_INFO.md"
+# search = "Dwellpy v{current_version}"
+# replace = "Dwellpy v{new_version}"
 
 # Part configurations for semantic versioning
 [tool.bumpversion.parts.major]
