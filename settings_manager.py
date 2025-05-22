@@ -43,10 +43,14 @@ class SettingsManager:
         self.move_plus_timer = None
         self.time_minus_timer = None
         self.time_plus_timer = None
+        self.transparency_minus_timer = None
+        self.transparency_plus_timer = None
         self.move_minus_repeat = None
         self.move_plus_repeat = None
         self.time_minus_repeat = None
         self.time_plus_repeat = None
+        self.transparency_minus_repeat = None
+        self.transparency_plus_repeat = None
         
         # All application settings stored here
         self.settings = {
@@ -54,8 +58,13 @@ class SettingsManager:
             'move_limit': 5,
             'dwell_time': 1.0,
             'default_active': False,
-            'default_mode': 'LEFT'
+            'default_mode': 'LEFT',
+            'transparency_enabled': False,  # Disabled by default
+            'transparency_level': 70  # Percentage (70% = 70% transparent, 30% opaque)
         }
+        
+        # Reference to UI manager for immediate transparency updates (set by UI manager)
+        self.ui_manager = None
         
         # Load settings
         self.load_settings()
@@ -126,6 +135,8 @@ class SettingsManager:
             # Set fallback defaults if loading fails
             self.settings['move_limit'] = 5
             self.settings['dwell_time'] = 1.0
+            self.settings['transparency_enabled'] = False
+            self.settings['transparency_level'] = 70
             print("Using fallback defaults due to error")
     
     def save_settings(self):
@@ -172,6 +183,14 @@ class SettingsManager:
         self.time_plus_timer.setSingleShot(True)
         self.time_plus_timer.timeout.connect(self.start_plus_time_repeat)
         
+        self.transparency_minus_timer = QTimer()
+        self.transparency_minus_timer.setSingleShot(True)
+        self.transparency_minus_timer.timeout.connect(self.start_minus_transparency_repeat)
+        
+        self.transparency_plus_timer = QTimer()
+        self.transparency_plus_timer.setSingleShot(True)
+        self.transparency_plus_timer.timeout.connect(self.start_plus_transparency_repeat)
+        
         # Repeat timers (will trigger repeatedly after initial delay)
         self.move_minus_repeat = QTimer()
         self.move_minus_repeat.timeout.connect(self.on_hover_minus_move_limit)
@@ -185,9 +204,15 @@ class SettingsManager:
         self.time_plus_repeat = QTimer()
         self.time_plus_repeat.timeout.connect(self.on_hover_plus_dwell_time)
         
+        self.transparency_minus_repeat = QTimer()
+        self.transparency_minus_repeat.timeout.connect(self.on_hover_minus_transparency)
+        
+        self.transparency_plus_repeat = QTimer()
+        self.transparency_plus_repeat.timeout.connect(self.on_hover_plus_transparency)
+        
         # Create new setup dialog
         self.setup_dialog = QDialog(parent_window)
-        self.setup_dialog.setFixedSize(350, 350)  # Adjusted height to match screenshot
+        self.setup_dialog.setFixedSize(350, 450)  # Increased height for transparency settings
         
         # Set window flags for frameless window
         self.setup_dialog.setWindowFlags(
@@ -211,7 +236,7 @@ class SettingsManager:
         # Main layout
         main_layout = QVBoxLayout(self.setup_dialog)
         main_layout.setContentsMargins(20, 15, 20, 10)
-        main_layout.setSpacing(10)  # Reduced global spacing between elements
+        main_layout.setSpacing(8)  # Reduced spacing to fit more elements
         
         # Title area with close button
         title_frame = QFrame(self.setup_dialog)
@@ -251,7 +276,7 @@ class SettingsManager:
         
         # Move Limit label
         move_label = QLabel("Move Limit (px):", self.setup_dialog)
-        move_label.setFont(QFont("Segoe UI", 11))  # Slightly smaller font
+        move_label.setFont(QFont("Segoe UI", 11))
         move_label.setStyleSheet(f"color: {TEXT_COLOR}; font-weight: bold;")
         main_layout.addWidget(move_label)
         
@@ -259,7 +284,7 @@ class SettingsManager:
         move_limit_frame = QFrame(self.setup_dialog)
         move_limit_layout = QHBoxLayout(move_limit_frame)
         move_limit_layout.setContentsMargins(0, 0, 0, 0)
-        move_limit_layout.setSpacing(5)  # Reduced spacing between buttons and slider
+        move_limit_layout.setSpacing(5)
         
         # Minus button
         move_minus_btn = QPushButton("-", move_limit_frame)
@@ -343,7 +368,7 @@ class SettingsManager:
         
         # Dwell Time label
         time_label = QLabel("Dwell Time (s):", self.setup_dialog)
-        time_label.setFont(QFont("Segoe UI", 11))  # Slightly smaller font
+        time_label.setFont(QFont("Segoe UI", 11))
         time_label.setStyleSheet(f"color: {TEXT_COLOR}; font-weight: bold;")
         main_layout.addWidget(time_label)
         
@@ -351,7 +376,7 @@ class SettingsManager:
         time_frame = QFrame(self.setup_dialog)
         time_layout = QHBoxLayout(time_frame)
         time_layout.setContentsMargins(0, 0, 0, 0)
-        time_layout.setSpacing(5)  # Reduced spacing between buttons and slider
+        time_layout.setSpacing(5)
         
         # Minus button
         time_minus_btn = QPushButton("-", time_frame)
@@ -425,6 +450,132 @@ class SettingsManager:
         
         main_layout.addWidget(time_frame)
         
+        # Add another visual separator
+        separator2 = QFrame(self.setup_dialog)
+        separator2.setFrameShape(QFrame.Shape.HLine)
+        separator2.setFrameShadow(QFrame.Shadow.Sunken)
+        separator2.setMaximumHeight(1)
+        separator2.setStyleSheet(f"background-color: {BORDER_COLOR};")
+        main_layout.addWidget(separator2)
+        
+        # Transparency enable checkbox
+        transparency_enable_frame = QFrame(self.setup_dialog)
+        transparency_enable_layout = QHBoxLayout(transparency_enable_frame)
+        transparency_enable_layout.setContentsMargins(0, 0, 0, 0)
+        transparency_enable_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        self.transparency_check = QCheckBox("Enable window transparency", transparency_enable_frame)
+        self.transparency_check.setChecked(self.settings['transparency_enabled'])
+        self.transparency_check.setFont(QFont("Segoe UI", 11))
+        self.transparency_check.setStyleSheet(f"""
+            QCheckBox {{
+                color: {TEXT_COLOR};
+                spacing: 10px;
+            }}
+            QCheckBox::indicator {{
+                width: 16px;
+                height: 16px;
+                background-color: {DARK_BG};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 3px;
+            }}
+            QCheckBox::indicator:checked {{
+                background-color: {BLUE_ACCENT};
+                border: 1px solid {BLUE_ACCENT};
+            }}
+        """)
+        self.transparency_check.stateChanged.connect(self.on_transparency_toggle)
+        transparency_enable_layout.addWidget(self.transparency_check)
+        
+        main_layout.addWidget(transparency_enable_frame)
+        
+        # Transparency level label
+        transparency_label = QLabel("Transparency (%):", self.setup_dialog)
+        transparency_label.setFont(QFont("Segoe UI", 11))
+        transparency_label.setStyleSheet(f"color: {TEXT_COLOR}; font-weight: bold;")
+        main_layout.addWidget(transparency_label)
+        
+        # Third slider group - Transparency Level
+        transparency_frame = QFrame(self.setup_dialog)
+        transparency_layout = QHBoxLayout(transparency_frame)
+        transparency_layout.setContentsMargins(0, 0, 0, 0)
+        transparency_layout.setSpacing(5)
+        
+        # Minus button
+        transparency_minus_btn = QPushButton("-", transparency_frame)
+        transparency_minus_btn.setFixedSize(20, 20)
+        transparency_minus_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        transparency_minus_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {DARK_BUTTON_BG};
+                color: {TEXT_COLOR};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 10px;
+                font-weight: bold;
+            }}
+        """)
+        transparency_minus_btn.enterEvent = lambda e: self.on_enter_minus_transparency()
+        transparency_minus_btn.leaveEvent = lambda e: self.on_leave_minus_transparency()
+        transparency_layout.addWidget(transparency_minus_btn)
+        
+        # Slider
+        self.transparency_slider = QSlider(Qt.Orientation.Horizontal, transparency_frame)
+        self.transparency_slider.setRange(10, 90)  # 10% to 90% transparency
+        self.transparency_slider.setValue(self.settings['transparency_level'])
+        self.transparency_slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{
+                background: {SLIDER_TRACK};
+                height: 4px;
+                border-radius: 2px;
+            }}
+            QSlider::handle:horizontal {{
+                background: {BLUE_ACCENT};
+                width: 16px;
+                height: 16px;
+                margin: -6px 0;
+                border-radius: 8px;
+            }}
+            QSlider::sub-page:horizontal {{
+                background: {BLUE_ACCENT};
+                height: 4px;
+                border-radius: 2px;
+            }}
+        """)
+        transparency_layout.addWidget(self.transparency_slider)
+        
+        # Plus button
+        transparency_plus_btn = QPushButton("+", transparency_frame)
+        transparency_plus_btn.setFixedSize(20, 20)
+        transparency_plus_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        transparency_plus_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {DARK_BUTTON_BG};
+                color: {TEXT_COLOR};
+                border: 1px solid {BORDER_COLOR};
+                border-radius: 10px;
+                font-weight: bold;
+            }}
+        """)
+        transparency_plus_btn.enterEvent = lambda e: self.on_enter_plus_transparency()
+        transparency_plus_btn.leaveEvent = lambda e: self.on_leave_plus_transparency()
+        transparency_layout.addWidget(transparency_plus_btn)
+        
+        # Value label
+        self.transparency_value = QLabel(f"{self.settings['transparency_level']}%", transparency_frame)
+        self.transparency_value.setStyleSheet(f"""
+            font-family: 'Segoe UI', Arial;
+            font-size: 12pt;
+            font-weight: bold;
+            color: {TEXT_COLOR};
+        """)
+        self.transparency_value.setFixedWidth(40)
+        transparency_layout.addWidget(self.transparency_value)
+        
+        main_layout.addWidget(transparency_frame)
+        
+        # Update transparency controls enabled state
+        self.update_transparency_controls_state()
+        
         # Default on state
         active_frame = QFrame(self.setup_dialog)
         active_layout = QHBoxLayout(active_frame)
@@ -433,7 +584,7 @@ class SettingsManager:
         
         self.active_check = QCheckBox("Start active on launch", active_frame)
         self.active_check.setChecked(self.settings['default_active'])
-        self.active_check.setFont(QFont("Segoe UI", 11))  # Slightly smaller font
+        self.active_check.setFont(QFont("Segoe UI", 11))
         self.active_check.setStyleSheet(f"""
             QCheckBox {{
                 color: {TEXT_COLOR};
@@ -503,6 +654,7 @@ class SettingsManager:
         # Connect signals
         self.move_limit_slider.valueChanged.connect(self.update_move_limit_value)
         self.time_slider.valueChanged.connect(self.update_time_value)
+        self.transparency_slider.valueChanged.connect(self.update_transparency_value)
         self.active_check.stateChanged.connect(self.on_active_toggle)
         
         # Register button command
@@ -514,7 +666,120 @@ class SettingsManager:
         # Show the dialog (non-modal)
         self.setup_dialog.show()
     
-    # New hover enter/leave methods
+    def update_transparency_controls_state(self):
+        """Enable/disable transparency controls based on checkbox state."""
+        enabled = self.transparency_check.isChecked()
+        
+        # Enable/disable slider and buttons
+        self.transparency_slider.setEnabled(enabled)
+        
+        # Update styling to show disabled state
+        if enabled:
+            self.transparency_slider.setStyleSheet(f"""
+                QSlider::groove:horizontal {{
+                    background: {SLIDER_TRACK};
+                    height: 4px;
+                    border-radius: 2px;
+                }}
+                QSlider::handle:horizontal {{
+                    background: {BLUE_ACCENT};
+                    width: 16px;
+                    height: 16px;
+                    margin: -6px 0;
+                    border-radius: 8px;
+                }}
+                QSlider::sub-page:horizontal {{
+                    background: {BLUE_ACCENT};
+                    height: 4px;
+                    border-radius: 2px;
+                }}
+            """)
+        else:
+            self.transparency_slider.setStyleSheet(f"""
+                QSlider::groove:horizontal {{
+                    background: #333333;
+                    height: 4px;
+                    border-radius: 2px;
+                }}
+                QSlider::handle:horizontal {{
+                    background: #666666;
+                    width: 16px;
+                    height: 16px;
+                    margin: -6px 0;
+                    border-radius: 8px;
+                }}
+                QSlider::sub-page:horizontal {{
+                    background: #666666;
+                    height: 4px;
+                    border-radius: 2px;
+                }}
+            """)
+    
+    # New hover enter/leave methods for transparency
+    def on_enter_minus_transparency(self):
+        """Start the timer when mouse enters minus transparency button."""
+        if self.transparency_check.isChecked():
+            self.transparency_minus_timer.start(500)
+
+    def on_leave_minus_transparency(self):
+        """Stop all timers when mouse leaves minus transparency button."""
+        self.transparency_minus_timer.stop()
+        self.transparency_minus_repeat.stop()
+
+    def on_enter_plus_transparency(self):
+        """Start the timer when mouse enters plus transparency button."""
+        if self.transparency_check.isChecked():
+            self.transparency_plus_timer.start(500)
+
+    def on_leave_plus_transparency(self):
+        """Stop all timers when mouse leaves plus transparency button."""
+        self.transparency_plus_timer.stop()
+        self.transparency_plus_repeat.stop()
+
+    def start_minus_transparency_repeat(self):
+        """After initial delay, start repeating."""
+        self.on_hover_minus_transparency()
+        self.transparency_minus_repeat.start(500)
+
+    def start_plus_transparency_repeat(self):
+        """After initial delay, start repeating."""
+        self.on_hover_plus_transparency()
+        self.transparency_plus_repeat.start(500)
+    
+    def on_hover_minus_transparency(self):
+        """Handle hover over minus button for transparency."""
+        if self.transparency_slider.value() > self.transparency_slider.minimum():
+            self.transparency_slider.setValue(self.transparency_slider.value() - 5)
+    
+    def on_hover_plus_transparency(self):
+        """Handle hover over plus button for transparency."""
+        if self.transparency_slider.value() < self.transparency_slider.maximum():
+            self.transparency_slider.setValue(self.transparency_slider.value() + 5)
+    
+    def update_transparency_value(self, value):
+        """Update transparency value and apply setting."""
+        self.transparency_value.setText(f"{value}%")
+        self.settings['transparency_level'] = value
+        
+        # Apply transparency change immediately
+        if self.ui_manager:
+            self.ui_manager.apply_transparency_settings()
+        
+        print(f"Transparency level updated to: {value}%")
+    
+    def on_transparency_toggle(self, state):
+        """Handle transparency checkbox toggle."""
+        is_enabled = state == 2  # Qt.CheckState.Checked is 2
+        self.settings['transparency_enabled'] = is_enabled
+        self.update_transparency_controls_state()
+        
+        # Apply transparency change immediately
+        if self.ui_manager:
+            self.ui_manager.apply_transparency_settings()
+        
+        print(f"Transparency enabled: {is_enabled}")
+    
+    # Existing hover enter/leave methods
     def on_enter_minus_move(self):
         """Start the timer when mouse enters minus move button."""
         self.move_minus_timer.start(500)  # 500 ms = 0.5 seconds
@@ -617,29 +882,23 @@ class SettingsManager:
     
     def on_active_toggle(self, state):
         """Handle active checkbox toggle."""
-        is_active = state == Qt.CheckState.Checked
+        is_active = state == 2  # Qt.CheckState.Checked is 2
         self.settings['default_active'] = is_active
         print(f"Default active state updated to: {is_active}")
     
     def on_ok_button_click(self):
         """Handle OK button click."""
         # Stop all timers if they exist
-        if hasattr(self, 'move_minus_timer') and self.move_minus_timer:
-            self.move_minus_timer.stop()
-        if hasattr(self, 'move_plus_timer') and self.move_plus_timer:
-            self.move_plus_timer.stop()
-        if hasattr(self, 'time_minus_timer') and self.time_minus_timer:
-            self.time_minus_timer.stop()
-        if hasattr(self, 'time_plus_timer') and self.time_plus_timer:
-            self.time_plus_timer.stop()
-        if hasattr(self, 'move_minus_repeat') and self.move_minus_repeat:
-            self.move_minus_repeat.stop()
-        if hasattr(self, 'move_plus_repeat') and self.move_plus_repeat:
-            self.move_plus_repeat.stop()
-        if hasattr(self, 'time_minus_repeat') and self.time_minus_repeat:
-            self.time_minus_repeat.stop()
-        if hasattr(self, 'time_plus_repeat') and self.time_plus_repeat:
-            self.time_plus_repeat.stop()
+        timers_to_stop = [
+            'move_minus_timer', 'move_plus_timer', 'time_minus_timer', 'time_plus_timer',
+            'transparency_minus_timer', 'transparency_plus_timer',
+            'move_minus_repeat', 'move_plus_repeat', 'time_minus_repeat', 'time_plus_repeat',
+            'transparency_minus_repeat', 'transparency_plus_repeat'
+        ]
+        
+        for timer_name in timers_to_stop:
+            if hasattr(self, timer_name) and getattr(self, timer_name):
+                getattr(self, timer_name).stop()
         
         # Save settings
         self.save_settings()

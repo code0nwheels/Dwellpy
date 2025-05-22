@@ -2,7 +2,7 @@
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QPushButton, 
                            QHBoxLayout, QVBoxLayout, QFrame)
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QTimer
 from PyQt6.QtGui import QColor
 import time
 
@@ -43,6 +43,12 @@ class DwellClickerUI:
         # Store button references
         self.buttons = {}
         
+        # Transparency state
+        self.is_cursor_over_window = False
+        self.opacity_timer = QTimer()
+        self.opacity_timer.setSingleShot(True)
+        self.opacity_timer.timeout.connect(self.set_transparent)
+        
         # UI setup
         self.setup_ui()
         
@@ -53,6 +59,12 @@ class DwellClickerUI:
         """Connect to the settings and exit managers after initialization."""
         self.settings_manager = settings_manager
         self.exit_manager = exit_manager
+        
+        # Give settings manager a reference to this UI manager for transparency updates
+        self.settings_manager.ui_manager = self
+        
+        # Apply transparency settings once settings manager is connected
+        self.apply_transparency_settings()
         
         # Apply default active state if configured
         if self.settings_manager.get_setting('default_active', False):
@@ -77,6 +89,9 @@ class DwellClickerUI:
         self.window.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.window.setFixedHeight(60)  # Set fixed height for the toolbar (increased for better visibility)
         self.window.setStyleSheet(f"background-color: {DARK_BG};")
+        
+        # Set up window transparency events
+        self.setup_transparency_events()
         
         # Create central widget
         central_widget = QWidget()
@@ -118,6 +133,76 @@ class DwellClickerUI:
         
         # Highlight initial mode
         self.update_button_states()
+    
+    def setup_transparency_events(self):
+        """Set up window transparency based on cursor presence."""
+        # Store original event handlers
+        self.window.original_enterEvent = self.window.enterEvent
+        self.window.original_leaveEvent = self.window.leaveEvent
+        
+        # Set custom event handlers
+        self.window.enterEvent = self.on_window_enter
+        self.window.leaveEvent = self.on_window_leave
+        
+        # Start with transparent state if enabled
+        self.apply_transparency_settings()
+    
+    def apply_transparency_settings(self):
+        """Apply transparency settings from the settings manager."""
+        if not self.settings_manager:
+            # Default to opaque if settings not available yet
+            self.window.setWindowOpacity(1.0)
+            return
+            
+        transparency_enabled = self.settings_manager.get_setting('transparency_enabled', True)
+        
+        if transparency_enabled and not self.is_cursor_over_window:
+            transparency_level = self.settings_manager.get_setting('transparency_level', 70)
+            # Convert percentage to opacity (70% transparent = 0.3 opaque)
+            opacity = (100 - transparency_level) / 100.0
+            self.window.setWindowOpacity(opacity)
+        else:
+            self.window.setWindowOpacity(1.0)
+    
+    def on_window_enter(self, event):
+        """Handle cursor entering the window area."""
+        self.is_cursor_over_window = True
+        self.opacity_timer.stop()  # Cancel any pending transparency change
+        
+        # Always make opaque when cursor is over window
+        self.set_opaque()
+        
+        # Call original event handler if it exists
+        if hasattr(self.window, 'original_enterEvent'):
+            self.window.original_enterEvent(event)
+    
+    def on_window_leave(self, event):
+        """Handle cursor leaving the window area."""
+        self.is_cursor_over_window = False
+        
+        # Only set transparency if enabled in settings
+        if self.settings_manager and self.settings_manager.get_setting('transparency_enabled', True):
+            # Add a small delay before making transparent to avoid flickering
+            # when cursor moves between buttons
+            self.opacity_timer.start(100)  # 100ms delay
+        
+        # Call original event handler if it exists
+        if hasattr(self.window, 'original_leaveEvent'):
+            self.window.original_leaveEvent(event)
+    
+    def set_opaque(self):
+        """Make the window fully opaque."""
+        self.window.setWindowOpacity(1.0)
+    
+    def set_transparent(self):
+        """Make the window transparent if cursor is not over it and transparency is enabled."""
+        if not self.is_cursor_over_window and self.settings_manager:
+            transparency_enabled = self.settings_manager.get_setting('transparency_enabled', True)
+            if transparency_enabled:
+                transparency_level = self.settings_manager.get_setting('transparency_level', 70)
+                # Convert percentage to opacity (70% transparent = 0.3 opaque)
+                opacity = (100 - transparency_level) / 100.0
+                self.window.setWindowOpacity(opacity)
     
     def create_button(self, text, color, button_id):
         """Create a styled button with hover behavior."""
