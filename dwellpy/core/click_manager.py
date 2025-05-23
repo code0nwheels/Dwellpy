@@ -8,31 +8,24 @@ class ClickManager:
         self.min_click_interval = min_click_interval
         self.last_click_time = 0
         self.debug_mode = False
-        self.last_click_position = (0, 0)  # Track position of last click
-        self.min_move_distance = 10  # Minimum pixels to move before allowing another click
         
         # Create pynput mouse controller
         self.mouse = Controller()
     
     def can_click(self):
         """
-        Check if a click can be performed based on movement distance.
-        Block additional clicks until the cursor moves outside the radius from the last click position.
+        Check if a click can be performed based on time interval only.
+        The dwell algorithm handles position-based click prevention.
         """
-        current_position = self.mouse.position
+        # Check time-based restriction
+        current_time = time.time()
+        time_since_last = current_time - self.last_click_time
         
-        # Calculate how far we've moved from the last click position
-        dx = current_position[0] - self.last_click_position[0]
-        dy = current_position[1] - self.last_click_position[1]
-        distance = (dx**2 + dy**2)**0.5  # Euclidean distance
-        
-        # Allow click only if:
-        # 1. This is the first click ever (last_click_time == 0)
-        # 2. The cursor has moved outside the minimum distance
-        can_click = distance >= self.min_move_distance or self.last_click_time == 0
+        # Allow click if enough time has passed
+        can_click = time_since_last >= self.min_click_interval
         
         if not can_click and self.debug_mode:
-            print(f"Click blocked: only moved {distance:.1f}px from last click position")
+            print(f"Click blocked: only {time_since_last:.1f}s since last click")
         
         return can_click
     
@@ -48,7 +41,6 @@ class ClickManager:
             self.mouse.click(Button.left)
             
             self.last_click_time = time.time()
-            self.last_click_position = self.mouse.position
             
             if self.debug_mode:
                 current_pos = self.mouse.position
@@ -70,7 +62,6 @@ class ClickManager:
             self.mouse.click(Button.right)
             
             self.last_click_time = time.time()
-            self.last_click_position = self.mouse.position
             return True
         except Exception as e:
             print(f"Error performing right click: {e}")
@@ -86,7 +77,6 @@ class ClickManager:
             self.mouse.click(Button.left, 2)
             
             self.last_click_time = time.time()
-            self.last_click_position = self.mouse.position
             return True
         except Exception as e:
             print(f"Error performing double click: {e}")
@@ -102,7 +92,6 @@ class ClickManager:
             self.mouse.click(Button.middle)
             
             self.last_click_time = time.time()
-            self.last_click_position = self.mouse.position
             return True
         except Exception as e:
             print(f"Error performing middle click: {e}")

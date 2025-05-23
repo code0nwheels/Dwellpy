@@ -23,10 +23,8 @@ a = Analysis(
     
     # Data files to include
     datas=[
-        # Include documentation
+        ('dwellpy/assets', 'assets'),
         ('docs/README.md', 'docs'),
-        # Include any config files if you have them
-        # ('dwellpy/config/*.json', 'dwellpy/config'),
     ],
     
     # Hidden imports that PyInstaller might not detect

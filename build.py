@@ -126,6 +126,7 @@ a = Analysis(
     
     # Data files to include
     datas=[
+        ('dwellpy/assets', 'assets'),
         ('docs/README.md', 'docs'),
     ],
     

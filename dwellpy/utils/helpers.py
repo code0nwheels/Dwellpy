@@ -203,3 +203,14 @@ def get_screen_center() -> tuple[int, int]:
         center_y = screen_geometry.height() // 2
         return (center_x, center_y)
     return (800, 600)  # Fallback
+
+def get_asset_path(asset_name):
+    """Get path to asset file, works in dev and PyInstaller"""
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller bundle
+        base_path = sys._MEIPASS
+    else:
+        # Running in development
+        base_path = os.path.dirname(os.path.dirname(__file__))
+    
+    return os.path.join(base_path, 'assets', 'icons', asset_name)
