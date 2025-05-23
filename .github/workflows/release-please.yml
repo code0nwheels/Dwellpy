@@ -15,4 +15,4 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         with:
-          release-type: python  # Change from 'simple' to 'python'
+          release-type: python  
