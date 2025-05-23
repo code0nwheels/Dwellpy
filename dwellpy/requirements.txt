@@ -1,0 +1,9 @@
+# Dwellpy Requirements
+# Core GUI framework
+PyQt6>=6.4.0
+
+# Cross-platform input handling
+pynput>=1.7.6
+
+# Optional: Better JSON handling (built-in json module is sufficient)
+# Development dependencies would go in requirements-dev.txt if needed

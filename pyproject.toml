@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dwellpy"
+dynamic = ["version"]
+description = "Accessibility dwell clicker for motor disabilities"
+readme = "docs/README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Dwellpy Developer"},
+]
+keywords = ["accessibility", "dwell", "clicker", "motor", "disabilities", "assistive", "technology"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Desktop Environment :: Window Managers",
+    "Topic :: System :: Hardware :: Input",
+    "Topic :: Adaptive Technologies",
+]
+dependencies = [
+    "PyQt6>=6.4.0",
+    "pynput>=1.7.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/username/dwellpy"
+Documentation = "https://github.com/username/dwellpy/wiki"
+Repository = "https://github.com/username/dwellpy"
+"Bug Reports" = "https://github.com/username/dwellpy/issues"
+
+[project.scripts]
+dwellpy = "dwellpy.main:main"
+
+[project.gui-scripts]
+dwellpy-gui = "dwellpy.main:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "dwellpy.__version__.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["dwellpy*"]
+
+[tool.setuptools.package-data]
+dwellpy = [
+    "config/*.json",
+    "docs/*.md",
+]
+
+# Bump My Version Configuration
+[tool.bumpversion]
+current_version = "0.2.1"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "{current_version}"
+replace = "{new_version}"
+regex = false
+ignore_missing_version = false
+tag = true
+sign_tags = false
+tag_name = "v{new_version}"
+tag_message = "Bump version: {current_version} → {new_version}"
+allow_dirty = false
+commit = true
+message = "Bump version: {current_version} → {new_version}"
+commit_args = ""
+
+# Files to update when bumping version
+[[tool.bumpversion.files]]
+filename = "dwellpy/__version__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
+# Only include files that actually exist and contain the version string
+# Remove or comment out files that don't have the exact version format
+
+# [[tool.bumpversion.files]]
+# filename = "docs/README.md"
+# search = "Dwellpy v{current_version}"
+# replace = "Dwellpy v{new_version}"
+
+# [[tool.bumpversion.files]]
+# filename = "BUILD_INFO.md"
+# search = "Dwellpy v{current_version}"
+# replace = "Dwellpy v{new_version}"
+
+# Part configurations for semantic versioning
+[tool.bumpversion.parts.major]
+[tool.bumpversion.parts.minor]
+[tool.bumpversion.parts.patch]
