@@ -44,10 +44,7 @@ class InputManager:
         print("Input manager stopped")
             
     def _update_position(self):
-        """
-        Timer callback that gets the current mouse position
-        and triggers the position update callback.
-        """
+        """Timer callback with scroll widget support."""
         try:
             # Get current mouse position using pynput
             pos = self.mouse.position
@@ -56,6 +53,11 @@ class InputManager:
             # Call the position update callback
             if self.on_position_update:
                 self.on_position_update(self.current_position)
+                
+            # Also update scroll widget position if we have reference to UI
+            # This would be set by the main application
+            if hasattr(self, 'ui_manager') and self.ui_manager:
+                self.ui_manager.update_scroll_widget_position(pos)
                 
         except Exception as e:
             print(f"Error tracking mouse: {e}")

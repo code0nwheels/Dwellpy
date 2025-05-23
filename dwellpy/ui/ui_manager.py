@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QPushButton, 
                            QHBoxLayout, QVBoxLayout, QFrame)
 from PyQt6.QtCore import Qt, QSize, QTimer
-from PyQt6.QtGui import QColor
+from .scroll_widget import ScrollWidget
 import time
 
 # Updated imports for new structure
@@ -64,6 +64,18 @@ class DwellClickerUI:
         self.opacity_timer = QTimer()
         self.opacity_timer.setSingleShot(True)
         self.opacity_timer.timeout.connect(self.set_transparent)
+
+        self.scroll_widget = ScrollWidget()
+        self.scroll_widget.set_active(False)  # Start inactive
+
+        # Track scroll widget hover state
+        self.scroll_hover = None
+        self.scroll_dwell_start_time = None
+
+        # Track scroll widget hover state
+        self.scroll_hover = None
+        self.scroll_dwell_start_time = None  # Add this to track dwell time
+        self.scroll_dwell_triggered = False  # Add this to track if we've started scrolling
         
         # UI setup
         self.setup_ui()
@@ -525,14 +537,30 @@ class DwellClickerUI:
                 """)
     
     def toggle_active(self):
-        """Toggle the active state of the dwell clicker."""
+        """Modified toggle_active to also control scroll widget."""
         self.is_active = not self.is_active
         self.update_button_states()
         
+        # Toggle scroll widget
+        self.scroll_widget.set_active(self.is_active)
+        
         if self.is_active:
+            # Force immediate position update and show the widget
+            try:
+                from pynput.mouse import Controller
+                mouse = Controller()
+                pos = mouse.position
+                self.update_scroll_widget_position(pos)
+                # Ensure widget is visible
+                self.scroll_widget.show()
+            except Exception as e:
+                print(f"Error getting initial mouse position: {e}")
             print("Dwell Clicker activated")
         else:
             print("Dwell Clicker deactivated")
+            # Stop any active scrolling and hide
+            self.scroll_widget.stop_scrolling()
+            self.scroll_widget.hide()
     
     def set_mode(self, mode):
         """Set click mode with improved temporary/default behavior."""
@@ -567,7 +595,16 @@ class DwellClickerUI:
         self.update_button_states()
     
     def process_dwell_event(self, center):
-        """Process a dwell event with selective button handling."""
+        """Process a dwell event with scroll widget support."""
+        # Don't process regular dwell events if we're over scroll widget
+        if self.scroll_hover:
+            # The scrolling is handled by update_scroll_widget_position
+            return
+        else:
+            # Stop scrolling if we've moved away
+            if self.scroll_widget.is_scrolling:
+                self.scroll_widget.stop_scrolling()
+
         # Get current hover button from button manager
         current_hover = self.button_manager.get_current_hover()
         
@@ -646,3 +683,67 @@ class DwellClickerUI:
                     print(f"Drag completed, returned to default mode: {self.default_mode}")
         
         self.update_button_states()
+
+    
+    def update_scroll_widget_position(self, cursor_pos):
+        """Update scroll widget position to follow cursor - WITH FULL DEBUG."""
+        # Diagnostic 1: Verify this method is being called
+        if not hasattr(self, '_diagnostic_started'):
+            print("\n=== SCROLL WIDGET DIAGNOSTIC STARTED ===")
+            print(f"Dwell time setting: {self.dwell_detector.dwell_time}s")
+            self._diagnostic_started = True
+            self._call_count = 0
+        
+        self._call_count += 1
+        
+        if self.is_active:
+            self.scroll_widget.update_position(cursor_pos)
+            
+            # Check for hover on scroll widget
+            hover = self.scroll_widget.check_hover(cursor_pos)
+            
+            # Diagnostic 2: Track hover state changes
+            if hover != self.scroll_hover:
+                print(f"\n[DIAGNOSTIC] Hover state changed: {self.scroll_hover} -> {hover}")
+                self.scroll_hover = hover
+                
+                if hover:
+                    # Just started hovering
+                    self.scroll_dwell_start_time = time.time()
+                    self.scroll_dwell_triggered = False
+                    print(f"[DIAGNOSTIC] Started hovering at time: {self.scroll_dwell_start_time:.2f}")
+                    print(f"[DIAGNOSTIC] Need to dwell for: {self.dwell_detector.dwell_time}s")
+                else:
+                    # Stopped hovering
+                    if self.scroll_dwell_start_time:
+                        duration = time.time() - self.scroll_dwell_start_time
+                        print(f"[DIAGNOSTIC] Stopped hovering after {duration:.2f}s")
+                    
+                    if self.scroll_widget.is_scrolling:
+                        print("[DIAGNOSTIC] Stopping scroll due to hover loss")
+                        self.scroll_widget.stop_scrolling()
+                        
+                    self.scroll_dwell_start_time = None
+                    self.scroll_dwell_triggered = False
+            
+            # Diagnostic 3: Track dwell progress
+            if hover and self.scroll_dwell_start_time and not self.scroll_dwell_triggered:
+                hover_duration = time.time() - self.scroll_dwell_start_time
+                
+                # Print progress every 200ms
+                if int(hover_duration * 5) != getattr(self, '_last_progress', -1):
+                    self._last_progress = int(hover_duration * 5)
+                    progress = (hover_duration / self.dwell_detector.dwell_time) * 100
+                    print(f"[DIAGNOSTIC] Dwell progress: {progress:.0f}% ({hover_duration:.1f}s / {self.dwell_detector.dwell_time}s)")
+                
+                # Check if dwell complete
+                if hover_duration >= self.dwell_detector.dwell_time:
+                    print(f"\n[DIAGNOSTIC] DWELL COMPLETE! Starting scroll {hover}")
+                    print(f"[DIAGNOSTIC] Calling scroll_widget.start_scrolling('{hover}')")
+                    
+                    self.scroll_widget.start_scrolling(hover)
+                    self.scroll_dwell_triggered = True
+                    
+                    # Verify scrolling started
+                    print(f"[DIAGNOSTIC] scroll_widget.is_scrolling = {self.scroll_widget.is_scrolling}")
+                    print(f"[DIAGNOSTIC] scroll_timer.isActive() = {self.scroll_widget.scroll_timer.isActive()}")

@@ -37,6 +37,13 @@ BORDER_RADIUS = 5              # Button border radius
 SLIDER_HEIGHT = 4              # Slider track height
 SLIDER_HANDLE_SIZE = 16        # Slider handle dimensions
 
+# Scroll Widget Constants
+SCROLL_WIDGET_SIZE = 40
+SCROLL_WIDGET_OFFSET = 50
+SCROLL_WIDGET_ANGLE = 45  # Top-right position
+SCROLL_INTERVAL = 100  # ms between scrolls
+SCROLL_AMOUNT = 3  # lines per scroll
+
 # Color Scheme - Dark Theme
 class Colors:
     # Primary colors
@@ -139,7 +146,12 @@ DEFAULT_SETTINGS = {
     'default_active': False,
     'default_mode': 'LEFT',
     'transparency_enabled': False,
-    'transparency_level': DEFAULT_TRANSPARENCY
+    'transparency_level': DEFAULT_TRANSPARENCY,
+    'scroll_enabled': True,
+    'scroll_offset': SCROLL_WIDGET_OFFSET,
+    'scroll_angle': SCROLL_WIDGET_ANGLE,
+    'scroll_speed': SCROLL_INTERVAL,
+    'scroll_amount': SCROLL_AMOUNT
 }
 
 # Available Click Modes

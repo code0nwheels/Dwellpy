@@ -89,6 +89,8 @@ class DwellpyApplication:
         
         # Setup input callback for position updates
         self.input_manager.on_position_update = self._on_position_update
+        # Give input manager reference to UI for scroll widget updates
+        self.input_manager.ui_manager = self.ui
     
     def _on_position_update(self, position: tuple[int, int]) -> None:
         """
