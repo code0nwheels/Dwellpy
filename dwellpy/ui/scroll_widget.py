@@ -290,3 +290,37 @@ class ScrollWidget(QWidget):
         
         # Use winuser.dll for Windows scrolling
         # ... existing code ...
+    
+    def set_active(self, active):
+        """Set the active state of the scroll widget."""
+        self.is_active = active
+        if not active:
+            # Stop any active scrolling when deactivated
+            self.stop_scrolling()
+            self._set_hover(None)
+        self.update()  # Trigger repaint
+    
+    def set_offset(self, distance=None, angle=None):
+        """Set the offset distance and angle for positioning relative to cursor."""
+        if distance is not None:
+            self.offset_distance = distance
+        if angle is not None:
+            self.offset_angle = angle
+    
+    def set_scroll_speed(self, interval=None, amount=None):
+        """Set the scroll speed settings."""
+        if interval is not None:
+            self.scroll_interval = interval
+        if amount is not None:
+            self.scroll_amount = amount
+    
+    def set_opacity(self, base=None, hover=None):
+        """Set the opacity levels for the scroll widget."""
+        if base is not None:
+            self.base_opacity = base / 100.0  # Convert percentage to decimal
+        if hover is not None:
+            self.hover_opacity = hover / 100.0  # Convert percentage to decimal
+        
+        # Update current opacity if not hovering
+        if self.current_hover is None:
+            self.setWindowOpacity(self.base_opacity)
