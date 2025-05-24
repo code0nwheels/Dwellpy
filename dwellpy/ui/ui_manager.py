@@ -107,6 +107,7 @@ class DwellClickerUI:
         self.button_manager.register_command("DOUBLE", lambda: self.set_mode("DOUBLE"))
         self.button_manager.register_command("DRAG", lambda: self.set_mode("DRAG"))
         self.button_manager.register_command("RIGHT", lambda: self.set_mode("RIGHT"))
+        self.button_manager.register_command("SCROLL", self.toggle_scroll_widget)
         # SETUP and EXIT will be set by the respective managers
     
     def setup_ui(self):
@@ -147,6 +148,10 @@ class DwellClickerUI:
         
         self.buttons["RIGHT"] = self.create_button("RIGHT", "blue", "RIGHT")
         button_layout.addWidget(self.buttons["RIGHT"])
+        
+        # Scroll toggle button
+        self.buttons["SCROLL"] = self.create_button("SCROLL", "gray", "SCROLL")
+        button_layout.addWidget(self.buttons["SCROLL"])
         
         # Utility buttons
         self.buttons["SETUP"] = self.create_button("SETUP", "gray", "SETUP")
@@ -566,6 +571,45 @@ class DwellClickerUI:
                         border: 1px solid {hover_border};
                     }}
                 """)
+        
+        # Handle SCROLL button state separately
+        if "SCROLL" in self.buttons:
+            scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True) if self.settings_manager else True
+            
+            if scroll_enabled:
+                # Scroll is enabled - show as active (green)
+                self.buttons["SCROLL"].setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {Colors.GREEN_ACCENT};
+                        color: {Colors.TEXT_COLOR};
+                        border: 1px solid {Colors.GREEN_ACCENT};
+                        border-radius: {BORDER_RADIUS}px;
+                        font-family: 'Segoe UI';
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: {Colors.GREEN_HOVER};
+                        border: 1px solid {Colors.GREEN_HOVER};
+                    }}
+                """)
+            else:
+                # Scroll is disabled - show as inactive (gray)
+                self.buttons["SCROLL"].setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {Colors.DARK_BUTTON_BG};
+                        color: {Colors.TEXT_COLOR};
+                        border: 1px solid {Colors.BORDER_COLOR};
+                        border-radius: {BORDER_RADIUS}px;
+                        font-family: 'Segoe UI';
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #3d3d3d;
+                        border: 1px solid #5d5d5d;
+                    }}
+                """)
     
     def toggle_active(self):
         """Modified toggle_active to also control scroll widget."""
@@ -718,19 +762,10 @@ class DwellClickerUI:
 
     
     def update_scroll_widget_position(self, cursor_pos):
-        """Update scroll widget position to follow cursor - WITH FULL DEBUG."""
+        """Update scroll widget position to follow cursor."""
         # Only update if scroll widget is enabled
         if not self.settings_manager.get_setting('scroll_enabled', True):
             return
-            
-        # Diagnostic 1: Verify this method is being called
-        if not hasattr(self, '_diagnostic_started'):
-            print("\n=== SCROLL WIDGET DIAGNOSTIC STARTED ===")
-            print(f"Dwell time setting: {self.dwell_detector.dwell_time}s")
-            self._diagnostic_started = True
-            self._call_count = 0
-        
-        self._call_count += 1
         
         if self.is_active:
             self.scroll_widget.update_position(cursor_pos)
@@ -738,48 +773,59 @@ class DwellClickerUI:
             # Check for hover on scroll widget
             hover = self.scroll_widget.check_hover(cursor_pos)
             
-            # Diagnostic 2: Track hover state changes
+            # Track hover state changes
             if hover != self.scroll_hover:
-                print(f"\n[DIAGNOSTIC] Hover state changed: {self.scroll_hover} -> {hover}")
                 self.scroll_hover = hover
                 
                 if hover:
                     # Just started hovering
                     self.scroll_dwell_start_time = time.time()
                     self.scroll_dwell_triggered = False
-                    print(f"[DIAGNOSTIC] Started hovering at time: {self.scroll_dwell_start_time:.2f}")
-                    print(f"[DIAGNOSTIC] Need to dwell for: {self.dwell_detector.dwell_time}s")
                 else:
                     # Stopped hovering
-                    if self.scroll_dwell_start_time:
-                        duration = time.time() - self.scroll_dwell_start_time
-                        print(f"[DIAGNOSTIC] Stopped hovering after {duration:.2f}s")
-                    
                     if self.scroll_widget.is_scrolling:
-                        print("[DIAGNOSTIC] Stopping scroll due to hover loss")
                         self.scroll_widget.stop_scrolling()
                         
                     self.scroll_dwell_start_time = None
                     self.scroll_dwell_triggered = False
             
-            # Diagnostic 3: Track dwell progress
+            # Check if dwell complete
             if hover and self.scroll_dwell_start_time and not self.scroll_dwell_triggered:
                 hover_duration = time.time() - self.scroll_dwell_start_time
                 
-                # Print progress every 200ms
-                if int(hover_duration * 5) != getattr(self, '_last_progress', -1):
-                    self._last_progress = int(hover_duration * 5)
-                    progress = (hover_duration / self.dwell_detector.dwell_time) * 100
-                    print(f"[DIAGNOSTIC] Dwell progress: {progress:.0f}% ({hover_duration:.1f}s / {self.dwell_detector.dwell_time}s)")
-                
                 # Check if dwell complete
                 if hover_duration >= self.dwell_detector.dwell_time:
-                    print(f"\n[DIAGNOSTIC] DWELL COMPLETE! Starting scroll {hover}")
-                    print(f"[DIAGNOSTIC] Calling scroll_widget.start_scrolling('{hover}')")
-                    
                     self.scroll_widget.start_scrolling(hover)
                     self.scroll_dwell_triggered = True
-                    
-                    # Verify scrolling started
-                    print(f"[DIAGNOSTIC] scroll_widget.is_scrolling = {self.scroll_widget.is_scrolling}")
-                    print(f"[DIAGNOSTIC] scroll_timer.isActive() = {self.scroll_widget.scroll_timer.isActive()}")
+
+    def toggle_scroll_widget(self):
+        """Toggle the scroll widget on/off."""
+        if not self.settings_manager:
+            print("Settings manager not available")
+            return
+            
+        # Get current scroll enabled state and toggle it
+        current_scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+        new_scroll_enabled = not current_scroll_enabled
+        
+        # Update setting
+        self.settings_manager.set_setting('scroll_enabled', new_scroll_enabled)
+        
+        # Apply the new scroll settings
+        self.apply_scroll_settings()
+        
+        # Update button states to reflect new state
+        self.update_button_states()
+        
+        # Console feedback
+        state_text = "enabled" if new_scroll_enabled else "disabled"
+        print(f"Scroll widget {state_text}")
+        
+        # If disabling scroll widget, ensure it's hidden and stopped
+        if not new_scroll_enabled:
+            self.scroll_widget.stop_scrolling()
+            self.scroll_widget.hide()
+        else:
+            # If enabling and clicker is active, show the widget
+            if self.is_active:
+                self.scroll_widget.show()
