@@ -88,7 +88,10 @@ class ScrollWidget(QWidget):
         
         # Set initial opacity
         self.setWindowOpacity(self.base_opacity)
-    
+        
+        # Initially hide the widget - it will be shown when activated
+        self.hide()
+        
     def eventFilter(self, obj, event):
         """Filter out wheel events to ensure they don't get stuck in our widget."""
         if event.type() == event.Type.Wheel and obj == self:
@@ -288,16 +291,66 @@ class ScrollWidget(QWidget):
         """Perform a single scroll action."""
         self._scroll_count += 1
         
-        # Use winuser.dll for Windows scrolling
-        # ... existing code ...
-    
+        # Use Windows API for scrolling
+        try:
+            import ctypes
+            from ctypes import wintypes
+            
+            # Get the current cursor position
+            cursor_pos = self.mouse.position
+            
+            # Windows API constants for mouse wheel
+            WM_MOUSEWHEEL = 0x020A
+            WHEEL_DELTA = 120  # Standard wheel delta
+            
+            # Calculate scroll delta based on direction and amount
+            if self.scroll_direction == 'up':
+                wheel_delta = WHEEL_DELTA * self.scroll_amount
+            else:  # 'down'
+                wheel_delta = -WHEEL_DELTA * self.scroll_amount
+            
+            # Get window under cursor
+            user32 = ctypes.windll.user32
+            
+            # Get the window handle at the cursor position
+            hwnd = user32.WindowFromPoint(wintypes.POINT(cursor_pos[0], cursor_pos[1]))
+            
+            if hwnd:
+                # Send mouse wheel message to the window
+                wparam = (wheel_delta << 16)
+                lparam = (cursor_pos[1] << 16) | (cursor_pos[0] & 0xFFFF)
+                
+                user32.PostMessageW(hwnd, WM_MOUSEWHEEL, wparam, lparam)
+                
+        except Exception as e:
+            # Fallback to pynput scrolling if Windows API fails
+            try:
+                if self.scroll_direction == 'up':
+                    self.mouse.scroll(0, self.scroll_amount)
+                else:  # 'down'
+                    self.mouse.scroll(0, -self.scroll_amount)
+            except Exception as fallback_error:
+                # If both methods fail, just pass silently
+                pass
+        
     def set_active(self, active):
         """Set the active state of the scroll widget."""
         self.is_active = active
-        if not active:
+        if active:
+            # Show the widget when activated
+            self.show()
+            # Set initial position if we can get mouse position
+            try:
+                pos = self.mouse.position
+                self.update_position(pos)
+            except:
+                pass
+        else:
             # Stop any active scrolling when deactivated
             self.stop_scrolling()
             self._set_hover(None)
+            # Hide the widget when deactivated
+            self.hide()
         self.update()  # Trigger repaint
     
     def set_offset(self, distance=None, angle=None):
@@ -317,9 +370,9 @@ class ScrollWidget(QWidget):
     def set_opacity(self, base=None, hover=None):
         """Set the opacity levels for the scroll widget."""
         if base is not None:
-            self.base_opacity = base / 100.0  # Convert percentage to decimal
+            self.base_opacity = base if base <= 1.0 else base / 100.0  # Handle both decimal and percentage
         if hover is not None:
-            self.hover_opacity = hover / 100.0  # Convert percentage to decimal
+            self.hover_opacity = hover if hover <= 1.0 else hover / 100.0  # Handle both decimal and percentage
         
         # Update current opacity if not hovering
         if self.current_hover is None:
