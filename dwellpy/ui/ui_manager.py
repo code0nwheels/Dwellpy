@@ -90,13 +90,13 @@ class DwellClickerUI:
         # Apply transparency settings once settings manager is connected
         self.apply_transparency_settings()
         
-        # Apply scroll widget settings
-        self.apply_scroll_settings()
-        
-        # Apply default active state if configured
+        # Apply default active state if configured BEFORE applying scroll settings
         if self.settings_manager.get_setting('default_active', False):
             self.is_active = True
             self.update_button_states()
+        
+        # Apply scroll widget settings AFTER setting the active state
+        self.apply_scroll_settings()
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
