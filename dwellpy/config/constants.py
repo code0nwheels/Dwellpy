@@ -43,6 +43,8 @@ SCROLL_WIDGET_OFFSET = 50
 SCROLL_WIDGET_ANGLE = 45  # Top-right position
 SCROLL_INTERVAL = 100  # ms between scrolls
 SCROLL_AMOUNT = 3  # lines per scroll
+SCROLL_OPACITY_BASE = 70  # Base opacity percentage
+SCROLL_OPACITY_HOVER = 90  # Hover opacity percentage
 
 # Color Scheme - Dark Theme
 class Colors:
@@ -151,7 +153,9 @@ DEFAULT_SETTINGS = {
     'scroll_offset': SCROLL_WIDGET_OFFSET,
     'scroll_angle': SCROLL_WIDGET_ANGLE,
     'scroll_speed': SCROLL_INTERVAL,
-    'scroll_amount': SCROLL_AMOUNT
+    'scroll_amount': SCROLL_AMOUNT,
+    'scroll_opacity_base': SCROLL_OPACITY_BASE,
+    'scroll_opacity_hover': SCROLL_OPACITY_HOVER
 }
 
 # Available Click Modes

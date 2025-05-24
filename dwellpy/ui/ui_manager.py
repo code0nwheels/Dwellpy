@@ -71,11 +71,7 @@ class DwellClickerUI:
         # Track scroll widget hover state
         self.scroll_hover = None
         self.scroll_dwell_start_time = None
-
-        # Track scroll widget hover state
-        self.scroll_hover = None
-        self.scroll_dwell_start_time = None  # Add this to track dwell time
-        self.scroll_dwell_triggered = False  # Add this to track if we've started scrolling
+        self.scroll_dwell_triggered = False
         
         # UI setup
         self.setup_ui()
@@ -93,6 +89,9 @@ class DwellClickerUI:
         
         # Apply transparency settings once settings manager is connected
         self.apply_transparency_settings()
+        
+        # Apply scroll widget settings
+        self.apply_scroll_settings()
         
         # Apply default active state if configured
         if self.settings_manager.get_setting('default_active', False):
@@ -191,6 +190,38 @@ class DwellClickerUI:
             self.window.setWindowOpacity(opacity)
         else:
             self.window.setWindowOpacity(1.0)
+    
+    def apply_scroll_settings(self):
+        """Apply scroll widget settings from the settings manager."""
+        if not self.settings_manager:
+            return
+        
+        # Get scroll settings
+        scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+        scroll_offset = self.settings_manager.get_setting('scroll_offset', 50)
+        scroll_angle = self.settings_manager.get_setting('scroll_angle', 45)
+        scroll_speed = self.settings_manager.get_setting('scroll_speed', 100)
+        scroll_amount = self.settings_manager.get_setting('scroll_amount', 3)
+        scroll_opacity_base = self.settings_manager.get_setting('scroll_opacity_base', 70)
+        scroll_opacity_hover = self.settings_manager.get_setting('scroll_opacity_hover', 90)
+        
+        # Apply settings to scroll widget
+        self.scroll_widget.set_offset(distance=scroll_offset, angle=scroll_angle)
+        self.scroll_widget.set_scroll_speed(interval=scroll_speed, amount=scroll_amount)
+        self.scroll_widget.set_opacity(
+            base=scroll_opacity_base / 100.0,  # Convert percentage to decimal
+            hover=scroll_opacity_hover / 100.0
+        )
+        
+        # Enable/disable scroll widget based on setting and active state
+        if self.is_active and scroll_enabled:
+            self.scroll_widget.set_active(True)
+            self.scroll_widget.show()
+        else:
+            self.scroll_widget.set_active(False)
+            self.scroll_widget.hide()
+        
+        print(f"Scroll widget settings applied - Enabled: {scroll_enabled}, Speed: {scroll_speed}ms")
     
     def on_window_enter(self, event):
         """Handle cursor entering the window area."""
@@ -541,20 +572,21 @@ class DwellClickerUI:
         self.is_active = not self.is_active
         self.update_button_states()
         
-        # Toggle scroll widget
-        self.scroll_widget.set_active(self.is_active)
+        # Apply scroll settings which will show/hide widget based on active state
+        self.apply_scroll_settings()
         
         if self.is_active:
-            # Force immediate position update and show the widget
-            try:
-                from pynput.mouse import Controller
-                mouse = Controller()
-                pos = mouse.position
-                self.update_scroll_widget_position(pos)
-                # Ensure widget is visible
-                self.scroll_widget.show()
-            except Exception as e:
-                print(f"Error getting initial mouse position: {e}")
+            # Force immediate position update and show the widget if enabled
+            if self.settings_manager.get_setting('scroll_enabled', True):
+                try:
+                    from pynput.mouse import Controller
+                    mouse = Controller()
+                    pos = mouse.position
+                    self.update_scroll_widget_position(pos)
+                    # Ensure widget is visible
+                    self.scroll_widget.show()
+                except Exception as e:
+                    print(f"Error getting initial mouse position: {e}")
             print("Dwell Clicker activated")
         else:
             print("Dwell Clicker deactivated")
@@ -687,6 +719,10 @@ class DwellClickerUI:
     
     def update_scroll_widget_position(self, cursor_pos):
         """Update scroll widget position to follow cursor - WITH FULL DEBUG."""
+        # Only update if scroll widget is enabled
+        if not self.settings_manager.get_setting('scroll_enabled', True):
+            return
+            
         # Diagnostic 1: Verify this method is being called
         if not hasattr(self, '_diagnostic_started'):
             print("\n=== SCROLL WIDGET DIAGNOSTIC STARTED ===")

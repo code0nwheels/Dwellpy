@@ -227,6 +227,72 @@ class SettingsManager:
         
         print(f"Transparency level updated to: {clamped_level}%")
     
+    def update_scroll_enabled(self, enabled: bool) -> None:
+        """
+        Update scroll widget enabled setting and apply immediately.
+        
+        Args:
+            enabled: Whether scroll widget is enabled
+        """
+        self.settings['scroll_enabled'] = enabled
+        
+        # Apply scroll widget change immediately if UI manager is available
+        if self.ui_manager:
+            self.ui_manager.apply_scroll_settings()
+        
+        print(f"Scroll widget enabled: {enabled}")
+    
+    def update_scroll_speed(self, interval: int) -> None:
+        """
+        Update scroll speed setting and apply immediately.
+        
+        Args:
+            interval: Scroll interval in milliseconds (lower = faster)
+        """
+        # Clamp interval between 20ms and 200ms
+        clamped_interval = max(20, min(200, interval))
+        self.settings['scroll_speed'] = clamped_interval
+        
+        # Apply scroll speed change immediately if UI manager is available
+        if self.ui_manager:
+            self.ui_manager.apply_scroll_settings()
+        
+        print(f"Scroll speed updated to: {clamped_interval}ms interval")
+    
+    def update_scroll_amount(self, amount: int) -> None:
+        """
+        Update scroll amount setting.
+        
+        Args:
+            amount: Number of lines to scroll per interval
+        """
+        # Clamp amount between 1 and 10
+        clamped_amount = max(1, min(10, amount))
+        self.settings['scroll_amount'] = clamped_amount
+        
+        # Apply scroll amount change immediately if UI manager is available
+        if self.ui_manager:
+            self.ui_manager.apply_scroll_settings()
+        
+        print(f"Scroll amount updated to: {clamped_amount} lines")
+    
+    def update_scroll_opacity(self, base: int, hover: int) -> None:
+        """
+        Update scroll widget opacity settings.
+        
+        Args:
+            base: Base opacity percentage
+            hover: Hover opacity percentage
+        """
+        self.settings['scroll_opacity_base'] = clamp_value(base, 10, 100)
+        self.settings['scroll_opacity_hover'] = clamp_value(hover, 10, 100)
+        
+        # Apply opacity change immediately if UI manager is available
+        if self.ui_manager:
+            self.ui_manager.apply_scroll_settings()
+        
+        print(f"Scroll opacity updated - Base: {base}%, Hover: {hover}%")
+    
     def update_default_active(self, active: bool) -> None:
         """
         Update default active state setting.
@@ -265,6 +331,7 @@ class SettingsManager:
         # Apply transparency settings if UI manager available
         if self.ui_manager:
             self.ui_manager.apply_transparency_settings()
+            self.ui_manager.apply_scroll_settings()
         
         print("Settings reset to defaults")
     
