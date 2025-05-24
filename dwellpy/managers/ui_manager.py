@@ -70,7 +70,6 @@ class DwellClickerUI:
         if self.settings_manager.get_setting('default_active', False):
             self.is_active = True
             self.update_button_states()
-            print("Starting with active state due to settings")
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
@@ -318,7 +317,6 @@ class DwellClickerUI:
             
         # Don't allow other buttons if clicker is off
         if not self.is_active and button_id not in ["ON_OFF"]:
-            print(f"Button {button_id} disabled when clicker is off")
             return
             
         # Execute the appropriate command via button manager
@@ -558,11 +556,6 @@ class DwellClickerUI:
         """Toggle the active state of the dwell clicker."""
         self.is_active = not self.is_active
         self.update_button_states()
-        
-        if self.is_active:
-            print("Dwell Clicker activated")
-        else:
-            print("Dwell Clicker deactivated")
     
     def set_mode(self, mode):
         """
@@ -579,19 +572,17 @@ class DwellClickerUI:
         if mode == self.current_mode:
             # If it's already permanent, do nothing (keep it permanent)
             if not self.is_temporary_mode:
-                print(f"Mode {mode} is already the permanent default - ignoring")
                 return
                 
             # If it's temporary, make it permanent
             if self.is_temporary_mode:
                 self.default_mode = mode
                 self.is_temporary_mode = False
-                print(f"Mode set to: {mode} (DEFAULT/PERMANENT)")
+        
         else:
             # Selecting a different mode - make it temporary
             self.current_mode = mode
             self.is_temporary_mode = True
-            print(f"Mode set to: {mode} (TEMPORARY)")
         
         # Update tracking variables
         self.last_mode_selection = mode
@@ -617,11 +608,9 @@ class DwellClickerUI:
         # Check if we're hovering over a button
         if current_hover is not None:
             button_id = current_hover
-            print(f"Dwell detected on button: {button_id}")
             
             # Always allow ON/OFF button to be toggled regardless of active state
             if button_id == "ON_OFF":
-                print("Toggling ON/OFF via dwell")
                 self.toggle_active()
                 return
                 
@@ -634,7 +623,6 @@ class DwellClickerUI:
             
             # If clicker is inactive, don't process other buttons
             if not self.is_active:
-                print(f"Button {button_id} ignored - clicker not active")
                 return
         
         # No button detected or button handling complete, process normal dwell clicks
@@ -659,7 +647,6 @@ class DwellClickerUI:
         if self.is_temporary_mode:
             self.current_mode = self.default_mode
             self.is_temporary_mode = False
-            print(f"Returned to default mode: {self.default_mode}")
             self.update_button_states()
     
     def handle_drag(self, center):
@@ -672,7 +659,6 @@ class DwellClickerUI:
             
             if success:
                 self.drag_state = "down"
-                print("Mouse DOWN at", center)
         
         elif self.drag_state == "down":
             # Second dwell - mouse up
@@ -680,12 +666,10 @@ class DwellClickerUI:
             
             if success:
                 self.drag_state = None
-                print("Mouse UP at", center)
                 
                 # After completing drag, switch back to default if temporary
                 if self.is_temporary_mode:
                     self.current_mode = self.default_mode
                     self.is_temporary_mode = False
-                    print(f"Drag completed, returned to default mode: {self.default_mode}")
         
         self.update_button_states()

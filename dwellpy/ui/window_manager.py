@@ -66,8 +66,6 @@ class WindowManager:
         # Capture mouse events - using lambda to pass window reference
         window.mouseMoveEvent = lambda e: self.update_drag_position(e, window)
         window.mouseReleaseEvent = lambda e: self.stop_drag(e, window)
-        
-        print("Window drag started")
     
     def update_drag_position(self, event, window):
         """Update window position during drag."""
@@ -104,8 +102,6 @@ class WindowManager:
         
         # Save the new position
         self.save_position(window)
-            
-        print("Window drag completed")
     
     def center_window(self, window):
         """Center a window on the screen."""

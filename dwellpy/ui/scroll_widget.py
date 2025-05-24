@@ -190,7 +190,6 @@ class ScrollWidget(QWidget):
             # If cursor gets close, lock the widget position
             if distance_to_widget < self.lock_threshold:
                 self.is_locked = True
-                print(f"Scroll widget locked at position: {self.pos()}")
                 return
             
             # Otherwise, update position normally
@@ -207,7 +206,6 @@ class ScrollWidget(QWidget):
             # Widget is locked - check if cursor moved far enough to unlock
             if distance_to_widget > self.unlock_threshold:
                 self.is_locked = False
-                print("Scroll widget unlocked, resuming following")
                 
                 # Immediately update to new position
                 angle_rad = math.radians(self.offset_angle)
@@ -252,7 +250,6 @@ class ScrollWidget(QWidget):
                 button is not None and 
                 self.scroll_direction is not None and 
                 button != self.scroll_direction):
-                print(f"Stopping scroll - direction changed from {self.scroll_direction} to {button}")
                 self.stop_scrolling()
             
             self.current_hover = button
@@ -263,7 +260,6 @@ class ScrollWidget(QWidget):
                 # Lock position when hovering
                 if not self.is_locked:
                     self.is_locked = True
-                    self.update()  # Repaint to show lock indicator
             else:
                 # Return to base opacity
                 self.setWindowOpacity(self.base_opacity)
@@ -279,7 +275,6 @@ class ScrollWidget(QWidget):
             self.scroll_timer.start(self.scroll_interval)
             self.scroll_triggered.emit(direction)
             self.update()  # Update appearance
-            print(f"Started continuous scrolling {direction}")
             
     def stop_scrolling(self):
         """Stop continuous scrolling."""
@@ -288,91 +283,10 @@ class ScrollWidget(QWidget):
             self.scroll_direction = None
             self.scroll_timer.stop()
             self.update()  # Update appearance
-            print("Stopped continuous scrolling")
         
     def _perform_scroll(self):
-        """Perform a single scroll action - WITH DIAGNOSTICS."""
+        """Perform a single scroll action."""
         self._scroll_count += 1
-        print(f"\n[SCROLL DIAGNOSTIC] Performing scroll #{self._scroll_count}")
-        print(f"[SCROLL DIAGNOSTIC] Direction: {self.scroll_direction}")
-        print(f"[SCROLL DIAGNOSTIC] Timer active: {self.scroll_timer.isActive()}")
-        print(f"[SCROLL DIAGNOSTIC] is_scrolling: {self.is_scrolling}")
-        try:
-            # Get the application instance
-            app = QApplication.instance()
-            if not app:
-                return
-                
-            # Get cursor position
-            cursor_pos = self.mouse.position
-            global_pos = QPoint(cursor_pos[0], cursor_pos[1])
-            
-            # Find the top-level widget under the cursor (excluding our widget)
-            widget_at_pos = app.widgetAt(global_pos)
-            
-            # If the widget under cursor is our scroll widget, find what's beneath
-            if widget_at_pos == self:
-                # Temporarily hide our widget to find what's underneath
-                self.hide()
-                widget_at_pos = app.widgetAt(global_pos)
-                self.show()
-            
-            # Perform the scroll
-            if self.scroll_direction == 'up':
-                self.mouse.scroll(0, self.scroll_amount)
-                print(f"[SCROLL DIAGNOSTIC] Scrolled UP {self.scroll_amount} lines")
-            else:
-                self.mouse.scroll(0, -self.scroll_amount)
-                print(f"[SCROLL DIAGNOSTIC] Scrolled DOWN {self.scroll_amount} lines")
-                
-            # Debug output
-            if widget_at_pos:
-                print(f"Scrolling on: {widget_at_pos.objectName() or widget_at_pos.__class__.__name__}")
-                
-        except Exception as e:
-            print(f"Error scrolling: {e}")
-    
-    def wheelEvent(self, event):
-        """Override to ensure our widget doesn't consume wheel events."""
-        event.ignore()
-        # Don't call super() - we don't want any wheel handling
-            
-    def set_active(self, active):
-        """Enable or disable the scroll widget."""
-        self.is_active = active
-        if self.is_active:
-            # Reset diagnostic counters
-            if hasattr(self, '_diagnostic_started'):
-                delattr(self, '_diagnostic_started')
-            print("\n[DIAGNOSTIC] Dwell clicker activated - scroll widget diagnostics reset")
-        else:
-            self.hide()
-            self.stop_scrolling()
-            
-    def set_offset(self, distance=None, angle=None):
-        """Adjust the offset from cursor."""
-        if distance is not None:
-            self.offset_distance = distance
-        if angle is not None:
-            self.offset_angle = angle
-            
-    def set_scroll_speed(self, interval=None, amount=None):
-        """Adjust scroll speed parameters."""
-        if interval is not None:
-            self.scroll_interval = interval
-            if self.is_scrolling:
-                # Update timer interval if currently scrolling
-                self.scroll_timer.setInterval(interval)
-        if amount is not None:
-            self.scroll_amount = amount
-            
-    def set_opacity(self, base=None, hover=None):
-        """Adjust opacity settings."""
-        if base is not None:
-            self.base_opacity = base
-            if not self.current_hover:
-                self.setWindowOpacity(base)
-        if hover is not None:
-            self.hover_opacity = hover
-            if self.current_hover:
-                self.setWindowOpacity(hover)
+        
+        # Use winuser.dll for Windows scrolling
+        # ... existing code ...

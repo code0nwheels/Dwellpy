@@ -33,7 +33,6 @@ class InputManager:
             
         self.running = True
         self.timer.start()
-        print("Input manager started")
         
     def stop(self):
         """
@@ -41,7 +40,6 @@ class InputManager:
         """
         self.running = False
         self.timer.stop()
-        print("Input manager stopped")
             
     def _update_position(self):
         """Timer callback with scroll widget support."""
@@ -60,4 +58,4 @@ class InputManager:
                 self.ui_manager.update_scroll_widget_position(pos)
                 
         except Exception as e:
-            print(f"Error tracking mouse: {e}")
+            pass

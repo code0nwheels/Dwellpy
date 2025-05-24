@@ -32,23 +32,12 @@ def main():
         dwellpy_main()
         
     except ImportError as e:
-        print(f"Import error: {e}")
-        print(f"Python path: {sys.path}")
-        print(f"Current directory: {os.getcwd()}")
-        print(f"Frozen: {getattr(sys, 'frozen', False)}")
-        
-        # Show file structure for debugging
-        if os.path.exists('dwellpy'):
-            print("dwellpy/ directory exists")
-            print(f"Contents: {os.listdir('dwellpy')}")
-        else:
-            print("dwellpy/ directory not found")
-            
+        import traceback
+        traceback.print_exc()
         input("Press Enter to exit...")
         sys.exit(1)
         
     except Exception as e:
-        print(f"Application error: {e}")
         import traceback
         traceback.print_exc()
         input("Press Enter to exit...")

@@ -819,7 +819,6 @@ class SettingsDialog(QDialog):
         
         # Save settings
         self.settings_manager.save_settings()
-        print("Settings saved")
         
         # Close dialog
         super().accept()

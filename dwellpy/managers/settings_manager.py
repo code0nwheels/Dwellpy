@@ -2,6 +2,7 @@
 
 import json
 import os
+import logging
 from typing import Any, Dict, Optional
 from PyQt6.QtGui import QGuiApplication
 
@@ -33,6 +34,7 @@ class SettingsManager:
         Args:
             dwell_detector: The DwellDetector instance to configure
         """
+        self.logger = logging.getLogger(__name__)
         self.dwell_detector = dwell_detector
         self.settings_dialog: Optional[SettingsDialog] = None
         
@@ -47,6 +49,8 @@ class SettingsManager:
         
         # Apply loaded settings to detector
         self.apply_detector_settings()
+        
+        self.logger.info("Settings manager initialized")
     
     def get_setting(self, key: str, default: Any = None) -> Any:
         """
@@ -69,7 +73,9 @@ class SettingsManager:
             key: Setting key to set
             value: Value to set
         """
+        old_value = self.settings.get(key)
         self.settings[key] = value
+        self.logger.debug(f"Setting changed: {key} = {value} (was: {old_value})")
     
     def apply_detector_settings(self) -> None:
         """Apply current settings to the dwell detector."""
@@ -90,7 +96,7 @@ class SettingsManager:
         self.dwell_detector.dwell_time = dwell_time
         self.dwell_detector.click_time = int(dwell_time / 0.1)
         
-        print(f"Applied settings - Move limit: {move_limit}px, Dwell time: {dwell_time}s")
+        self.logger.info(f"Applied settings to detector: move_limit={move_limit}px, dwell_time={dwell_time}s")
     
     def get_settings_file_path(self) -> str:
         """Get the path to the settings file."""
@@ -99,6 +105,7 @@ class SettingsManager:
     def load_settings(self) -> None:
         """Load settings from JSON file and apply them."""
         settings_file = self.get_settings_file_path()
+        self.logger.info(f"Loading settings from: {settings_file}")
         
         try:
             if os.path.exists(settings_file):
@@ -110,19 +117,18 @@ class SettingsManager:
                     if key in DEFAULT_SETTINGS:  # Only load known settings
                         self.settings[key] = value
                 
-                print(f"Settings loaded from: {settings_file}")
-                
+                self.logger.info(f"Successfully loaded {len(loaded_settings)} settings")
             else:
                 # Set default position near screen center for new installations
                 center_x, center_y = get_screen_center()
                 self.settings['window_position'] = (center_x - 150, center_y - 25)
-                print("No settings file found, using defaults")
+                self.logger.info("No existing settings file found, using defaults")
                 
         except Exception as e:
-            print(f"Error loading settings: {e}")
             # Reset to defaults on error
             self.settings = DEFAULT_SETTINGS.copy()
-            print("Using fallback defaults due to error")
+            self.logger.error(f"Error loading settings: {e}", exc_info=True)
+            self.logger.info("Reset to default settings due to error")
     
     def save_settings(self) -> None:
         """Save current settings to JSON file."""
@@ -134,11 +140,11 @@ class SettingsManager:
             
             with open(settings_file, 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=2)
-                
-            print(f"Settings saved to: {settings_file}")
             
+            self.logger.info(f"Settings saved to: {settings_file}")
+                
         except Exception as e:
-            print(f"Error saving settings: {e}")
+            self.logger.error(f"Error saving settings: {e}", exc_info=True)
     
     def open_setup(self, button_manager, parent_window=None) -> None:
         """
@@ -153,6 +159,7 @@ class SettingsManager:
             # Bring existing dialog to front
             self.settings_dialog.raise_()
             self.settings_dialog.activateWindow()
+            self.logger.debug("Settings dialog already open, bringing to front")
             return
         
         # Create new settings dialog
@@ -164,12 +171,14 @@ class SettingsManager:
         
         # Show the dialog
         self.settings_dialog.show()
+        self.logger.info("Settings dialog opened")
     
     def close_setup(self) -> None:
         """Close the settings dialog if open."""
         if self.settings_dialog and self.settings_dialog.isVisible():
             self.settings_dialog.close()
             self.settings_dialog = None
+            self.logger.info("Settings dialog closed")
     
     def update_move_limit(self, value: int) -> None:
         """
@@ -181,7 +190,7 @@ class SettingsManager:
         clamped_value = clamp_value(value, MIN_MOVE_LIMIT, MAX_MOVE_LIMIT)
         self.settings['move_limit'] = clamped_value
         self.dwell_detector.move_limit = clamped_value
-        print(f"Move limit updated to: {clamped_value}px")
+        self.logger.info(f"Move limit updated to: {clamped_value}px")
     
     def update_dwell_time(self, value: float) -> None:
         """
@@ -194,7 +203,7 @@ class SettingsManager:
         self.settings['dwell_time'] = clamped_value
         self.dwell_detector.dwell_time = clamped_value
         self.dwell_detector.click_time = int(clamped_value / 0.1)
-        print(f"Dwell time updated to: {clamped_value}s")
+        self.logger.info(f"Dwell time updated to: {clamped_value}s")
     
     def update_transparency_enabled(self, enabled: bool) -> None:
         """
@@ -209,7 +218,7 @@ class SettingsManager:
         if self.ui_manager:
             self.ui_manager.apply_transparency_settings()
         
-        print(f"Transparency enabled: {enabled}")
+        self.logger.info(f"Transparency enabled: {enabled}")
     
     def update_transparency_level(self, level: int) -> None:
         """
@@ -225,7 +234,7 @@ class SettingsManager:
         if self.ui_manager:
             self.ui_manager.apply_transparency_settings()
         
-        print(f"Transparency level updated to: {clamped_level}%")
+        self.logger.debug(f"Transparency level updated to: {clamped_level}%")
     
     def update_scroll_enabled(self, enabled: bool) -> None:
         """
@@ -240,7 +249,7 @@ class SettingsManager:
         if self.ui_manager:
             self.ui_manager.apply_scroll_settings()
         
-        print(f"Scroll widget enabled: {enabled}")
+        self.logger.info(f"Scroll widget enabled: {enabled}")
     
     def update_scroll_speed(self, interval: int) -> None:
         """
@@ -257,7 +266,7 @@ class SettingsManager:
         if self.ui_manager:
             self.ui_manager.apply_scroll_settings()
         
-        print(f"Scroll speed updated to: {clamped_interval}ms interval")
+        self.logger.debug(f"Scroll speed updated to: {clamped_interval}ms interval")
     
     def update_scroll_amount(self, amount: int) -> None:
         """
@@ -274,7 +283,7 @@ class SettingsManager:
         if self.ui_manager:
             self.ui_manager.apply_scroll_settings()
         
-        print(f"Scroll amount updated to: {clamped_amount} lines")
+        self.logger.debug(f"Scroll amount updated to: {clamped_amount} lines")
     
     def update_scroll_opacity(self, base: int, hover: int) -> None:
         """
@@ -291,7 +300,7 @@ class SettingsManager:
         if self.ui_manager:
             self.ui_manager.apply_scroll_settings()
         
-        print(f"Scroll opacity updated - Base: {base}%, Hover: {hover}%")
+        self.logger.debug(f"Scroll opacity updated: base={base}%, hover={hover}%")
     
     def update_default_active(self, active: bool) -> None:
         """
@@ -301,7 +310,7 @@ class SettingsManager:
             active: Whether app should start active by default
         """
         self.settings['default_active'] = active
-        print(f"Default active state updated to: {active}")
+        self.logger.info(f"Default active state updated to: {active}")
     
     def update_default_mode(self, mode: str) -> None:
         """
@@ -311,7 +320,7 @@ class SettingsManager:
             mode: Default click mode ('LEFT', 'RIGHT', 'DOUBLE', 'DRAG')
         """
         self.settings['default_mode'] = mode
-        print(f"Default mode updated to: {mode}")
+        self.logger.info(f"Default click mode updated to: {mode}")
     
     def reset_to_defaults(self) -> None:
         """Reset all settings to their default values."""
@@ -333,7 +342,7 @@ class SettingsManager:
             self.ui_manager.apply_transparency_settings()
             self.ui_manager.apply_scroll_settings()
         
-        print("Settings reset to defaults")
+        self.logger.info("Settings reset to defaults")
     
     def get_all_settings(self) -> Dict[str, Any]:
         """
@@ -353,5 +362,6 @@ class SettingsManager:
             y: Window y coordinate
         """
         self.settings['window_position'] = (x, y)
+        self.logger.debug(f"Window position updated to: ({x}, {y})")
         # Note: We don't auto-save here to avoid excessive disk writes
         # Window position is saved when the app closes or settings dialog closes

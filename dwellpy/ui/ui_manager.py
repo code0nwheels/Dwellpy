@@ -97,7 +97,6 @@ class DwellClickerUI:
         if self.settings_manager.get_setting('default_active', False):
             self.is_active = True
             self.update_button_states()
-            print("Starting with active state due to settings")
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
@@ -225,8 +224,6 @@ class DwellClickerUI:
         else:
             self.scroll_widget.set_active(False)
             self.scroll_widget.hide()
-        
-        print(f"Scroll widget settings applied - Enabled: {scroll_enabled}, Speed: {scroll_speed}ms")
     
     def on_window_enter(self, event):
         """Handle cursor entering the window area."""
@@ -382,7 +379,6 @@ class DwellClickerUI:
             
         # Don't allow other buttons if clicker is off
         if not self.is_active and button_id not in ["ON_OFF"]:
-            print(f"Button {button_id} disabled when clicker is off")
             return
             
         # Execute the appropriate command via button manager
@@ -630,10 +626,8 @@ class DwellClickerUI:
                     # Ensure widget is visible
                     self.scroll_widget.show()
                 except Exception as e:
-                    print(f"Error getting initial mouse position: {e}")
-            print("Dwell Clicker activated")
+                    pass
         else:
-            print("Dwell Clicker deactivated")
             # Stop any active scrolling and hide
             self.scroll_widget.stop_scrolling()
             self.scroll_widget.hide()
@@ -646,19 +640,16 @@ class DwellClickerUI:
         if mode == self.current_mode:
             # If it's already permanent, do nothing (keep it permanent)
             if not self.is_temporary_mode:
-                print(f"Mode {mode} is already the permanent default - ignoring")
                 return
                 
             # If it's temporary, make it permanent
             if self.is_temporary_mode:
                 self.default_mode = mode
                 self.is_temporary_mode = False
-                print(f"Mode set to: {mode} (DEFAULT/PERMANENT)")
         else:
             # Selecting a different mode - make it temporary
             self.current_mode = mode
             self.is_temporary_mode = True
-            print(f"Mode set to: {mode} (TEMPORARY)")
         
         # Update tracking variables
         self.last_mode_selection = mode
@@ -687,11 +678,9 @@ class DwellClickerUI:
         # Check if we're hovering over a button
         if current_hover is not None:
             button_id = current_hover
-            print(f"Dwell detected on button: {button_id}")
             
             # Always allow ON/OFF button to be toggled regardless of active state
             if button_id == "ON_OFF":
-                print("Toggling ON/OFF via dwell")
                 self.toggle_active()
                 return
                 
@@ -704,7 +693,6 @@ class DwellClickerUI:
             
             # If clicker is inactive, don't process other buttons
             if not self.is_active:
-                print(f"Button {button_id} ignored - clicker not active")
                 return
         
         # No button detected or button handling complete, process normal dwell clicks
@@ -729,7 +717,6 @@ class DwellClickerUI:
         if self.is_temporary_mode:
             self.current_mode = self.default_mode
             self.is_temporary_mode = False
-            print(f"Returned to default mode: {self.default_mode}")
             self.update_button_states()
     
     def handle_drag(self, center):
@@ -742,7 +729,6 @@ class DwellClickerUI:
             
             if success:
                 self.drag_state = "down"
-                print("Mouse DOWN at", center)
         
         elif self.drag_state == "down":
             # Second dwell - mouse up
@@ -750,13 +736,11 @@ class DwellClickerUI:
             
             if success:
                 self.drag_state = None
-                print("Mouse UP at", center)
                 
                 # After completing drag, switch back to default if temporary
                 if self.is_temporary_mode:
                     self.current_mode = self.default_mode
                     self.is_temporary_mode = False
-                    print(f"Drag completed, returned to default mode: {self.default_mode}")
         
         self.update_button_states()
 
@@ -785,12 +769,10 @@ class DwellClickerUI:
                     # Started hovering (either from None or from a different direction)
                     self.scroll_dwell_start_time = time.time()
                     self.scroll_dwell_triggered = False
-                    print(f"Started hovering over {hover} button")
                 else:
                     # Stopped hovering completely
                     self.scroll_dwell_start_time = None
                     self.scroll_dwell_triggered = False
-                    print("Stopped hovering over scroll widget")
             
             # Check if dwell complete
             if hover and self.scroll_dwell_start_time and not self.scroll_dwell_triggered:
@@ -804,7 +786,6 @@ class DwellClickerUI:
     def toggle_scroll_widget(self):
         """Toggle the scroll widget on/off."""
         if not self.settings_manager:
-            print("Settings manager not available")
             return
             
         # Get current scroll enabled state and toggle it
@@ -819,10 +800,6 @@ class DwellClickerUI:
         
         # Update button states to reflect new state
         self.update_button_states()
-        
-        # Console feedback
-        state_text = "enabled" if new_scroll_enabled else "disabled"
-        print(f"Scroll widget {state_text}")
         
         # If disabling scroll widget, ensure it's hidden and stopped
         if not new_scroll_enabled:

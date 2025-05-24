@@ -159,7 +159,6 @@ class ExitManager:
         
         # Save settings before exiting
         self.settings_manager.save_settings()
-        print("Exiting application")
         
         # Close parent window which will exit the application
         if self.parent_window:
@@ -174,4 +173,3 @@ class ExitManager:
         if self.confirm_dialog and self.confirm_dialog.isVisible():
             self.confirm_dialog.close()
             self.confirm_dialog = None
-        print("Exit cancelled")
