@@ -247,6 +247,14 @@ class ScrollWidget(QWidget):
     def _set_hover(self, button):
         """Set hover state and update appearance."""
         if self.current_hover != button:
+            # If we're currently scrolling and the new hover is a different direction, stop scrolling
+            if (self.is_scrolling and 
+                button is not None and 
+                self.scroll_direction is not None and 
+                button != self.scroll_direction):
+                print(f"Stopping scroll - direction changed from {self.scroll_direction} to {button}")
+                self.stop_scrolling()
+            
             self.current_hover = button
             
             if button is not None:

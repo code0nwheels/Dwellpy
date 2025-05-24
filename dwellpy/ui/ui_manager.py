@@ -775,19 +775,22 @@ class DwellClickerUI:
             
             # Track hover state changes
             if hover != self.scroll_hover:
+                # Stop any existing scrolling when changing hover state
+                if self.scroll_widget.is_scrolling:
+                    self.scroll_widget.stop_scrolling()
+                
                 self.scroll_hover = hover
                 
                 if hover:
-                    # Just started hovering
+                    # Started hovering (either from None or from a different direction)
                     self.scroll_dwell_start_time = time.time()
                     self.scroll_dwell_triggered = False
+                    print(f"Started hovering over {hover} button")
                 else:
-                    # Stopped hovering
-                    if self.scroll_widget.is_scrolling:
-                        self.scroll_widget.stop_scrolling()
-                        
+                    # Stopped hovering completely
                     self.scroll_dwell_start_time = None
                     self.scroll_dwell_triggered = False
+                    print("Stopped hovering over scroll widget")
             
             # Check if dwell complete
             if hover and self.scroll_dwell_start_time and not self.scroll_dwell_triggered:
