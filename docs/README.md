@@ -11,6 +11,7 @@ This tool is particularly helpful for individuals who use head trackers or alter
 ## ✨ Features
 
 - **Multiple Click Types**: Left click, right click, double click, and drag operations without physical clicking
+- **Intelligent Scroll Widget**: Floating scroll interface that follows your cursor for hands-free scrolling
 - **Adaptive Sensitivity**: Customize dwell detection radius and timing to accommodate different types of motor challenges
 - **Temporary/Default Modes**: Easily switch between click types with temporary or permanent mode selection
 - **Accessible Interface**: Small, always-on-top UI with high-contrast buttons that can be positioned anywhere on screen
@@ -78,6 +79,7 @@ The Dwellpy interface consists of a compact toolbar with these buttons:
 | **DOUBLE** | Double-click mode |
 | **DRAG** | Drag operation mode |
 | **RIGHT** | Right-click mode |
+| **SCROLL** | Quick toggle scroll widget on/off (useful to avoid conflicts with onscreen keyboards) |
 | **SETUP** | Opens settings dialog |
 | **MOVE** | Repositions the Dwellpy window |
 | **EXIT** | Closes the application |
@@ -86,6 +88,28 @@ The Dwellpy interface consists of a compact toolbar with these buttons:
 
 - **Temporary Mode**: Select a different mode than your default - it becomes temporary (highlighted in red). After one action, returns to default mode.
 - **Default Mode**: Double-select a mode to make it permanent (highlighted in blue). This mode persists until changed.
+
+### Scroll Widget
+
+The scroll widget is a floating interface that appears near your cursor when enabled:
+
+- **Automatic Positioning**: Follows your cursor at a safe distance to avoid interference
+- **Smart Locking**: Locks in place when your cursor approaches, preventing accidental movement
+- **Hover-to-Scroll**: Hover over the up/down arrows to scroll in that direction
+- **Visual Feedback**: Changes opacity and color to indicate hover state and active scrolling
+- **Configurable**: Adjust speed, opacity, and positioning through settings
+
+**How to Use**:
+1. Enable with the **SCROLL** button (turns green when active)
+2. Move your cursor near content you want to scroll
+3. The scroll widget appears automatically
+4. Hover over the up ↑ or down ↓ arrows to scroll
+5. Widget follows your cursor as you navigate
+
+**Quick Toggle**: The SCROLL button allows instant on/off control, which is particularly useful when:
+- Using an onscreen keyboard (prevents widget interference)
+- Switching between scrolling and precision tasks
+- Temporarily disabling for specific applications
 
 ### Settings
 
@@ -102,6 +126,15 @@ Access via the **SETUP** button:
   - *Head tracker users*: 0.5-0.8s balances responsiveness and accuracy
 
 - **Window Transparency**: Optional transparency when cursor is away
+  - Enable/disable window transparency
+  - Adjust transparency level (10-90%)
+
+- **Scroll Widget Settings**:
+  - **Enable Scroll Widget**: Toggle scroll functionality on/off
+  - **Scroll Speed (1-10)**: Adjust how fast scrolling occurs
+    - 1 = Slowest (200ms intervals)
+    - 10 = Fastest (20ms intervals)
+
 - **Start Active**: Automatically enable dwell clicking on launch
 
 #### Hover-to-Adjust Settings
@@ -117,12 +150,23 @@ Settings sliders support accessibility-friendly adjustment:
 
 | Condition | Recommended Settings |
 |-----------|---------------------|
-| **Head Tracker** | Move Limit: 8-15px, Dwell Time: 0.5-0.8s |
+| **Head Tracker** | Move Limit: 8-15px, Dwell Time: 0.5-0.8s, Scroll Speed: 3-5 |
 | **Cerebral Palsy** | Move Limit: 10-20px, adjust based on movement patterns |
-| **Hand Tremors** | Move Limit: 12-20px, Dwell Time: 0.3-0.6s |
-| **Fatigue/Weakness** | Dwell Time: 0.1-0.5s |
-| **Occasional Spasms** | Dwell Time: 1.0-2.0s |
-| **Limited Range** | Position window in accessible area using MOVE |
+| **Hand Tremors** | Move Limit: 12-20px, Dwell Time: 0.3-0.6s, Scroll Speed: 2-4 |
+| **Fatigue/Weakness** | Dwell Time: 0.1-0.5s, Scroll Speed: 6-8 (faster response) |
+| **Occasional Spasms** | Dwell Time: 1.0-2.0s, Scroll Speed: 1-3 (slower, more controlled) |
+| **Limited Range** | Position window in accessible area using MOVE, enable scroll widget |
+
+### Scroll Widget Use Cases
+
+The scroll widget is particularly useful for:
+- **Document Reading**: Scroll through long documents without precise cursor placement
+- **Web Browsing**: Navigate web pages with natural cursor movement
+- **Code Editing**: Scroll through source code while maintaining cursor context
+- **Spreadsheets**: Navigate large datasets without losing your place
+- **PDF Viewing**: Read documents with continuous scrolling
+
+**Onscreen Keyboard Compatibility**: The quick SCROLL toggle allows you to instantly disable the scroll widget when using onscreen keyboards or other assistive input tools to prevent interface conflicts.
 
 ### Temporary Mode Use Cases
 
@@ -137,6 +181,7 @@ Perfect for precision tasks requiring different settings:
 - **Cross-platform Mouse Control**: Uses pynput for consistent behavior
 - **Counter-based Dwell Detection**: Efficient algorithm with low CPU usage
 - **Adaptive Movement Threshold**: Separate X/Y direction detection
+- **Smart Scroll Widget**: Auto-positioning with collision avoidance
 - **Qt-based UI**: Modern, accessible interface with transparency support
 - **JSON Settings**: Human-readable configuration persistence
 
@@ -146,6 +191,9 @@ Perfect for precision tasks requiring different settings:
 |-------|----------|
 | **Clicks not triggering** | Increase Move Limit or decrease Dwell Time |
 | **Too many accidental clicks** | Decrease Move Limit or increase Dwell Time |
+| **Scroll widget interfering** | Disable with SCROLL button (especially useful with onscreen keyboards) |
+| **Scroll widget not appearing** | Check that SCROLL button is enabled (green) |
+| **Scrolling too fast/slow** | Adjust Scroll Speed in settings (1=slow, 10=fast) |
 | **Difficulty with precision** | Use temporary mode for specific tasks |
 | **High-DPI display issues** | Adjust settings based on screen resolution |
 | **Linux Wayland issues** | Switch to X11 session (Wayland support coming) |
@@ -159,6 +207,7 @@ dwellpy/
 ├── dwellpy/                # Main package
 │   ├── core/              # Core algorithms
 │   ├── ui/                # User interface
+│   │   └── scroll_widget.py  # Floating scroll widget
 │   ├── managers/          # Application managers
 │   ├── config/            # Configuration
 │   └── utils/             # Utilities
