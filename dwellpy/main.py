@@ -1,8 +1,39 @@
+#!/usr/bin/env python3
 """Main application entry point for Dwellpy."""
 
 import sys
-import logging
+import os
+
+# Add the dwellpy package to the path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+
+# Set DPI awareness as early as possible for Windows multi-monitor support
+if sys.platform == "win32":
+    try:
+        import ctypes
+        from ctypes import wintypes
+        
+        # Set DPI awareness before any Qt initialization
+        try:
+            # Try the newer SetProcessDpiAwarenessContext first (Windows 10 1703+)
+            ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)  # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        except:
+            try:
+                # Fallback to SetProcessDpiAwareness (Windows 8.1+)
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
+            except:
+                try:
+                    # Final fallback to SetProcessDPIAware (Windows Vista+)
+                    ctypes.windll.user32.SetProcessDPIAware()
+                except:
+                    pass  # DPI awareness not available
+    except ImportError:
+        pass  # ctypes not available
+
+# Now import PyQt and other modules
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import Qt
+import logging
 
 from .core.dwell_algorithm import DwellDetector
 from .core.input_manager import InputManager

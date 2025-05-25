@@ -34,10 +34,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/username/dwellpy"
-Documentation = "https://github.com/username/dwellpy/wiki"
-Repository = "https://github.com/username/dwellpy"
-"Bug Reports" = "https://github.com/username/dwellpy/issues"
+Homepage = "https://github.com/code0nwheels/dwellpy"
+Documentation = "https://github.com/code0nwheels/dwellpy/wiki"
+Repository = "https://github.com/code0nwheels/dwellpy"
+"Bug Reports" = "https://github.com/code0nwheels/dwellpy/issues"
 
 [project.scripts]
 dwellpy = "dwellpy.main:main"
@@ -59,7 +59,7 @@ dwellpy = [
 
 # Bump My Version Configuration
 [tool.bumpversion]
-current_version = "0.2.1"
+current_version = "0.1.0"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 search = "{current_version}"

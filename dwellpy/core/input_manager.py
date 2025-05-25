@@ -1,6 +1,8 @@
 """Input manager for the Dwellpy application."""
 
 from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QCursor
 from pynput.mouse import Controller
 
 class InputManager:
@@ -40,12 +42,27 @@ class InputManager:
         """
         self.running = False
         self.timer.stop()
+    
+    def _get_cursor_position(self):
+        """Get cursor position with fallback for multi-monitor consistency."""
+        try:
+            # Try Qt's cursor position first (more reliable for multi-monitor)
+            qt_pos = QCursor.pos()
+            return (qt_pos.x(), qt_pos.y())
+        except:
+            pass
+        
+        # Fallback to pynput
+        try:
+            return self.mouse.position
+        except:
+            return self.current_position  # Return last known position
             
     def _update_position(self):
         """Timer callback with scroll widget support."""
         try:
-            # Get current mouse position using pynput
-            pos = self.mouse.position
+            # Get current mouse position with improved multi-monitor handling
+            pos = self._get_cursor_position()
             self.current_position = pos
             
             # Call the position update callback

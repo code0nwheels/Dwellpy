@@ -2,9 +2,11 @@
 
 from PyQt6.QtWidgets import QWidget, QApplication
 from PyQt6.QtCore import Qt, QPoint, QPointF, QTimer, pyqtSignal, QRect
-from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPolygonF
+from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPolygonF, QCursor
 from pynput.mouse import Controller as MouseController
 import math
+import sys
+import time
 
 try:
     from ..config.constants import Colors
@@ -14,6 +16,29 @@ except ImportError:
         DARK_BG = "#1e1e1e"
         BLUE_ACCENT = "#0078d7"
         TEXT_COLOR = "#ffffff"
+
+# Windows DPI awareness for better multi-monitor support
+if sys.platform == "win32":
+    try:
+        import ctypes
+        from ctypes import wintypes
+        
+        # Set DPI awareness to handle multiple monitors properly
+        try:
+            # Try the newer SetProcessDpiAwarenessContext first (Windows 10 1703+)
+            ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)  # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        except:
+            try:
+                # Fallback to SetProcessDpiAwareness (Windows 8.1+)
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
+            except:
+                try:
+                    # Final fallback to SetProcessDPIAware (Windows Vista+)
+                    ctypes.windll.user32.SetProcessDPIAware()
+                except:
+                    pass  # DPI awareness not available
+    except ImportError:
+        pass  # ctypes not available
 
 class ScrollWidget(QWidget):
     """
@@ -30,8 +55,9 @@ class ScrollWidget(QWidget):
         # Widget configuration
         self.widget_size = 40  # Size of the widget
         self.button_size = 35  # Size of scroll buttons
-        self.offset_distance = 50  # Distance from cursor
+        self.offset_distance = 120  # Distance from cursor (increased to prevent cursor overlap)
         self.offset_angle = 45  # Angle in degrees (top-right by default)
+        self.min_safe_distance = 60  # Minimum distance to keep widget away from cursor
         
         # State tracking
         self.is_active = False
@@ -45,6 +71,20 @@ class ScrollWidget(QWidget):
         self.is_locked = False  # Whether widget is locked in position
         self.lock_threshold = 60  # Distance to lock/unlock
         self.unlock_threshold = 120  # Distance to resume following
+        
+        # Movement tracking to prevent false hover detection
+        self.last_move_time = 0
+        self.movement_cooldown = 0.2  # Back to a reasonable cooldown period
+        
+        # Smooth movement tracking
+        self.last_cursor_pos = None
+        self.movement_threshold = 15  # Only move widget if cursor moved this many pixels
+        self.last_widget_pos = None
+        
+        # Cursor velocity tracking to prevent hover during fast movement
+        self.cursor_velocity_history = []
+        self.max_velocity_for_hover = 100  # Increased from 50 - allow some movement
+        self.velocity_check_window = 3  # check velocity over last 3 updates
         
         # Mouse controller for scroll operations
         self.mouse = MouseController()
@@ -174,18 +214,124 @@ class ScrollWidget(QWidget):
             
         painter.drawPolygon(points)
         
+    def _get_qt_cursor_position(self):
+        """Get cursor position using Qt's coordinate system for consistency."""
+        try:
+            # Use Qt's QCursor.pos() which is DPI-aware and consistent across monitors
+            return QCursor.pos()
+        except:
+            # Fallback to pynput if Qt method fails
+            pos = self.mouse.position
+            return QPoint(int(pos[0]), int(pos[1]))
+    
+    def _convert_pynput_to_qt_coords(self, pynput_pos):
+        """Convert pynput coordinates to Qt coordinates for multi-monitor consistency."""
+        try:
+            # Get the screen that contains this position
+            app = QApplication.instance()
+            if not app:
+                return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+            
+            # First, try using Qt's cursor position as it should be more accurate
+            try:
+                qt_direct = QCursor.pos()
+                # If Qt and pynput positions are very close, prefer Qt
+                dx = abs(qt_direct.x() - pynput_pos[0])
+                dy = abs(qt_direct.y() - pynput_pos[1])
+                if dx < 10 and dy < 10:  # Within 10 pixels, use Qt directly
+                    return qt_direct
+            except:
+                pass
+            
+            # Find which screen contains the pynput position
+            target_screen = None
+            for screen in app.screens():
+                geometry = screen.geometry()
+                # Expand the geometry slightly to handle edge cases
+                expanded_geom = geometry.adjusted(-10, -10, 10, 10)
+                if (expanded_geom.x() <= pynput_pos[0] < expanded_geom.x() + expanded_geom.width() and
+                    expanded_geom.y() <= pynput_pos[1] < expanded_geom.y() + expanded_geom.height()):
+                    target_screen = screen
+                    break
+            
+            if target_screen:
+                # Account for DPI scaling
+                device_pixel_ratio = target_screen.devicePixelRatio()
+                if device_pixel_ratio != 1.0:
+                    # Get the logical geometry (what Qt thinks the screen size is)
+                    logical_geom = target_screen.geometry()
+                    
+                    # Convert pynput position to relative position on this screen
+                    relative_x = pynput_pos[0] - logical_geom.x()
+                    relative_y = pynput_pos[1] - logical_geom.y()
+                    
+                    # Apply DPI scaling
+                    scaled_x = relative_x / device_pixel_ratio
+                    scaled_y = relative_y / device_pixel_ratio
+                    
+                    # Convert back to global coordinates
+                    qt_x = logical_geom.x() + scaled_x
+                    qt_y = logical_geom.y() + scaled_y
+                    
+                    return QPoint(int(qt_x), int(qt_y))
+            
+            # If no scaling needed or screen not found, use direct conversion
+            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+            
+        except Exception as e:
+            print(f"ScrollWidget coordinate conversion error: {e}")
+            # Fallback to direct conversion
+            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+
     def update_position(self, cursor_pos):
         """Update widget position relative to cursor."""
         if not self.is_active:
             return
+        
+        # Convert pynput coordinates to Qt coordinates for consistency
+        qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
+        cursor_x, cursor_y = qt_cursor_pos.x(), qt_cursor_pos.y()
+        
+        # Track cursor velocity for hover detection
+        current_time = time.time()
+        if self.last_cursor_pos is not None:
+            dx = cursor_x - self.last_cursor_pos[0]
+            dy = cursor_y - self.last_cursor_pos[1]
+            distance = math.sqrt(dx * dx + dy * dy)
+            
+            # Calculate velocity (pixels per second)
+            # Note: update_position is called every 100ms, so time_delta should be ~0.1
+            time_delta = current_time - getattr(self, 'last_update_time', current_time)
+            if time_delta > 0:
+                velocity = distance / time_delta
+                
+                # Keep a rolling window of recent velocities
+                self.cursor_velocity_history.append(velocity)
+                if len(self.cursor_velocity_history) > self.velocity_check_window:
+                    self.cursor_velocity_history.pop(0)
+        
+        self.last_update_time = current_time
+        
+        # Check if cursor has moved significantly since last update
+        if self.last_cursor_pos is not None:
+            dx = cursor_x - self.last_cursor_pos[0]
+            dy = cursor_y - self.last_cursor_pos[1]
+            movement_distance = math.sqrt(dx * dx + dy * dy)
+            
+            # Only update position if cursor moved enough (reduces jittery movement)
+            if movement_distance < self.movement_threshold and not self.is_locked:
+                return
+        
+        # Update last cursor position
+        self.last_cursor_pos = (cursor_x, cursor_y)
             
         # Get widget center in global coordinates
         widget_center = self.rect().center()
         widget_global_center = self.mapToGlobal(widget_center)
         
         # Calculate distance from cursor to widget center
-        dx = cursor_pos[0] - widget_global_center.x()
-        dy = cursor_pos[1] - widget_global_center.y()
+        dx = cursor_x - widget_global_center.x()
+        dy = cursor_y - widget_global_center.y()
         distance_to_widget = math.sqrt(dx * dx + dy * dy)
         
         # Lock/unlock logic
@@ -200,9 +346,34 @@ class ScrollWidget(QWidget):
             offset_x = int(self.offset_distance * math.cos(angle_rad))
             offset_y = int(self.offset_distance * math.sin(angle_rad))
             
-            # Set new position
-            new_x = cursor_pos[0] + offset_x
-            new_y = cursor_pos[1] - offset_y - self.height()//2
+            # Set new position using Qt coordinates
+            new_x = cursor_x + offset_x
+            new_y = cursor_y - offset_y - self.height()//2
+            
+            # Safety check: ensure widget doesn't end up too close to cursor
+            widget_center_x = new_x + self.width() // 2
+            widget_center_y = new_y + self.height() // 2
+            distance_to_cursor = math.sqrt((widget_center_x - cursor_x) ** 2 + (widget_center_y - cursor_y) ** 2)
+            
+            if distance_to_cursor < self.min_safe_distance:
+                # Adjust position to maintain safe distance
+                angle_to_cursor = math.atan2(widget_center_y - cursor_y, widget_center_x - cursor_x)
+                new_x = cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2
+                new_y = cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2
+            
+            # Check if widget actually needs to move (prevent unnecessary updates)
+            if self.last_widget_pos is not None:
+                widget_dx = new_x - self.last_widget_pos[0]
+                widget_dy = new_y - self.last_widget_pos[1]
+                widget_movement = math.sqrt(widget_dx * widget_dx + widget_dy * widget_dy)
+                
+                # Only move if the widget position would change significantly
+                if widget_movement < 5:  # Less than 5 pixels, don't bother moving
+                    return
+            
+            # Track when we move to prevent false hover detection
+            self.last_move_time = time.time()
+            self.last_widget_pos = (new_x, new_y)
             
             self.move(new_x, new_y)
         else:
@@ -215,27 +386,57 @@ class ScrollWidget(QWidget):
                 offset_x = int(self.offset_distance * math.cos(angle_rad))
                 offset_y = int(self.offset_distance * math.sin(angle_rad))
                 
-                new_x = cursor_pos[0] + offset_x
-                new_y = cursor_pos[1] - offset_y - self.height()//2
+                new_x = cursor_x + offset_x
+                new_y = cursor_y - offset_y - self.height()//2
+                
+                # Safety check: ensure widget doesn't end up too close to cursor
+                widget_center_x = new_x + self.width() // 2
+                widget_center_y = new_y + self.height() // 2
+                distance_to_cursor = math.sqrt((widget_center_x - cursor_x) ** 2 + (widget_center_y - cursor_y) ** 2)
+                
+                if distance_to_cursor < self.min_safe_distance:
+                    # Adjust position to maintain safe distance
+                    angle_to_cursor = math.atan2(widget_center_y - cursor_y, widget_center_x - cursor_x)
+                    new_x = cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2
+                    new_y = cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2
+                
+                # Track when we move to prevent false hover detection
+                self.last_move_time = time.time()
+                self.last_widget_pos = (new_x, new_y)
                 
                 self.move(new_x, new_y)
-        
+
     def check_hover(self, cursor_pos):
         """Check if cursor is hovering over scroll buttons."""
         if not self.is_active:
             return None
+        
+        # Don't check hover immediately after moving to prevent false detection
+        current_time = time.time()
+        if current_time - self.last_move_time < self.movement_cooldown:
+            return None
+        
+        # Simple velocity check - only block if moving very fast
+        if len(self.cursor_velocity_history) > 0:
+            avg_velocity = sum(self.cursor_velocity_history) / len(self.cursor_velocity_history)
+            if avg_velocity > 200:  # Much higher threshold - only block very fast movement
+                if self.current_hover is not None:
+                    self._set_hover(None)
+                return None
+        
+        # Convert pynput coordinates to Qt coordinates for consistency
+        qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
             
         # Convert cursor position to widget coordinates
-        widget_pos = self.mapFromGlobal(QPoint(cursor_pos[0], cursor_pos[1]))
+        widget_pos = self.mapFromGlobal(qt_cursor_pos)
         
-        # Check if cursor is within widget bounds
+        # Simple bounds checking - just check if cursor is within widget
         if not self.rect().contains(widget_pos):
             if self.current_hover is not None:
                 self._set_hover(None)
             return None
 
-        # DO NOT change WindowTransparentForInput here!
-        # Only visual feedback:
+        # Determine which button is hovered - simple and straightforward
         button_height = self.height() // 2
         
         if widget_pos.y() < button_height:
@@ -296,8 +497,13 @@ class ScrollWidget(QWidget):
             import ctypes
             from ctypes import wintypes
             
-            # Get the current cursor position
-            cursor_pos = self.mouse.position
+            # Get the current cursor position using Qt for consistency
+            try:
+                qt_pos = self._get_qt_cursor_position()
+                cursor_pos = (qt_pos.x(), qt_pos.y())
+            except:
+                # Fallback to pynput
+                cursor_pos = self.mouse.position
             
             # Windows API constants for mouse wheel
             WM_MOUSEWHEEL = 0x020A
@@ -313,12 +519,12 @@ class ScrollWidget(QWidget):
             user32 = ctypes.windll.user32
             
             # Get the window handle at the cursor position
-            hwnd = user32.WindowFromPoint(wintypes.POINT(cursor_pos[0], cursor_pos[1]))
+            hwnd = user32.WindowFromPoint(wintypes.POINT(int(cursor_pos[0]), int(cursor_pos[1])))
             
             if hwnd:
                 # Send mouse wheel message to the window
                 wparam = (wheel_delta << 16)
-                lparam = (cursor_pos[1] << 16) | (cursor_pos[0] & 0xFFFF)
+                lparam = (int(cursor_pos[1]) << 16) | (int(cursor_pos[0]) & 0xFFFF)
                 
                 user32.PostMessageW(hwnd, WM_MOUSEWHEEL, wparam, lparam)
                 

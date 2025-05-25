@@ -39,12 +39,12 @@ SLIDER_HANDLE_SIZE = 16        # Slider handle dimensions
 
 # Scroll Widget Constants
 SCROLL_WIDGET_SIZE = 40
-SCROLL_WIDGET_OFFSET = 50
+SCROLL_WIDGET_OFFSET = 120  # Increased for safer cursor distance
 SCROLL_WIDGET_ANGLE = 45  # Top-right position
 SCROLL_INTERVAL = 100  # ms between scrolls
 SCROLL_AMOUNT = 3  # lines per scroll
 SCROLL_OPACITY_BASE = 70  # Base opacity percentage
-SCROLL_OPACITY_HOVER = 90  # Hover opacity percentage
+SCROLL_OPACITY_HOVER = 90
 
 # Color Scheme - Dark Theme
 class Colors:
