@@ -2,7 +2,19 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "package-name": "dwellpy"
+      "package-name": "dwellpy",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "dwellpy/__version__.py",
+          "jsonpath": "$.__version__"
+        },
+        {
+          "type": "generic", 
+          "path": "pyproject.toml",
+          "jsonpath": "$.project.version"
+        }
+      ]
     }
   }
 }
