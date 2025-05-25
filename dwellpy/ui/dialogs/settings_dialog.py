@@ -81,6 +81,14 @@ class SettingsDialog(QDialog):
         self.transparency_plus_timer.setSingleShot(True)
         self.transparency_plus_timer.timeout.connect(self.start_plus_transparency_repeat)
         
+        self.scroll_speed_minus_timer = QTimer()
+        self.scroll_speed_minus_timer.setSingleShot(True)
+        self.scroll_speed_minus_timer.timeout.connect(self.start_minus_scroll_speed_repeat)
+        
+        self.scroll_speed_plus_timer = QTimer()
+        self.scroll_speed_plus_timer.setSingleShot(True)
+        self.scroll_speed_plus_timer.timeout.connect(self.start_plus_scroll_speed_repeat)
+        
         # Repeat timers
         self.move_minus_repeat = QTimer()
         self.move_minus_repeat.timeout.connect(self.on_hover_minus_move_limit)
@@ -99,10 +107,16 @@ class SettingsDialog(QDialog):
         
         self.transparency_plus_repeat = QTimer()
         self.transparency_plus_repeat.timeout.connect(self.on_hover_plus_transparency)
+        
+        self.scroll_speed_minus_repeat = QTimer()
+        self.scroll_speed_minus_repeat.timeout.connect(self.on_hover_minus_scroll_speed)
+        
+        self.scroll_speed_plus_repeat = QTimer()
+        self.scroll_speed_plus_repeat.timeout.connect(self.on_hover_plus_scroll_speed)
     
     def setup_ui(self):
         """Setup the dialog UI."""
-        self.setFixedSize(350, 450)
+        self.setFixedSize(350, 580)  # Increased height for scroll settings
         
         # Set window flags for frameless window
         self.setWindowFlags(
@@ -146,6 +160,12 @@ class SettingsDialog(QDialog):
         
         # Transparency section
         self.create_transparency_section(main_layout)
+        
+        # Add separator
+        self.add_separator(main_layout)
+        
+        # Scroll Widget section
+        self.create_scroll_widget_section(main_layout)
         
         # Default active state
         self.create_active_state_section(main_layout)
@@ -350,6 +370,71 @@ class SettingsDialog(QDialog):
         # Update controls state
         self.update_transparency_controls_state()
     
+    def create_scroll_widget_section(self, main_layout):
+        """Create scroll widget settings section."""
+        # Enable checkbox
+        scroll_enable_frame = QFrame()
+        scroll_enable_layout = QHBoxLayout(scroll_enable_frame)
+        scroll_enable_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_enable_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        self.scroll_check = QCheckBox("Enable scroll widget")
+        self.scroll_check.setChecked(self.settings_manager.get_setting('scroll_enabled', True))
+        self.scroll_check.setFont(QFont("Segoe UI", 11))
+        self.scroll_check.setStyleSheet(self.get_checkbox_style())
+        scroll_enable_layout.addWidget(self.scroll_check)
+        
+        main_layout.addWidget(scroll_enable_frame)
+        
+        # Scroll speed label
+        scroll_speed_label = QLabel("Scroll Speed:")
+        scroll_speed_label.setFont(QFont("Segoe UI", 11))
+        scroll_speed_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        main_layout.addWidget(scroll_speed_label)
+        
+        # Controls frame
+        scroll_speed_frame = QFrame()
+        scroll_speed_layout = QHBoxLayout(scroll_speed_frame)
+        scroll_speed_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_speed_layout.setSpacing(5)
+        
+        # Minus button
+        scroll_speed_minus_btn = self.create_adjustment_button("-")
+        scroll_speed_minus_btn.enterEvent = lambda e: self.on_enter_minus_scroll_speed()
+        scroll_speed_minus_btn.leaveEvent = lambda e: self.on_leave_minus_scroll_speed()
+        scroll_speed_layout.addWidget(scroll_speed_minus_btn)
+        
+        # Slider (1-10, where 1 is slowest, 10 is fastest)
+        self.scroll_speed_slider = QSlider(Qt.Orientation.Horizontal)
+        self.scroll_speed_slider.setRange(1, 10)
+        # Convert interval to speed (lower interval = faster speed)
+        current_interval = self.settings_manager.get_setting('scroll_speed', 100)
+        speed_value = 11 - (current_interval // 20)  # 200ms=1, 180ms=2, ..., 20ms=10
+        self.scroll_speed_slider.setValue(max(1, min(10, speed_value)))
+        scroll_speed_layout.addWidget(self.scroll_speed_slider)
+        
+        # Plus button
+        scroll_speed_plus_btn = self.create_adjustment_button("+")
+        scroll_speed_plus_btn.enterEvent = lambda e: self.on_enter_plus_scroll_speed()
+        scroll_speed_plus_btn.leaveEvent = lambda e: self.on_leave_plus_scroll_speed()
+        scroll_speed_layout.addWidget(scroll_speed_plus_btn)
+        
+        # Value label
+        self.scroll_speed_value = QLabel(str(self.scroll_speed_slider.value()))
+        self.scroll_speed_value.setStyleSheet(f"""
+            font-family: 'Segoe UI', Arial;
+            font-size: 12pt;
+            font-weight: bold;
+            color: {Colors.TEXT_COLOR};
+        """)
+        self.scroll_speed_value.setFixedWidth(30)
+        scroll_speed_layout.addWidget(self.scroll_speed_value)
+        
+        main_layout.addWidget(scroll_speed_frame)
+        
+        # Update controls state
+        self.update_scroll_controls_state()
+    
     def create_active_state_section(self, main_layout):
         """Create default active state section."""
         active_frame = QFrame()
@@ -485,6 +570,8 @@ class SettingsDialog(QDialog):
         self.time_slider.valueChanged.connect(self.update_time_value)
         self.transparency_slider.valueChanged.connect(self.update_transparency_value)
         self.transparency_check.stateChanged.connect(self.on_transparency_toggle)
+        self.scroll_speed_slider.valueChanged.connect(self.update_scroll_speed_value)
+        self.scroll_check.stateChanged.connect(self.on_scroll_toggle)
         self.active_check.stateChanged.connect(self.on_active_toggle)
     
     # Hover timer methods for move limit
@@ -582,6 +669,39 @@ class SettingsDialog(QDialog):
         if self.transparency_slider.value() < self.transparency_slider.maximum():
             self.transparency_slider.setValue(self.transparency_slider.value() + 5)
     
+    # Hover timer methods for scroll speed
+    def on_enter_minus_scroll_speed(self):
+        if self.scroll_check.isChecked():
+            self.scroll_speed_minus_timer.start(500)
+
+    def on_leave_minus_scroll_speed(self):
+        self.scroll_speed_minus_timer.stop()
+        self.scroll_speed_minus_repeat.stop()
+
+    def on_enter_plus_scroll_speed(self):
+        if self.scroll_check.isChecked():
+            self.scroll_speed_plus_timer.start(500)
+
+    def on_leave_plus_scroll_speed(self):
+        self.scroll_speed_plus_timer.stop()
+        self.scroll_speed_plus_repeat.stop()
+
+    def start_minus_scroll_speed_repeat(self):
+        self.on_hover_minus_scroll_speed()
+        self.scroll_speed_minus_repeat.start(500)
+
+    def start_plus_scroll_speed_repeat(self):
+        self.on_hover_plus_scroll_speed()
+        self.scroll_speed_plus_repeat.start(500)
+
+    def on_hover_minus_scroll_speed(self):
+        if self.scroll_speed_slider.value() > self.scroll_speed_slider.minimum():
+            self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() - 1)
+
+    def on_hover_plus_scroll_speed(self):
+        if self.scroll_speed_slider.value() < self.scroll_speed_slider.maximum():
+            self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() + 1)
+    
     # Value update methods
     def update_move_limit_value(self, value):
         """Update move limit value and apply setting."""
@@ -604,6 +724,19 @@ class SettingsDialog(QDialog):
         is_enabled = state == 2  # Qt.CheckState.Checked is 2
         self.settings_manager.update_transparency_enabled(is_enabled)
         self.update_transparency_controls_state()
+
+    def update_scroll_speed_value(self, value):
+        """Update scroll speed value and apply setting."""
+        self.scroll_speed_value.setText(str(value))
+        # Convert speed value to interval (1=200ms, 10=20ms)
+        interval = 220 - (value * 20)
+        self.settings_manager.update_scroll_speed(interval)
+
+    def on_scroll_toggle(self, state):
+        """Handle scroll widget checkbox toggle."""
+        is_enabled = state == 2  # Qt.CheckState.Checked is 2
+        self.settings_manager.update_scroll_enabled(is_enabled)
+        self.update_scroll_controls_state()
 
     def on_active_toggle(self, state):
         """Handle active checkbox toggle."""
@@ -638,6 +771,34 @@ class SettingsDialog(QDialog):
                 }}
             """)
 
+    def update_scroll_controls_state(self):
+        """Enable/disable scroll controls based on checkbox state."""
+        enabled = self.scroll_check.isChecked()
+        self.scroll_speed_slider.setEnabled(enabled)
+        
+        if enabled:
+            self.scroll_speed_slider.setStyleSheet(self.get_slider_style())
+        else:
+            self.scroll_speed_slider.setStyleSheet(f"""
+                QSlider::groove:horizontal {{
+                    background: #333333;
+                    height: 4px;
+                    border-radius: 2px;
+                }}
+                QSlider::handle:horizontal {{
+                    background: #666666;
+                    width: 16px;
+                    height: 16px;
+                    margin: -6px 0;
+                    border-radius: 8px;
+                }}
+                QSlider::sub-page:horizontal {{
+                    background: #666666;
+                    height: 4px;
+                    border-radius: 2px;
+                }}
+            """)
+
     def accept(self):
         """Handle dialog acceptance."""
         # Stop all timers
@@ -645,9 +806,11 @@ class SettingsDialog(QDialog):
             self.move_minus_timer, self.move_plus_timer, 
             self.time_minus_timer, self.time_plus_timer,
             self.transparency_minus_timer, self.transparency_plus_timer,
+            self.scroll_speed_minus_timer, self.scroll_speed_plus_timer,
             self.move_minus_repeat, self.move_plus_repeat, 
             self.time_minus_repeat, self.time_plus_repeat,
-            self.transparency_minus_repeat, self.transparency_plus_repeat
+            self.transparency_minus_repeat, self.transparency_plus_repeat,
+            self.scroll_speed_minus_repeat, self.scroll_speed_plus_repeat
         ]
         
         for timer in timers_to_stop:
@@ -656,7 +819,6 @@ class SettingsDialog(QDialog):
         
         # Save settings
         self.settings_manager.save_settings()
-        print("Settings saved")
         
         # Close dialog
         super().accept()

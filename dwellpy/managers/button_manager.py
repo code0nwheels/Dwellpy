@@ -20,7 +20,6 @@ class ButtonManager:
     def execute_command(self, button_id):
         """Execute the command for a button if available."""
         if button_id in self.button_commands:
-            print(f"Executing command for button: {button_id}")
             self.button_commands[button_id]()
             return True
         return False
@@ -28,7 +27,6 @@ class ButtonManager:
     def set_hover(self, button_id):
         """Set the current hover button."""
         self.current_hover_button = button_id
-        print(f"Hovering over: {button_id}")
     
     def clear_hover(self, button_id=None):
         """Clear hover state if it matches the given button_id or if none given."""

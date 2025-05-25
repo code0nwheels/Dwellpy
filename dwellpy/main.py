@@ -1,7 +1,39 @@
+#!/usr/bin/env python3
 """Main application entry point for Dwellpy."""
 
 import sys
+import os
+
+# Add the dwellpy package to the path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+
+# Set DPI awareness as early as possible for Windows multi-monitor support
+if sys.platform == "win32":
+    try:
+        import ctypes
+        from ctypes import wintypes
+        
+        # Set DPI awareness before any Qt initialization
+        try:
+            # Try the newer SetProcessDpiAwarenessContext first (Windows 10 1703+)
+            ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)  # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        except:
+            try:
+                # Fallback to SetProcessDpiAwareness (Windows 8.1+)
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
+            except:
+                try:
+                    # Final fallback to SetProcessDPIAware (Windows Vista+)
+                    ctypes.windll.user32.SetProcessDPIAware()
+                except:
+                    pass  # DPI awareness not available
+    except ImportError:
+        pass  # ctypes not available
+
+# Now import PyQt and other modules
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import Qt
+import logging
 
 from .core.dwell_algorithm import DwellDetector
 from .core.input_manager import InputManager
@@ -13,6 +45,7 @@ from .ui.ui_manager import DwellClickerUI
 from .ui.window_manager import WindowManager
 from .config.constants import DEFAULT_MOVE_LIMIT, DEFAULT_DWELL_TIME
 from .__version__ import __version__
+from .utils.logging_config import setup_logging, log_application_start, log_application_shutdown, get_logger
 
 
 class DwellpyApplication:
@@ -20,10 +53,19 @@ class DwellpyApplication:
     
     def __init__(self):
         """Initialize the Dwellpy application."""
+        # Initialize logging first
+        self.log_dir = setup_logging()
+        self.logger = get_logger(__name__)
+        
+        # Log application startup
+        log_application_start(__version__)
+        
         # Create the Qt application first
         self.app = QApplication(sys.argv)
         self.app.setApplicationName("Dwellpy")
         self.app.setApplicationVersion(__version__)
+        
+        self.logger.info("Qt application created")
         
         # Initialize core managers
         self._initialize_managers()
@@ -37,10 +79,12 @@ class DwellpyApplication:
         # Setup application state
         self.running = False
         
-        print(f"Dwellpy v{__version__} initialized")
+        self.logger.info("Application initialization completed")
     
     def _initialize_managers(self) -> None:
         """Initialize core managers and components."""
+        self.logger.info("Initializing core managers...")
+        
         # Create core managers
         self.button_manager = ButtonManager()
         self.detector = DwellDetector(
@@ -55,9 +99,13 @@ class DwellpyApplication:
         
         # Create window manager
         self.window_manager = WindowManager(self.settings_manager)
+        
+        self.logger.info("Core managers initialized successfully")
     
     def _initialize_ui(self) -> None:
         """Initialize UI components."""
+        self.logger.info("Initializing UI components...")
+        
         # Create main UI
         self.ui = DwellClickerUI(
             self.click_manager, 
@@ -72,9 +120,13 @@ class DwellpyApplication:
             self.button_manager,
             self.ui.window
         )
+        
+        self.logger.info("UI components initialized successfully")
     
     def _connect_components(self) -> None:
         """Connect all application components together."""
+        self.logger.info("Connecting application components...")
+        
         # Connect UI to managers
         self.ui.connect_managers(self.settings_manager, self.exit_manager)
         
@@ -89,6 +141,10 @@ class DwellpyApplication:
         
         # Setup input callback for position updates
         self.input_manager.on_position_update = self._on_position_update
+        # Give input manager reference to UI for scroll widget updates
+        self.input_manager.ui_manager = self.ui
+        
+        self.logger.info("Component connections established")
     
     def _on_position_update(self, position: tuple[int, int]) -> None:
         """
@@ -109,55 +165,64 @@ class DwellpyApplication:
         
         # Process dwell event if one occurred
         if is_dwelling and dwell_center:
+            self.logger.debug(f"Dwell event detected at position: {dwell_center}")
             # Delegate dwell processing to the UI manager
             self.ui.process_dwell_event(dwell_center)
     
     def start(self) -> None:
         """Start the dwell clicker application."""
-        print("Starting Dwellpy application...")
+        self.logger.info("Starting Dwellpy application...")
         
         try:
             # Load and apply saved window position
             self.window_manager.load_position(self.ui.window)
+            self.logger.info("Window position loaded from settings")
             
             # Start core services
             self.running = True
             self.input_manager.start()
+            self.logger.info("Input manager started")
             
             # Show the main window
             self.ui.window.show()
-            
-            print("Dwellpy is now running. Use dwell clicks to interact.")
+            self.logger.info("Main window displayed")
             
             # Start the Qt event loop (this blocks until app exits)
+            self.logger.info("Starting Qt event loop...")
             exit_code = self.app.exec()
+            self.logger.info(f"Qt event loop ended with exit code: {exit_code}")
             sys.exit(exit_code)
             
         except KeyboardInterrupt:
-            print("\nShutdown requested by user...")
+            # Silently handle keyboard interrupt
+            self.logger.info("Application interrupted by user (Ctrl+C)")
+            pass
         except Exception as e:
-            print(f"Application error: {e}")
+            self.logger.error(f"Unexpected error during application startup: {e}", exc_info=True)
             raise
         finally:
             self._cleanup()
     
     def _cleanup(self) -> None:
         """Clean up application resources."""
-        print("Cleaning up application resources...")
+        self.logger.info("Starting application cleanup...")
         
         # Stop core services
         self.running = False
         if self.input_manager:
             self.input_manager.stop()
+            self.logger.info("Input manager stopped")
         
         # Save settings before exit
         if self.settings_manager:
             self.settings_manager.save_settings()
+            self.logger.info("Settings saved")
         
-        print("Dwellpy stopped.")
+        log_application_shutdown()
     
     def stop(self) -> None:
         """Stop the application gracefully."""
+        self.logger.info("Graceful application stop requested")
         self._cleanup()
         if self.app:
             self.app.quit()
@@ -170,7 +235,15 @@ def main() -> None:
         app = DwellpyApplication()
         app.start()
     except Exception as e:
-        print(f"Failed to start Dwellpy: {e}")
+        # If logging isn't set up yet, fall back to basic error handling
+        try:
+            logger = get_logger(__name__)
+            logger.critical(f"Fatal error in main(): {e}", exc_info=True)
+        except:
+            # Last resort - print to stderr
+            import traceback
+            print(f"FATAL ERROR: {e}", file=sys.stderr)
+            traceback.print_exc()
         sys.exit(1)
 
 

@@ -1,6 +1,8 @@
 """Input manager for the Dwellpy application."""
 
 from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QCursor
 from pynput.mouse import Controller
 
 class InputManager:
@@ -33,7 +35,6 @@ class InputManager:
             
         self.running = True
         self.timer.start()
-        print("Input manager started")
         
     def stop(self):
         """
@@ -41,21 +42,37 @@ class InputManager:
         """
         self.running = False
         self.timer.stop()
-        print("Input manager stopped")
+    
+    def _get_cursor_position(self):
+        """Get cursor position with fallback for multi-monitor consistency."""
+        try:
+            # Try Qt's cursor position first (more reliable for multi-monitor)
+            qt_pos = QCursor.pos()
+            return (qt_pos.x(), qt_pos.y())
+        except:
+            pass
+        
+        # Fallback to pynput
+        try:
+            return self.mouse.position
+        except:
+            return self.current_position  # Return last known position
             
     def _update_position(self):
-        """
-        Timer callback that gets the current mouse position
-        and triggers the position update callback.
-        """
+        """Timer callback with scroll widget support."""
         try:
-            # Get current mouse position using pynput
-            pos = self.mouse.position
+            # Get current mouse position with improved multi-monitor handling
+            pos = self._get_cursor_position()
             self.current_position = pos
             
             # Call the position update callback
             if self.on_position_update:
                 self.on_position_update(self.current_position)
                 
+            # Also update scroll widget position if we have reference to UI
+            # This would be set by the main application
+            if hasattr(self, 'ui_manager') and self.ui_manager:
+                self.ui_manager.update_scroll_widget_position(pos)
+                
         except Exception as e:
-            print(f"Error tracking mouse: {e}")
+            pass

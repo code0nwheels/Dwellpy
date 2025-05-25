@@ -46,7 +46,6 @@ def get_application_directory() -> str:
             
         return base_dir
     except Exception as e:
-        print(f"Error determining application directory: {e}")
         return os.getcwd()  # Fallback to current directory
 
 

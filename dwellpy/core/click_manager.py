@@ -7,7 +7,6 @@ class ClickManager:
     def __init__(self, min_click_interval=0.5):
         self.min_click_interval = min_click_interval
         self.last_click_time = 0
-        self.debug_mode = False
         
         # Create pynput mouse controller
         self.mouse = Controller()
@@ -24,32 +23,22 @@ class ClickManager:
         # Allow click if enough time has passed
         can_click = time_since_last >= self.min_click_interval
         
-        if not can_click and self.debug_mode:
-            print(f"Click blocked: only {time_since_last:.1f}s since last click")
-        
         return can_click
     
     def perform_left_click(self, position=None):
         """Perform a left mouse click at the CURRENT mouse position safely."""
         if not self.can_click():
             return False
-        
-        print(f"Performing left click at {self.mouse.position}")
             
         try:
             # Use pynput to perform a left click
             self.mouse.click(Button.left)
             
             self.last_click_time = time.time()
-            
-            if self.debug_mode:
-                current_pos = self.mouse.position
-                print(f"LEFT CLICK PERFORMED at {current_pos}")
                 
             return True
             
         except Exception as e:
-            print(f"Error performing click: {e}")
             return False
 
     def perform_right_click(self, position=None):
@@ -64,7 +53,6 @@ class ClickManager:
             self.last_click_time = time.time()
             return True
         except Exception as e:
-            print(f"Error performing right click: {e}")
             return False
 
     def perform_double_click(self, position=None):
@@ -79,7 +67,6 @@ class ClickManager:
             self.last_click_time = time.time()
             return True
         except Exception as e:
-            print(f"Error performing double click: {e}")
             return False
 
     def perform_middle_click(self, position=None):
@@ -94,7 +81,6 @@ class ClickManager:
             self.last_click_time = time.time()
             return True
         except Exception as e:
-            print(f"Error performing middle click: {e}")
             return False
 
     def mouse_down(self):
@@ -104,11 +90,8 @@ class ClickManager:
             self.mouse.press(Button.left)
             
             self.last_click_time = time.time()
-            if self.debug_mode:
-                print(f"MOUSE DOWN at {self.mouse.position}")
             return True
         except Exception as e:
-            print(f"Error in mouse down: {e}")
             return False
 
     def mouse_up(self):
@@ -117,9 +100,6 @@ class ClickManager:
             # Use pynput to release the mouse button
             self.mouse.release(Button.left)
             
-            if self.debug_mode:
-                print(f"MOUSE UP at {self.mouse.position}")
             return True
         except Exception as e:
-            print(f"Error in mouse up: {e}")
             return False

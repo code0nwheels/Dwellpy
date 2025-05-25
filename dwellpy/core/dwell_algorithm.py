@@ -16,7 +16,6 @@ class DwellDetector:
         # State tracking variables
         self.last_position = None        # Last recorded mouse position
         self.dwell_counter = 0           # Counter that tracks how long cursor has been dwelling
-        self.debug_mode = False          # Enable/disable debug output
         self.waiting_for_exit = False    # Track if we're waiting for cursor to leave radius
         self.last_dwell_point = None     # Last position where dwell was detected
     
@@ -39,8 +38,6 @@ class DwellDetector:
             
             # If cursor has moved outside radius, clear the waiting flag
             if dx >= self.move_limit or dy >= self.move_limit:
-                if self.debug_mode:
-                    print(f"Cursor exited dwell radius ({dx}, {dy}) - allowing new dwells")
                 self.waiting_for_exit = False
                 self.last_dwell_point = None
             
@@ -61,14 +58,10 @@ class DwellDetector:
         # Check if cursor moved beyond the threshold in either direction
         if dx >= self.move_limit or dy >= self.move_limit:
             # Movement detected - reset the dwell counter
-            if self.debug_mode and self.dwell_counter > 0:
-                print(f"Movement detected ({dx}, {dy}) - resetting counter")
             self.dwell_counter = 0
         else:
             # Cursor is dwelling within threshold - increment counter
             self.dwell_counter += 1
-            if self.debug_mode and self.dwell_counter % 3 == 0:
-                print(f"Dwelling: counter = {self.dwell_counter}/{self.click_time}")
         
         # Store current position for next comparison
         self.last_position = position
@@ -92,9 +85,6 @@ class DwellDetector:
         
         # Check if counter has exceeded the threshold
         if self.dwell_counter > self.click_time:
-            if self.debug_mode:
-                print(f"Dwell detected! Counter: {self.dwell_counter}")
-                
             # Reset counter to negative value
             # This creates a delay period before the next dwell can trigger,
             # preventing accidental double-clicks and allowing time to move away
@@ -103,9 +93,6 @@ class DwellDetector:
             # Set waiting_for_exit flag to prevent repeated dwells in same spot
             self.waiting_for_exit = True
             self.last_dwell_point = self.last_position
-            
-            if self.debug_mode:
-                print(f"Now waiting for cursor to exit radius from {self.last_dwell_point}")
             
             # Return dwell event with current position
             return True, self.last_position

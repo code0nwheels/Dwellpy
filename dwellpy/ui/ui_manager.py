@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QPushButton, 
                            QHBoxLayout, QVBoxLayout, QFrame)
 from PyQt6.QtCore import Qt, QSize, QTimer
-from PyQt6.QtGui import QColor
+from .scroll_widget import ScrollWidget
 import time
 
 # Updated imports for new structure
@@ -64,6 +64,14 @@ class DwellClickerUI:
         self.opacity_timer = QTimer()
         self.opacity_timer.setSingleShot(True)
         self.opacity_timer.timeout.connect(self.set_transparent)
+
+        self.scroll_widget = ScrollWidget()
+        self.scroll_widget.set_active(False)  # Start inactive
+
+        # Track scroll widget hover state
+        self.scroll_hover = None
+        self.scroll_dwell_start_time = None
+        self.scroll_dwell_triggered = False
         
         # UI setup
         self.setup_ui()
@@ -82,11 +90,13 @@ class DwellClickerUI:
         # Apply transparency settings once settings manager is connected
         self.apply_transparency_settings()
         
-        # Apply default active state if configured
+        # Apply default active state if configured BEFORE applying scroll settings
         if self.settings_manager.get_setting('default_active', False):
             self.is_active = True
             self.update_button_states()
-            print("Starting with active state due to settings")
+        
+        # Apply scroll widget settings AFTER setting the active state
+        self.apply_scroll_settings()
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
@@ -96,6 +106,7 @@ class DwellClickerUI:
         self.button_manager.register_command("DOUBLE", lambda: self.set_mode("DOUBLE"))
         self.button_manager.register_command("DRAG", lambda: self.set_mode("DRAG"))
         self.button_manager.register_command("RIGHT", lambda: self.set_mode("RIGHT"))
+        self.button_manager.register_command("SCROLL", self.toggle_scroll_widget)
         # SETUP and EXIT will be set by the respective managers
     
     def setup_ui(self):
@@ -136,6 +147,10 @@ class DwellClickerUI:
         
         self.buttons["RIGHT"] = self.create_button("RIGHT", "blue", "RIGHT")
         button_layout.addWidget(self.buttons["RIGHT"])
+        
+        # Scroll toggle button
+        self.buttons["SCROLL"] = self.create_button("SCROLL", "gray", "SCROLL")
+        button_layout.addWidget(self.buttons["SCROLL"])
         
         # Utility buttons
         self.buttons["SETUP"] = self.create_button("SETUP", "gray", "SETUP")
@@ -179,6 +194,35 @@ class DwellClickerUI:
             self.window.setWindowOpacity(opacity)
         else:
             self.window.setWindowOpacity(1.0)
+    
+    def apply_scroll_settings(self):
+        """Apply scroll widget settings from the settings manager."""
+        if not self.settings_manager:
+            return
+        
+        # Get scroll settings
+        scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+        scroll_offset = self.settings_manager.get_setting('scroll_offset', 50)
+        scroll_angle = self.settings_manager.get_setting('scroll_angle', 45)
+        scroll_speed = self.settings_manager.get_setting('scroll_speed', 100)
+        scroll_amount = self.settings_manager.get_setting('scroll_amount', 3)
+        scroll_opacity_base = self.settings_manager.get_setting('scroll_opacity_base', 70)
+        scroll_opacity_hover = self.settings_manager.get_setting('scroll_opacity_hover', 90)
+        
+        # Apply settings to scroll widget
+        self.scroll_widget.set_offset(distance=scroll_offset, angle=scroll_angle)
+        self.scroll_widget.set_scroll_speed(interval=scroll_speed, amount=scroll_amount)
+        self.scroll_widget.set_opacity(
+            base=scroll_opacity_base,  # Pass raw percentage values
+            hover=scroll_opacity_hover
+        )
+        
+        # Enable/disable scroll widget based on setting and active state
+        should_be_active = self.is_active and scroll_enabled
+        self.scroll_widget.set_active(should_be_active)
+        
+        # Update button states to reflect scroll setting changes
+        self.update_button_states()
     
     def on_window_enter(self, event):
         """Handle cursor entering the window area."""
@@ -334,7 +378,6 @@ class DwellClickerUI:
             
         # Don't allow other buttons if clicker is off
         if not self.is_active and button_id not in ["ON_OFF"]:
-            print(f"Button {button_id} disabled when clicker is off")
             return
             
         # Execute the appropriate command via button manager
@@ -523,16 +566,82 @@ class DwellClickerUI:
                         border: 1px solid {hover_border};
                     }}
                 """)
+        
+        # Handle SCROLL button state separately
+        if "SCROLL" in self.buttons:
+            scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True) if self.settings_manager else True
+            
+            # Consider both app active state and scroll enabled setting
+            if self.is_active and scroll_enabled:
+                # App is active and scroll is enabled - show as active (green)
+                self.buttons["SCROLL"].setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {Colors.GREEN_ACCENT};
+                        color: {Colors.TEXT_COLOR};
+                        border: 1px solid {Colors.GREEN_ACCENT};
+                        border-radius: {BORDER_RADIUS}px;
+                        font-family: 'Segoe UI';
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: {Colors.GREEN_HOVER};
+                        border: 1px solid {Colors.GREEN_HOVER};
+                    }}
+                """)
+            elif self.is_active and not scroll_enabled:
+                # App is active but scroll is disabled - show as normal inactive button
+                self.buttons["SCROLL"].setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {Colors.DARK_BUTTON_BG};
+                        color: {Colors.TEXT_COLOR};
+                        border: 1px solid {Colors.BORDER_COLOR};
+                        border-radius: {BORDER_RADIUS}px;
+                        font-family: 'Segoe UI';
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #3d3d3d;
+                        border: 1px solid #5d5d5d;
+                    }}
+                """)
+            else:
+                # App is inactive - show as grayed out (same as other buttons when inactive)
+                self.buttons["SCROLL"].setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {Colors.DARK_BUTTON_BG};
+                        color: {Colors.DISABLED_TEXT};
+                        border: 1px solid {Colors.BORDER_COLOR};
+                        border-radius: {BORDER_RADIUS}px;
+                        font-family: 'Segoe UI';
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #3d3d3d;
+                        border: 1px solid #5d5d5d;
+                    }}
+                """)
     
     def toggle_active(self):
-        """Toggle the active state of the dwell clicker."""
+        """Modified toggle_active to also control scroll widget."""
         self.is_active = not self.is_active
         self.update_button_states()
         
+        # Apply scroll settings which will show/hide widget based on active state
+        self.apply_scroll_settings()
+        
         if self.is_active:
-            print("Dwell Clicker activated")
-        else:
-            print("Dwell Clicker deactivated")
+            # Force immediate position update when becoming active
+            if self.settings_manager.get_setting('scroll_enabled', True):
+                try:
+                    from pynput.mouse import Controller
+                    mouse = Controller()
+                    pos = mouse.position
+                    self.update_scroll_widget_position(pos)
+                except Exception as e:
+                    pass
     
     def set_mode(self, mode):
         """Set click mode with improved temporary/default behavior."""
@@ -542,19 +651,16 @@ class DwellClickerUI:
         if mode == self.current_mode:
             # If it's already permanent, do nothing (keep it permanent)
             if not self.is_temporary_mode:
-                print(f"Mode {mode} is already the permanent default - ignoring")
                 return
                 
             # If it's temporary, make it permanent
             if self.is_temporary_mode:
                 self.default_mode = mode
                 self.is_temporary_mode = False
-                print(f"Mode set to: {mode} (DEFAULT/PERMANENT)")
         else:
             # Selecting a different mode - make it temporary
             self.current_mode = mode
             self.is_temporary_mode = True
-            print(f"Mode set to: {mode} (TEMPORARY)")
         
         # Update tracking variables
         self.last_mode_selection = mode
@@ -567,18 +673,25 @@ class DwellClickerUI:
         self.update_button_states()
     
     def process_dwell_event(self, center):
-        """Process a dwell event with selective button handling."""
+        """Process a dwell event with scroll widget support."""
+        # Don't process regular dwell events if we're over scroll widget
+        if self.scroll_hover:
+            # The scrolling is handled by update_scroll_widget_position
+            return
+        else:
+            # Stop scrolling if we've moved away
+            if self.scroll_widget.is_scrolling:
+                self.scroll_widget.stop_scrolling()
+
         # Get current hover button from button manager
         current_hover = self.button_manager.get_current_hover()
         
         # Check if we're hovering over a button
         if current_hover is not None:
             button_id = current_hover
-            print(f"Dwell detected on button: {button_id}")
             
             # Always allow ON/OFF button to be toggled regardless of active state
             if button_id == "ON_OFF":
-                print("Toggling ON/OFF via dwell")
                 self.toggle_active()
                 return
                 
@@ -591,7 +704,6 @@ class DwellClickerUI:
             
             # If clicker is inactive, don't process other buttons
             if not self.is_active:
-                print(f"Button {button_id} ignored - clicker not active")
                 return
         
         # No button detected or button handling complete, process normal dwell clicks
@@ -616,7 +728,6 @@ class DwellClickerUI:
         if self.is_temporary_mode:
             self.current_mode = self.default_mode
             self.is_temporary_mode = False
-            print(f"Returned to default mode: {self.default_mode}")
             self.update_button_states()
     
     def handle_drag(self, center):
@@ -629,7 +740,6 @@ class DwellClickerUI:
             
             if success:
                 self.drag_state = "down"
-                print("Mouse DOWN at", center)
         
         elif self.drag_state == "down":
             # Second dwell - mouse up
@@ -637,12 +747,67 @@ class DwellClickerUI:
             
             if success:
                 self.drag_state = None
-                print("Mouse UP at", center)
                 
                 # After completing drag, switch back to default if temporary
                 if self.is_temporary_mode:
                     self.current_mode = self.default_mode
                     self.is_temporary_mode = False
-                    print(f"Drag completed, returned to default mode: {self.default_mode}")
         
+        self.update_button_states()
+
+    
+    def update_scroll_widget_position(self, cursor_pos):
+        """Update scroll widget position to follow cursor."""
+        # Only update if scroll widget is enabled
+        if not self.settings_manager.get_setting('scroll_enabled', True):
+            return
+        
+        if self.is_active:
+            self.scroll_widget.update_position(cursor_pos)
+            
+            # Check for hover on scroll widget
+            hover = self.scroll_widget.check_hover(cursor_pos)
+            
+            # Track hover state changes
+            if hover != self.scroll_hover:
+                # Stop any existing scrolling when changing hover state
+                if self.scroll_widget.is_scrolling:
+                    self.scroll_widget.stop_scrolling()
+                
+                self.scroll_hover = hover
+                
+                if hover:
+                    # Started hovering (either from None or from a different direction)
+                    self.scroll_dwell_start_time = time.time()
+                    self.scroll_dwell_triggered = False
+                else:
+                    # Stopped hovering completely
+                    self.scroll_dwell_start_time = None
+                    self.scroll_dwell_triggered = False
+            
+            # Check if dwell complete
+            if hover and self.scroll_dwell_start_time and not self.scroll_dwell_triggered:
+                hover_duration = time.time() - self.scroll_dwell_start_time
+                
+                # Check if dwell complete
+                if hover_duration >= self.dwell_detector.dwell_time:
+                    self.scroll_widget.start_scrolling(hover)
+                    self.scroll_dwell_triggered = True
+
+    def toggle_scroll_widget(self):
+        """Toggle the scroll widget on/off."""
+        if not self.settings_manager:
+            return
+            
+        # Get current scroll enabled state and toggle it
+        current_scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+        new_scroll_enabled = not current_scroll_enabled
+        
+        # Update setting
+        self.settings_manager.set_setting('scroll_enabled', new_scroll_enabled)
+        
+        # Apply the new scroll settings (this handles show/hide)
+        self.apply_scroll_settings()
+        
+        # Update button states to reflect new state
         self.update_button_states()
