@@ -54,6 +54,5 @@ include = ["dwellpy*"]
 [tool.setuptools.package-data]
 dwellpy = [
     "config/*.json",
-    "docs/*
-    .md",
+    "docs/*.md"
 ]
