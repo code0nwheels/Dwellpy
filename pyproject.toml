@@ -47,7 +47,7 @@ dwellpy = "dwellpy.main:main"
 dwellpy-gui = "dwellpy.main:main"
 
 [tool.setuptools.dynamic]
-version = {attr = "dwellpy.__version__.__version__"}
+version = {attr = "dwellpy.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["dwellpy*"]

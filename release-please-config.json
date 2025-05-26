@@ -2,10 +2,7 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "package-name": "dwellpy",
-      "extra-files": [
-        "dwellpy/__version__.py"
-      ]
+      "package-name": "dwellpy"
     }
   }
 }
