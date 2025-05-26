@@ -44,7 +44,7 @@ from .managers.button_manager import ButtonManager
 from .ui.ui_manager import DwellClickerUI
 from .ui.window_manager import WindowManager
 from .config.constants import DEFAULT_MOVE_LIMIT, DEFAULT_DWELL_TIME
-from .__version__ import __version__
+from .__init__ import __version__, __title__, __description__, __author__
 from .utils.logging_config import setup_logging, log_application_start, log_application_shutdown, get_logger
 
 

@@ -8,7 +8,7 @@ from PyQt6.QtGui import QFont
 try:
     from ...config.constants import Colors, BORDER_RADIUS
     from ...utils.helpers import center_window, format_time_display, format_percentage_display
-    from ...__version__ import __version__
+    from ...__init__ import __version__
 except ImportError:
     # Fallback constants
     class Colors:
