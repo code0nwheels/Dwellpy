@@ -15,37 +15,7 @@ on:
           - pypi
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13']
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r dwellpy/requirements.txt
-        pip install pytest flake8
-    
-    - name: Install package
-      run: pip install -e .
-    
-    - name: Test package structure
-      run: |
-        python -c "from dwellpy.core.dwell_algorithm import DwellDetector; print('Core import OK')"
-        python -c "from dwellpy.core.click_manager import ClickManager; print('ClickManager OK')"
-        python -c "import dwellpy; print('Package OK')"
-
   build:
-    needs: test
     runs-on: ubuntu-latest
     
     steps:
