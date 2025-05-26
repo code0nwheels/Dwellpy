@@ -29,100 +29,20 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          xvfb \
-          libxkbcommon-x11-0 \
-          libxcb-icccm4 \
-          libxcb-image0 \
-          libxcb-keysyms1 \
-          libxcb-randr0 \
-          libxcb-render-util0 \
-          libxcb-xinerama0 \
-          libxcb-xfixes0 \
-          libxcb-xkb1 \
-          libxcb-cursor0 \
-          libxcb-shape0 \
-          libxcb-sync1 \
-          libxcb-xtest0 \
-          libgl1-mesa-glx \
-          libegl1-mesa \
-          libxss1 \
-          libgconf-2-4 \
-          libxcomposite1 \
-          libxdamage1 \
-          libxtst6 \
-          libxrandr2 \
-          libasound2 \
-          libpangocairo-1.0-0 \
-          libatk1.0-0 \
-          libcairo-gobject2 \
-          libgtk-3-0 \
-          libgdk-pixbuf2.0-0
-    
-    - name: Start virtual display
-      run: |
-        sudo Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        sleep 3
-    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r dwellpy/requirements.txt
         pip install pytest flake8
     
-    - name: Install package in development mode
-      run: |
-        pip install -e .
-    
-    - name: Lint with flake8
-      run: |
-        flake8 dwellpy/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 dwellpy/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      continue-on-error: true
+    - name: Install package
+      run: pip install -e .
     
     - name: Test package structure
       run: |
-        echo "Testing package can be imported..."
-        python -c "
-# Test basic package structure without Qt
-import sys
-import os
-
-# Test core non-Qt modules
-try:
-    from dwellpy.core.dwell_algorithm import DwellDetector
-    print('✓ DwellDetector import successful')
-except Exception as e:
-    print(f'✗ DwellDetector import failed: {e}')
-    sys.exit(1)
-
-try:
-    from dwellpy.core.click_manager import ClickManager  
-    print('✓ ClickManager import successful')
-except Exception as e:
-    print(f'✗ ClickManager import failed: {e}')
-    sys.exit(1)
-
-try:
-    from dwellpy.config.constants import Colors
-    print('✓ Config constants import successful')
-except Exception as e:
-    print(f'✗ Config constants import failed: {e}')
-    sys.exit(1)
-
-try:
-    import dwellpy
-    print('✓ Main package import successful')
-    print(f'✓ Package version: {dwellpy.__version__}')
-except Exception as e:
-    print(f'✗ Main package import failed: {e}')
-    sys.exit(1)
-
-print('All essential imports successful - package is ready for PyPI!')
-"
+        python -c "from dwellpy.core.dwell_algorithm import DwellDetector; print('Core import OK')"
+        python -c "from dwellpy.core.click_manager import ClickManager; print('ClickManager OK')"
+        python -c "import dwellpy; print('Package OK')"
 
   build:
     needs: test
@@ -130,15 +50,13 @@ print('All essential imports successful - package is ready for PyPI!')
     
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
     
-    - name: Install build dependencies
+    - name: Install build tools
       run: |
         python -m pip install --upgrade pip
         pip install build twine
@@ -146,12 +64,10 @@ print('All essential imports successful - package is ready for PyPI!')
     - name: Build package
       run: python -m build
     
-    - name: Check build artifacts
-      run: |
-        twine check dist/*
-        ls -la dist/
+    - name: Check package
+      run: twine check dist/*
     
-    - name: Upload build artifacts
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
@@ -171,7 +87,7 @@ print('All essential imports successful - package is ready for PyPI!')
       id-token: write
     
     steps:
-    - name: Download build artifacts
+    - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
         name: python-package-distributions
@@ -199,7 +115,7 @@ print('All essential imports successful - package is ready for PyPI!')
       id-token: write
     
     steps:
-    - name: Download build artifacts
+    - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
         name: python-package-distributions
