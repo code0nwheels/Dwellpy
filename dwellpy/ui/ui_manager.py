@@ -647,18 +647,18 @@ class DwellClickerUI:
         """Set click mode with improved temporary/default behavior."""
         current_time = time.time()
         
+        # If clicking on the default mode (blue button), ignore the click
+        if mode == self.default_mode and not self.is_temporary_mode:
+            return
+        
         # If selecting the current mode...
         if mode == self.current_mode:
-            # If it's already permanent, do nothing (keep it permanent)
-            if not self.is_temporary_mode:
-                return
-                
-            # If it's temporary, make it permanent
+            # If it's temporary (red button), make it permanent (turn blue)
             if self.is_temporary_mode:
                 self.default_mode = mode
                 self.is_temporary_mode = False
         else:
-            # Selecting a different mode - make it temporary
+            # Selecting a different mode - make it temporary (turn red)
             self.current_mode = mode
             self.is_temporary_mode = True
         
