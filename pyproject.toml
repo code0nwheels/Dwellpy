@@ -26,8 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Desktop Environment :: Window Managers",
-    "Topic :: System :: Hardware :: Input",
-    "Topic :: Adaptive Technologies",
+    "Topic :: Adaptive Technologies"
 ]
 dependencies = [
     "PyQt6>=6.4.0",
@@ -55,5 +54,6 @@ include = ["dwellpy*"]
 [tool.setuptools.package-data]
 dwellpy = [
     "config/*.json",
-    "docs/*.md",
+    "docs/*
+    .md",
 ]
