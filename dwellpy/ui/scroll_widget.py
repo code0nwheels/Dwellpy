@@ -69,8 +69,8 @@ class ScrollWidget(QWidget):
         
         # Position lock state
         self.is_locked = False  # Whether widget is locked in position
-        self.lock_threshold = 60  # Distance to lock/unlock
-        self.unlock_threshold = 120  # Distance to resume following
+        self.lock_threshold = 140  # Distance to lock (must be greater than offset_distance)
+        self.unlock_threshold = 200  # Distance to resume following
         
         # Movement tracking to prevent false hover detection
         self.last_move_time = 0
@@ -106,19 +106,34 @@ class ScrollWidget(QWidget):
         
     def _setup_ui(self):
         """Setup the widget UI."""
-        # Window flags for floating behavior
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool |  # Prevents taskbar icon
-            Qt.WindowType.WindowTransparentForInput  # Click-through by default
-        )
+        # Platform-specific window flags for better macOS compatibility
+        if sys.platform == "darwin":  # macOS
+            # macOS: Use minimal flags that actually work (based on testing)
+            # The blue widget test showed only these flags work reliably
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint
+            )
+        else:
+            # Windows/Linux flags (original behavior)
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool |  # Prevents taskbar icon
+                Qt.WindowType.WindowTransparentForInput  # Click-through by default
+            )
         
         # Make widget transparent
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         # Set to not accept focus
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        
+        # macOS-specific attributes for better window management
+        if sys.platform == "darwin":
+            # Note: Removed complex macOS attributes as they cause invisibility
+            # Keep it simple for macOS compatibility
+            pass
         
         # Ensure wheel events pass through
         self.installEventFilter(self)
@@ -346,9 +361,9 @@ class ScrollWidget(QWidget):
             offset_x = int(self.offset_distance * math.cos(angle_rad))
             offset_y = int(self.offset_distance * math.sin(angle_rad))
             
-            # Set new position using Qt coordinates
-            new_x = cursor_x + offset_x
-            new_y = cursor_y - offset_y - self.height()//2
+            # Set new position using Qt coordinates - ensure integers
+            new_x = int(cursor_x + offset_x)
+            new_y = int(cursor_y - offset_y - self.height()//2)
             
             # Safety check: ensure widget doesn't end up too close to cursor
             widget_center_x = new_x + self.width() // 2
@@ -358,8 +373,8 @@ class ScrollWidget(QWidget):
             if distance_to_cursor < self.min_safe_distance:
                 # Adjust position to maintain safe distance
                 angle_to_cursor = math.atan2(widget_center_y - cursor_y, widget_center_x - cursor_x)
-                new_x = cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2
-                new_y = cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2
+                new_x = int(cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2)
+                new_y = int(cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2)
             
             # Check if widget actually needs to move (prevent unnecessary updates)
             if self.last_widget_pos is not None:
@@ -386,8 +401,8 @@ class ScrollWidget(QWidget):
                 offset_x = int(self.offset_distance * math.cos(angle_rad))
                 offset_y = int(self.offset_distance * math.sin(angle_rad))
                 
-                new_x = cursor_x + offset_x
-                new_y = cursor_y - offset_y - self.height()//2
+                new_x = int(cursor_x + offset_x)
+                new_y = int(cursor_y - offset_y - self.height()//2)
                 
                 # Safety check: ensure widget doesn't end up too close to cursor
                 widget_center_x = new_x + self.width() // 2
@@ -397,8 +412,8 @@ class ScrollWidget(QWidget):
                 if distance_to_cursor < self.min_safe_distance:
                     # Adjust position to maintain safe distance
                     angle_to_cursor = math.atan2(widget_center_y - cursor_y, widget_center_x - cursor_x)
-                    new_x = cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2
-                    new_y = cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2
+                    new_x = int(cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2)
+                    new_y = int(cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2)
                 
                 # Track when we move to prevent false hover detection
                 self.last_move_time = time.time()
@@ -492,52 +507,64 @@ class ScrollWidget(QWidget):
         """Perform a single scroll action."""
         self._scroll_count += 1
         
-        # Use Windows API for scrolling
-        try:
-            import ctypes
-            from ctypes import wintypes
-            
-            # Get the current cursor position using Qt for consistency
-            try:
-                qt_pos = self._get_qt_cursor_position()
-                cursor_pos = (qt_pos.x(), qt_pos.y())
-            except:
-                # Fallback to pynput
-                cursor_pos = self.mouse.position
-            
-            # Windows API constants for mouse wheel
-            WM_MOUSEWHEEL = 0x020A
-            WHEEL_DELTA = 120  # Standard wheel delta
-            
-            # Calculate scroll delta based on direction and amount
-            if self.scroll_direction == 'up':
-                wheel_delta = WHEEL_DELTA * self.scroll_amount
-            else:  # 'down'
-                wheel_delta = -WHEEL_DELTA * self.scroll_amount
-            
-            # Get window under cursor
-            user32 = ctypes.windll.user32
-            
-            # Get the window handle at the cursor position
-            hwnd = user32.WindowFromPoint(wintypes.POINT(int(cursor_pos[0]), int(cursor_pos[1])))
-            
-            if hwnd:
-                # Send mouse wheel message to the window
-                wparam = (wheel_delta << 16)
-                lparam = (int(cursor_pos[1]) << 16) | (int(cursor_pos[0]) & 0xFFFF)
-                
-                user32.PostMessageW(hwnd, WM_MOUSEWHEEL, wparam, lparam)
-                
-        except Exception as e:
-            # Fallback to pynput scrolling if Windows API fails
+        # Platform-specific scrolling
+        if sys.platform == "darwin":
+            # macOS: Use pynput scrolling (more reliable than trying to use macOS APIs)
             try:
                 if self.scroll_direction == 'up':
                     self.mouse.scroll(0, self.scroll_amount)
                 else:  # 'down'
                     self.mouse.scroll(0, -self.scroll_amount)
-            except Exception as fallback_error:
-                # If both methods fail, just pass silently
+            except Exception as e:
+                # If scrolling fails, just pass silently
                 pass
+        else:
+            # Windows: Use Windows API for scrolling
+            try:
+                import ctypes
+                from ctypes import wintypes
+                
+                # Get the current cursor position using Qt for consistency
+                try:
+                    qt_pos = self._get_qt_cursor_position()
+                    cursor_pos = (qt_pos.x(), qt_pos.y())
+                except:
+                    # Fallback to pynput
+                    cursor_pos = self.mouse.position
+                
+                # Windows API constants for mouse wheel
+                WM_MOUSEWHEEL = 0x020A
+                WHEEL_DELTA = 120  # Standard wheel delta
+                
+                # Calculate scroll delta based on direction and amount
+                if self.scroll_direction == 'up':
+                    wheel_delta = WHEEL_DELTA * self.scroll_amount
+                else:  # 'down'
+                    wheel_delta = -WHEEL_DELTA * self.scroll_amount
+                
+                # Get window under cursor
+                user32 = ctypes.windll.user32
+                
+                # Get the window handle at the cursor position
+                hwnd = user32.WindowFromPoint(wintypes.POINT(int(cursor_pos[0]), int(cursor_pos[1])))
+                
+                if hwnd:
+                    # Send mouse wheel message to the window
+                    wparam = (wheel_delta << 16)
+                    lparam = (int(cursor_pos[1]) << 16) | (int(cursor_pos[0]) & 0xFFFF)
+                    
+                    user32.PostMessageW(hwnd, WM_MOUSEWHEEL, wparam, lparam)
+                    
+            except Exception as e:
+                # Fallback to pynput scrolling if Windows API fails
+                try:
+                    if self.scroll_direction == 'up':
+                        self.mouse.scroll(0, self.scroll_amount)
+                    else:  # 'down'
+                        self.mouse.scroll(0, -self.scroll_amount)
+                except Exception as fallback_error:
+                    # If both methods fail, just pass silently
+                    pass
         
     def set_active(self, active):
         """Set the active state of the scroll widget."""
@@ -545,6 +572,8 @@ class ScrollWidget(QWidget):
         if active:
             # Show the widget when activated
             self.show()
+            # Force widget to show on top
+            self.raise_()
             # Set initial position if we can get mouse position
             try:
                 pos = self.mouse.position
@@ -558,6 +587,16 @@ class ScrollWidget(QWidget):
             # Hide the widget when deactivated
             self.hide()
         self.update()  # Trigger repaint
+    
+    def showEvent(self, event):
+        """Override show event to ensure widget appears on top."""
+        super().showEvent(event)
+        self.raise_()
+    
+    def changeEvent(self, event):
+        """Handle window state changes."""
+        super().changeEvent(event)
+        # Keep it simple - no special macOS handling
     
     def set_offset(self, distance=None, angle=None):
         """Set the offset distance and angle for positioning relative to cursor."""
