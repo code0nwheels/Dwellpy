@@ -5,7 +5,7 @@ A cross-platform accessibility tool that allows users to perform mouse clicks
 by hovering (dwelling) over target areas, designed for people with motor disabilities.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __title__ = "Dwellpy"
 __description__ = "Accessibility dwell clicker for motor disabilities"
 __author__ = "code0nwheels"
