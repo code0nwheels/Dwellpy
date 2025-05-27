@@ -53,12 +53,23 @@ class ClickFeedbackWidget(QWidget):
         
         # Widget setup
         self.setFixedSize(self.widget_size, self.widget_size)
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint | 
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool |
-            Qt.WindowType.WindowTransparentForInput
-        )
+        
+        # Platform-specific window flags for better macOS compatibility
+        if sys.platform == "darwin":  # macOS
+            # macOS: Use minimal flags that actually work (based on testing)
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint |
+                Qt.WindowType.WindowStaysOnTopHint
+            )
+        else:
+            # Windows/Linux flags (original behavior)
+            self.setWindowFlags(
+                Qt.WindowType.FramelessWindowHint | 
+                Qt.WindowType.WindowStaysOnTopHint |
+                Qt.WindowType.Tool |
+                Qt.WindowType.WindowTransparentForInput
+            )
+            
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         
