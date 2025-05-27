@@ -312,6 +312,16 @@ class SettingsManager:
         self.settings['default_active'] = active
         self.logger.info(f"Default active state updated to: {active}")
     
+    def update_visible_clicks_enabled(self, enabled: bool) -> None:
+        """
+        Update visible clicks enabled setting.
+        
+        Args:
+            enabled: Whether visible click feedback is enabled
+        """
+        self.settings['visible_clicks_enabled'] = enabled
+        self.logger.info(f"Visible clicks enabled: {enabled}")
+    
     def update_default_mode(self, mode: str) -> None:
         """
         Update default click mode setting.

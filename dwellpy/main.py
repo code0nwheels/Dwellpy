@@ -133,6 +133,9 @@ class DwellpyApplication:
         # Create settings manager (must be created before UI)
         self.settings_manager = SettingsManager(self.detector)
         
+        # Connect settings manager to feedback manager
+        self.feedback_manager.set_settings_manager(self.settings_manager)
+        
         # Create window manager
         self.window_manager = WindowManager(self.settings_manager)
         

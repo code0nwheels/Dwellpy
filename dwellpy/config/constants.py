@@ -149,6 +149,7 @@ DEFAULT_SETTINGS = {
     'default_mode': 'LEFT',
     'transparency_enabled': False,
     'transparency_level': DEFAULT_TRANSPARENCY,
+    'visible_clicks_enabled': True,
     'scroll_enabled': True,
     'scroll_offset': SCROLL_WIDGET_OFFSET,
     'scroll_angle': SCROLL_WIDGET_ANGLE,

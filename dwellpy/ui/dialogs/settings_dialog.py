@@ -167,6 +167,12 @@ class SettingsDialog(QDialog):
         # Scroll Widget section
         self.create_scroll_widget_section(main_layout)
         
+        # Add separator
+        self.add_separator(main_layout)
+        
+        # Visible Clicks section
+        self.create_visible_clicks_section(main_layout)
+        
         # Default active state
         self.create_active_state_section(main_layout)
         
@@ -435,6 +441,22 @@ class SettingsDialog(QDialog):
         # Update controls state
         self.update_scroll_controls_state()
     
+    def create_visible_clicks_section(self, main_layout):
+        """Create visible clicks section."""
+        # Enable checkbox
+        visible_clicks_frame = QFrame()
+        visible_clicks_layout = QHBoxLayout(visible_clicks_frame)
+        visible_clicks_layout.setContentsMargins(0, 0, 0, 0)
+        visible_clicks_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        self.visible_clicks_check = QCheckBox("Enable visible clicks")
+        self.visible_clicks_check.setChecked(self.settings_manager.get_setting('visible_clicks_enabled', False))
+        self.visible_clicks_check.setFont(QFont("Helvetica Neue", 11))
+        self.visible_clicks_check.setStyleSheet(self.get_checkbox_style())
+        visible_clicks_layout.addWidget(self.visible_clicks_check)
+        
+        main_layout.addWidget(visible_clicks_frame)
+    
     def create_active_state_section(self, main_layout):
         """Create default active state section."""
         active_frame = QFrame()
@@ -572,6 +594,7 @@ class SettingsDialog(QDialog):
         self.transparency_check.stateChanged.connect(self.on_transparency_toggle)
         self.scroll_speed_slider.valueChanged.connect(self.update_scroll_speed_value)
         self.scroll_check.stateChanged.connect(self.on_scroll_toggle)
+        self.visible_clicks_check.stateChanged.connect(self.on_visible_clicks_toggle)
         self.active_check.stateChanged.connect(self.on_active_toggle)
     
     # Hover timer methods for move limit
@@ -737,6 +760,11 @@ class SettingsDialog(QDialog):
         is_enabled = state == 2  # Qt.CheckState.Checked is 2
         self.settings_manager.update_scroll_enabled(is_enabled)
         self.update_scroll_controls_state()
+
+    def on_visible_clicks_toggle(self, state):
+        """Handle visible clicks checkbox toggle."""
+        is_enabled = state == 2  # Qt.CheckState.Checked is 2
+        self.settings_manager.update_visible_clicks_enabled(is_enabled)
 
     def on_active_toggle(self, state):
         """Handle active checkbox toggle."""

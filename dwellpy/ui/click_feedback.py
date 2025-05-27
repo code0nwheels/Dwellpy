@@ -249,7 +249,12 @@ class ClickFeedbackManager:
     
     def __init__(self):
         self.feedback_widget = None
+        self.settings_manager = None  # Will be set by main application
         self.initialize_widget()
+        
+    def set_settings_manager(self, settings_manager):
+        """Set the settings manager for checking if visible clicks are enabled."""
+        self.settings_manager = settings_manager
         
     def initialize_widget(self):
         """Initialize the feedback widget."""
@@ -267,6 +272,11 @@ class ClickFeedbackManager:
             position: Tuple (x, y) representing the click position in screen coordinates
             click_type: String indicating the type of click
         """
+        # Check if visible clicks are enabled
+        if self.settings_manager:
+            if not self.settings_manager.get_setting('visible_clicks_enabled', True):
+                return  # Don't show feedback if disabled
+        
         if self.feedback_widget is not None:
             try:
                 self.feedback_widget.show_click_feedback(position, click_type)
