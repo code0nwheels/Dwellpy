@@ -61,6 +61,8 @@ class ClickFeedbackWidget(QWidget):
                 Qt.WindowType.FramelessWindowHint |
                 Qt.WindowType.WindowStaysOnTopHint
             )
+            # macOS: Don't use WA_ShowWithoutActivating as it might cause issues
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         else:
             # Windows/Linux flags (original behavior)
             self.setWindowFlags(
@@ -69,9 +71,8 @@ class ClickFeedbackWidget(QWidget):
                 Qt.WindowType.Tool |
                 Qt.WindowType.WindowTransparentForInput
             )
-            
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+            self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         
         # Animation properties
         self._radius = 0
@@ -145,6 +146,10 @@ class ClickFeedbackWidget(QWidget):
             position: Tuple (x, y) representing the click position in screen coordinates
             click_type: String indicating the type of click ('left', 'right', 'double', 'drag_down', 'drag_up', 'middle')
         """
+        # Debug output for macOS
+        if sys.platform == "darwin":
+            print(f"macOS: Showing click feedback at {position}, type: {click_type}")
+        
         # Set color based on click type
         if click_type in self.click_colors:
             self.current_color = self.click_colors[click_type]
@@ -155,16 +160,14 @@ class ClickFeedbackWidget(QWidget):
         widget_x = position[0] - self.widget_size // 2
         widget_y = position[1] - self.widget_size // 2
         
-        # macOS: Adjust for screen coordinates
-        if sys.platform == "darwin":
-            # Get the screen that contains the click point
-            screen = QApplication.screenAt(QPoint(widget_x, widget_y))
-            if screen:
-                # Convert to screen-relative coordinates
-                widget_x = widget_x - screen.geometry().x()
-                widget_y = widget_y - screen.geometry().y()
-        
+        # Simplified positioning for macOS - just use direct coordinates
         self.move(widget_x, widget_y)
+        
+        # Debug output for macOS
+        if sys.platform == "darwin":
+            print(f"macOS: Widget positioned at {widget_x}, {widget_y}")
+            print(f"macOS: Widget size: {self.widget_size}x{self.widget_size}")
+            print(f"macOS: Widget visible: {self.isVisible()}")
         
         # Reset animation properties
         self._radius = 5
@@ -173,6 +176,12 @@ class ClickFeedbackWidget(QWidget):
         # Show the widget
         self.show()
         self.raise_()
+        
+        # Debug output for macOS
+        if sys.platform == "darwin":
+            print(f"macOS: After show() - visible: {self.isVisible()}")
+            print(f"macOS: Window opacity: {self.windowOpacity()}")
+            print(f"macOS: Window flags: {self.windowFlags()}")
         
         # Start animations
         self.radius_animation.stop()
@@ -223,6 +232,30 @@ class ClickFeedbackWidget(QWidget):
             int(self._radius * 2)
         )
 
+    def test_feedback_display(self):
+        """Test method to show feedback at screen center for debugging."""
+        if sys.platform == "darwin":
+            print("macOS: Testing feedback display at screen center")
+            
+            # Get primary screen center
+            screen = QApplication.primaryScreen()
+            if screen:
+                rect = screen.geometry()
+                center_x = rect.width() // 2
+                center_y = rect.height() // 2
+                print(f"macOS: Screen center: {center_x}, {center_y}")
+                self.show_click_feedback((center_x, center_y), 'left')
+            else:
+                print("macOS: Could not get primary screen")
+                
+    def cleanup(self):
+        """Clean up resources."""
+        try:
+            self.hide()
+            self.deleteLater()
+        except:
+            pass
+
 class ClickFeedbackManager:
     """
     Manager class for handling click feedback across the application.
@@ -237,8 +270,12 @@ class ClickFeedbackManager:
         """Initialize the feedback widget."""
         try:
             self.feedback_widget = ClickFeedbackWidget()
+            if sys.platform == "darwin":
+                print("macOS: ClickFeedbackWidget initialized successfully")
         except Exception as e:
             # If widget creation fails, feedback will be disabled
+            if sys.platform == "darwin":
+                print(f"macOS: ClickFeedbackWidget initialization failed: {e}")
             self.feedback_widget = None
             
     def show_feedback(self, position, click_type='left'):
@@ -253,15 +290,24 @@ class ClickFeedbackManager:
             try:
                 self.feedback_widget.show_click_feedback(position, click_type)
             except Exception as e:
-                # If showing feedback fails, silently ignore
-                pass
+                # If showing feedback fails, log for debugging on macOS
+                if sys.platform == "darwin":
+                    print(f"macOS: Failed to show feedback: {e}")
+                    
+    def test_feedback(self):
+        """Test feedback display for debugging."""
+        if self.feedback_widget is not None:
+            try:
+                self.feedback_widget.test_feedback_display()
+            except Exception as e:
+                if sys.platform == "darwin":
+                    print(f"macOS: Test feedback failed: {e}")
                 
     def cleanup(self):
         """Clean up resources."""
         if self.feedback_widget:
             try:
-                self.feedback_widget.hide()
-                self.feedback_widget.deleteLater()
+                self.feedback_widget.cleanup()
             except:
                 pass
             self.feedback_widget = None 
