@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtCore import Qt
 
 try:
-    from ...config.constants import Colors
+    from ...config.constants import Colors, Fonts
     from ...utils.helpers import center_window
     # Use constants from config
     DARK_BG = Colors.DARK_BG
@@ -70,7 +70,7 @@ class ExitDialog(QDialog):
         # Message
         message = QLabel("Are you sure you want to exit?")
         message.setStyleSheet(f"""
-            font-family: 'Segoe UI', Arial;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 14pt;
             color: {TEXT_COLOR};
         """)
@@ -94,7 +94,7 @@ class ExitDialog(QDialog):
                 color: {TEXT_COLOR};
                 border: none;
                 border-radius: 3px;
-                font-family: 'Segoe UI', Arial;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 5px 15px;
@@ -115,7 +115,7 @@ class ExitDialog(QDialog):
                 color: {TEXT_COLOR};
                 border: none;
                 border-radius: 3px;
-                font-family: 'Segoe UI', Arial;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 5px 15px;
