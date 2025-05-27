@@ -9,7 +9,9 @@ import time
 # Updated imports for new structure
 try:
     from ..config.constants import (
-        Colors, BUTTON_SIZE, LAYOUT_MARGIN, LAYOUT_SPACING, BORDER_RADIUS, Fonts
+        Colors, BUTTON_SIZE, LAYOUT_MARGIN, LAYOUT_SPACING, BORDER_RADIUS, Fonts,
+        CONTRACT_DELAY, EXPAND_DELAY, CONTRACT_BUTTON_SIZE, CONTRACT_BUTTON_TEXT,
+        EXPANSION_DIRECTIONS, DEFAULT_EXPANSION_DIRECTION, SCREEN_EDGE_MARGIN
     )
 except ImportError:
     # Fallback constants for testing
@@ -30,6 +32,15 @@ except ImportError:
     LAYOUT_MARGIN = 2
     LAYOUT_SPACING = 2
     BORDER_RADIUS = 5
+    
+    # UI Contraction fallback constants
+    CONTRACT_DELAY = 1000
+    EXPAND_DELAY = 100
+    CONTRACT_BUTTON_SIZE = (40, 40)
+    CONTRACT_BUTTON_TEXT = "≡"
+    EXPANSION_DIRECTIONS = ['auto', 'horizontal', 'vertical']
+    DEFAULT_EXPANSION_DIRECTION = 'auto'
+    SCREEN_EDGE_MARGIN = 50
 
 class DwellClickerUI:
     """UI Manager for the Dwell Clicker application with temporary/default modes."""
@@ -65,6 +76,21 @@ class DwellClickerUI:
         self.opacity_timer.setSingleShot(True)
         self.opacity_timer.timeout.connect(self.set_transparent)
 
+        # UI Contraction state
+        self.is_contracted = False
+        self.contract_timer = QTimer()
+        self.contract_timer.setSingleShot(True)
+        self.contract_timer.timeout.connect(self.contract_ui)
+        self.expand_timer = QTimer()
+        self.expand_timer.setSingleShot(True)
+        self.expand_timer.timeout.connect(self.expand_ui)
+        
+        # Store original layout and widgets for contraction
+        self.original_layout = None
+        self.contracted_button = None
+        self.current_expansion_direction = None  # Track current expansion direction
+        self.original_window_size = None  # Store original window size
+
         self.scroll_widget = ScrollWidget()
         self.scroll_widget.set_active(False)  # Start inactive
 
@@ -93,6 +119,12 @@ class DwellClickerUI:
         # Apply transparency settings once settings manager is connected
         self.apply_transparency_settings()
         
+        # Apply contraction settings
+        self.apply_contraction_settings()
+        
+        # Apply expansion settings to ensure proper initial layout
+        self.apply_expansion_settings()
+        
         # Apply default active state if configured BEFORE applying scroll settings
         if self.settings_manager.get_setting('default_active', False):
             self.is_active = True
@@ -110,6 +142,7 @@ class DwellClickerUI:
         self.button_manager.register_command("DRAG", lambda: self.set_mode("DRAG"))
         self.button_manager.register_command("RIGHT", lambda: self.set_mode("RIGHT"))
         self.button_manager.register_command("SCROLL", self.toggle_scroll_widget)
+        self.button_manager.register_command("CONTRACTED", self.expand_ui)
         # SETUP and EXIT will be set by the respective managers
     
     def setup_ui(self):
@@ -139,9 +172,15 @@ class DwellClickerUI:
         self.window.setCentralWidget(central_widget)
         
         # Create button layout
-        button_layout = QHBoxLayout(central_widget)
+        button_layout = QHBoxLayout()
         button_layout.setContentsMargins(LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN)
         button_layout.setSpacing(LAYOUT_SPACING)
+        
+        # Set the layout to the central widget
+        central_widget.setLayout(button_layout)
+        
+        # Store original layout for contraction
+        self.original_layout = button_layout
         
         # Create buttons
         # ON/OFF button
@@ -208,6 +247,96 @@ class DwellClickerUI:
         else:
             self.window.setWindowOpacity(1.0)
     
+    def apply_contraction_settings(self):
+        """Apply UI contraction settings from the settings manager."""
+        if not self.settings_manager:
+            return
+        
+        contract_enabled = self.settings_manager.get_setting('contract_ui_enabled', False)
+        
+        # If contraction is disabled and UI is currently contracted, expand it
+        if not contract_enabled and self.is_contracted:
+            self.expand_ui()
+        
+        # If contraction is enabled and cursor is not over window, start contraction timer
+        elif contract_enabled and not self.is_cursor_over_window and not self.is_contracted:
+            self.contract_timer.start(CONTRACT_DELAY)
+    
+    def apply_expansion_settings(self):
+        """Apply UI expansion direction settings immediately."""
+        if not self.settings_manager:
+            return
+        
+        # If UI is currently expanded (not contracted), re-layout with new direction
+        if not self.is_contracted:
+            # Determine new expansion direction
+            new_direction = self.determine_expansion_direction()
+            
+            # Only re-layout if direction actually changed
+            if new_direction != self.current_expansion_direction:
+                self.current_expansion_direction = new_direction
+                
+                # Create a new central widget with the correct layout
+                self._rebuild_layout(new_direction)
+    
+    def _rebuild_layout(self, direction):
+        """Rebuild the UI layout with the specified direction."""
+        # Create a new central widget to avoid layout conflicts
+        new_central_widget = QWidget()
+        new_central_widget.setStyleSheet(f"background-color: {Colors.DARK_BG};")
+        
+        # Create new layout based on direction
+        if direction == 'vertical':
+            # Create vertical layout
+            new_layout = QVBoxLayout()
+            new_layout.setContentsMargins(LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN)
+            new_layout.setSpacing(LAYOUT_SPACING)
+            
+            # Calculate window size for vertical layout
+            total_buttons = len(self.buttons)
+            window_height = (total_buttons * BUTTON_SIZE[1] + 
+                           (total_buttons - 1) * LAYOUT_SPACING + 
+                           LAYOUT_MARGIN * 2)
+            window_width = BUTTON_SIZE[0] + (LAYOUT_MARGIN * 2)
+            
+            self.window.setFixedSize(window_width, window_height)
+            
+        else:  # horizontal
+            # Create horizontal layout
+            new_layout = QHBoxLayout()
+            new_layout.setContentsMargins(LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN)
+            new_layout.setSpacing(LAYOUT_SPACING)
+            
+            # Calculate window size for horizontal layout
+            total_buttons = len(self.buttons)
+            window_width = (total_buttons * BUTTON_SIZE[0] + 
+                           (total_buttons - 1) * LAYOUT_SPACING + 
+                           LAYOUT_MARGIN * 2)
+            window_height = BUTTON_SIZE[1] + (LAYOUT_MARGIN * 2)
+            
+            self.window.setFixedSize(window_width, window_height)
+        
+        # Set the layout to the new central widget
+        new_central_widget.setLayout(new_layout)
+        
+        # Add all buttons to the new layout
+        button_order = ["ON_OFF", "LEFT", "DOUBLE", "DRAG", "RIGHT", "SCROLL", "SETUP", "MOVE", "EXIT"]
+        for button_id in button_order:
+            if button_id in self.buttons:
+                button = self.buttons[button_id]
+                button.show()
+                new_layout.addWidget(button)
+        
+        # Add the contracted button back to layout (hidden)
+        if self.contracted_button:
+            new_layout.addWidget(self.contracted_button)
+        
+        # Replace the central widget
+        self.window.setCentralWidget(new_central_widget)
+        
+        # Store the new layout
+        self.original_layout = new_layout
+    
     def apply_scroll_settings(self):
         """Apply scroll widget settings from the settings manager."""
         if not self.settings_manager:
@@ -241,9 +370,14 @@ class DwellClickerUI:
         """Handle cursor entering the window area."""
         self.is_cursor_over_window = True
         self.opacity_timer.stop()  # Cancel any pending transparency change
+        self.contract_timer.stop()  # Cancel any pending contraction
         
         # Always make opaque when cursor is over window
         self.set_opaque()
+        
+        # Expand UI if contracted and contraction is enabled
+        if self.is_contracted and self.settings_manager and self.settings_manager.get_setting('contract_ui_enabled', False):
+            self.expand_timer.start(EXPAND_DELAY)
         
         # Call original event handler if it exists
         if hasattr(self.window, 'original_enterEvent'):
@@ -252,12 +386,19 @@ class DwellClickerUI:
     def on_window_leave(self, event):
         """Handle cursor leaving the window area."""
         self.is_cursor_over_window = False
+        self.expand_timer.stop()  # Cancel any pending expansion
         
         # Only set transparency if enabled in settings
         if self.settings_manager and self.settings_manager.get_setting('transparency_enabled', False):
             # Add a small delay before making transparent to avoid flickering
             # when cursor moves between buttons
             self.opacity_timer.start(100)  # 100ms delay
+        
+        # Start contraction timer if contraction is enabled and UI is not already contracted
+        if (self.settings_manager and 
+            self.settings_manager.get_setting('contract_ui_enabled', False) and 
+            not self.is_contracted):
+            self.contract_timer.start(CONTRACT_DELAY)
         
         # Call original event handler if it exists
         if hasattr(self.window, 'original_leaveEvent'):
@@ -276,6 +417,135 @@ class DwellClickerUI:
                 # Convert percentage to opacity (70% transparent = 0.3 opaque)
                 opacity = (100 - transparency_level) / 100.0
                 self.window.setWindowOpacity(opacity)
+    
+    def contract_ui(self):
+        """Contract the UI to a single button."""
+        if self.is_contracted or not self.settings_manager:
+            return
+        
+        # Don't contract if cursor is over window
+        if self.is_cursor_over_window:
+            return
+        
+        # Don't contract if settings dialog is open
+        if (self.settings_manager.settings_dialog and 
+            self.settings_manager.settings_dialog.isVisible()):
+            return
+        
+        self.is_contracted = True
+        
+        # Determine and store expansion direction
+        self.current_expansion_direction = self.determine_expansion_direction()
+        
+        # Store original window size
+        self.original_window_size = self.window.size()
+        
+        # Hide all existing buttons
+        for button in self.buttons.values():
+            button.hide()
+        
+        # Create contracted button if it doesn't exist
+        if not self.contracted_button:
+            self.contracted_button = self.create_contracted_button()
+            self.original_layout.addWidget(self.contracted_button)
+        
+        # Show contracted button
+        self.contracted_button.show()
+        
+        # Resize window to fit contracted button
+        self.window.setFixedSize(
+            CONTRACT_BUTTON_SIZE[0] + (LAYOUT_MARGIN * 2),
+            CONTRACT_BUTTON_SIZE[1] + (LAYOUT_MARGIN * 2)
+        )
+    
+    def expand_ui(self):
+        """Expand the UI to show all buttons in the determined direction."""
+        if not self.is_contracted:
+            return
+        
+        self.is_contracted = False
+        
+        # Hide contracted button
+        if self.contracted_button:
+            self.contracted_button.hide()
+        
+        # Get the expansion direction
+        direction = self.current_expansion_direction or 'horizontal'
+        
+        # Use the shared rebuild layout method
+        self._rebuild_layout(direction)
+        
+        # Update scroll widget position if active
+        if self.is_active and self.settings_manager and self.settings_manager.get_setting('scroll_enabled', True):
+            try:
+                from pynput.mouse import Controller
+                mouse = Controller()
+                pos = mouse.position
+                self.update_scroll_widget_position(pos)
+            except Exception:
+                pass
+    
+    def clear_layout(self, layout):
+        """Clear all widgets from a layout."""
+        if layout is not None:
+            while layout.count():
+                child = layout.takeAt(0)
+                if child.widget():
+                    # Remove widget from layout but don't delete it
+                    widget = child.widget()
+                    widget.setParent(None)
+                elif child.layout():
+                    # Recursively clear nested layouts
+                    self.clear_layout(child.layout())
+    
+    def create_contracted_button(self):
+        """Create the contracted button."""
+        button = QPushButton(CONTRACT_BUTTON_TEXT)
+        button.setFixedSize(CONTRACT_BUTTON_SIZE[0], CONTRACT_BUTTON_SIZE[1])
+        button.setObjectName("CONTRACTED")  # Give it an ID for button manager
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+        # Style the contracted button
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.DARK_BUTTON_BG};
+                color: {Colors.TEXT_COLOR};
+                border: 1px solid {Colors.BORDER_COLOR};
+                border-radius: {BORDER_RADIUS}px;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-size: 14pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #3d3d3d;
+                border: 1px solid {Colors.BLUE_ACCENT};
+            }}
+        """)
+        
+        # Connect click to expand
+        button.clicked.connect(self.expand_ui)
+        
+        # Add hover events for dwell detection
+        original_enter_event = button.enterEvent
+        original_leave_event = button.leaveEvent
+        
+        def custom_enter_event(event):
+            self.button_manager.set_hover("CONTRACTED")
+            if original_enter_event:
+                original_enter_event(event)
+        
+        def custom_leave_event(event):
+            self.button_manager.clear_hover("CONTRACTED")
+            if original_leave_event:
+                original_leave_event(event)
+        
+        button.enterEvent = custom_enter_event
+        button.leaveEvent = custom_leave_event
+        
+        # Hide initially
+        button.hide()
+        
+        return button
     
     def create_button(self, text, color, button_id):
         """Create a styled button with hover behavior."""
@@ -718,6 +988,11 @@ class DwellClickerUI:
             if button_id == "ON_OFF":
                 self.toggle_active()
                 return
+            
+            # Handle contracted button - always allow expansion
+            if button_id == "CONTRACTED":
+                self.expand_ui()
+                return
                 
             # For all other buttons (except MOVE), only act if clicker is active
             if self.is_active and button_id != "MOVE":
@@ -837,7 +1112,7 @@ class DwellClickerUI:
         self.update_button_states()
 
     def cleanup_scroll_widget(self):
-        """Clean up the scroll widget before application exit."""
+        """Clean up the scroll widget and UI contraction before application exit."""
         if hasattr(self, 'scroll_widget') and self.scroll_widget:
             # Stop any active scrolling
             self.scroll_widget.stop_scrolling()
@@ -849,3 +1124,73 @@ class DwellClickerUI:
             self.scroll_hover = None
             self.scroll_dwell_start_time = None
             self.scroll_dwell_triggered = False
+        
+        # Clean up UI contraction
+        if hasattr(self, 'contract_timer'):
+            self.contract_timer.stop()
+        if hasattr(self, 'expand_timer'):
+            self.expand_timer.stop()
+        if hasattr(self, 'opacity_timer'):
+            self.opacity_timer.stop()
+        
+        # Expand UI if contracted
+        if hasattr(self, 'is_contracted') and self.is_contracted:
+            self.expand_ui()
+
+    def determine_expansion_direction(self):
+        """Determine the best expansion direction based on window position and user preference."""
+        if not self.settings_manager:
+            return 'horizontal'
+        
+        user_preference = self.settings_manager.get_setting('expansion_direction', DEFAULT_EXPANSION_DIRECTION)
+        
+        # If user has a specific preference (not auto), use it
+        if user_preference != 'auto':
+            return user_preference
+        
+        # Auto mode - determine best direction based on screen position
+        try:
+            from PyQt6.QtGui import QGuiApplication
+            
+            # Get current window position and screen geometry
+            window_pos = self.window.pos()
+            window_size = self.window.size()
+            screen = QGuiApplication.primaryScreen().geometry()
+            
+            # Calculate available space in each direction
+            space_right = screen.width() - (window_pos.x() + window_size.width())
+            space_bottom = screen.height() - (window_pos.y() + window_size.height())
+            space_left = window_pos.x()
+            space_top = window_pos.y()
+            
+            # Calculate required space for full UI
+            total_buttons = len(self.buttons)
+            horizontal_space_needed = (total_buttons * BUTTON_SIZE[0] + 
+                                     (total_buttons - 1) * LAYOUT_SPACING + 
+                                     LAYOUT_MARGIN * 2) - CONTRACT_BUTTON_SIZE[0]
+            vertical_space_needed = (total_buttons * BUTTON_SIZE[1] + 
+                                   (total_buttons - 1) * LAYOUT_SPACING + 
+                                   LAYOUT_MARGIN * 2) - CONTRACT_BUTTON_SIZE[1]
+            
+            # Check if horizontal expansion is possible
+            horizontal_possible = (space_right >= horizontal_space_needed + SCREEN_EDGE_MARGIN or 
+                                 space_left >= horizontal_space_needed + SCREEN_EDGE_MARGIN)
+            
+            # Check if vertical expansion is possible
+            vertical_possible = (space_bottom >= vertical_space_needed + SCREEN_EDGE_MARGIN or 
+                               space_top >= vertical_space_needed + SCREEN_EDGE_MARGIN)
+            
+            # Prefer horizontal if both are possible (traditional UI layout)
+            if horizontal_possible:
+                return 'horizontal'
+            elif vertical_possible:
+                return 'vertical'
+            else:
+                # If neither fits perfectly, choose the one with more space
+                max_horizontal = max(space_right, space_left)
+                max_vertical = max(space_bottom, space_top)
+                return 'horizontal' if max_horizontal >= max_vertical else 'vertical'
+                
+        except Exception:
+            # Fallback to horizontal if there's any error
+            return 'horizontal'

@@ -46,6 +46,15 @@ SCROLL_AMOUNT = 3  # lines per scroll
 SCROLL_OPACITY_BASE = 70  # Base opacity percentage
 SCROLL_OPACITY_HOVER = 90
 
+# UI Contraction Constants
+CONTRACT_DELAY = 1000          # Delay before contracting UI (milliseconds)
+EXPAND_DELAY = 100             # Delay before expanding UI (milliseconds)
+CONTRACT_BUTTON_SIZE = (40, 40) # Size of the contracted button
+CONTRACT_BUTTON_TEXT = "≡"     # Text for the contracted button
+EXPANSION_DIRECTIONS = ['auto', 'horizontal', 'vertical']  # Available expansion directions
+DEFAULT_EXPANSION_DIRECTION = 'auto'  # Default expansion direction
+SCREEN_EDGE_MARGIN = 50        # Margin from screen edge for expansion decisions
+
 # Color Scheme - Dark Theme
 class Colors:
     # Primary colors
@@ -156,7 +165,9 @@ DEFAULT_SETTINGS = {
     'scroll_speed': SCROLL_INTERVAL,
     'scroll_amount': SCROLL_AMOUNT,
     'scroll_opacity_base': SCROLL_OPACITY_BASE,
-    'scroll_opacity_hover': SCROLL_OPACITY_HOVER
+    'scroll_opacity_hover': SCROLL_OPACITY_HOVER,
+    'contract_ui_enabled': False,
+    'expansion_direction': DEFAULT_EXPANSION_DIRECTION
 }
 
 # Available Click Modes

@@ -1,7 +1,7 @@
 """Settings dialog for the Dwellpy application."""
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                           QPushButton, QSlider, QCheckBox, QFrame)
+                           QPushButton, QSlider, QCheckBox, QFrame, QComboBox)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
 
@@ -116,7 +116,7 @@ class SettingsDialog(QDialog):
     
     def setup_ui(self):
         """Setup the dialog UI."""
-        self.setFixedSize(350, 580)  # Increased height for scroll settings
+        self.setFixedSize(350, 630)  # Increased height for expansion direction setting
         
         # Set window flags for frameless window
         self.setWindowFlags(
@@ -175,6 +175,9 @@ class SettingsDialog(QDialog):
         
         # Default active state
         self.create_active_state_section(main_layout)
+        
+        # UI Contraction section
+        self.create_ui_contraction_section(main_layout)
         
         # OK button
         self.create_ok_button(main_layout)
@@ -472,6 +475,81 @@ class SettingsDialog(QDialog):
         
         main_layout.addWidget(active_frame)
     
+    def create_ui_contraction_section(self, main_layout):
+        """Create UI contraction section."""
+        # Enable checkbox
+        contraction_frame = QFrame()
+        contraction_layout = QHBoxLayout(contraction_frame)
+        contraction_layout.setContentsMargins(0, 0, 0, 0)
+        contraction_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        self.contract_ui_check = QCheckBox("Contract UI when cursor is outside")
+        self.contract_ui_check.setChecked(self.settings_manager.get_setting('contract_ui_enabled', False))
+        self.contract_ui_check.setFont(QFont("Helvetica Neue", 11))
+        self.contract_ui_check.setStyleSheet(self.get_checkbox_style())
+        contraction_layout.addWidget(self.contract_ui_check)
+        
+        main_layout.addWidget(contraction_frame)
+        
+        # Expansion direction section
+        expansion_direction_frame = QFrame()
+        expansion_direction_layout = QHBoxLayout(expansion_direction_frame)
+        expansion_direction_layout.setContentsMargins(0, 0, 0, 0)
+        expansion_direction_layout.setSpacing(10)
+        
+        # Label
+        expansion_label = QLabel("Expansion direction:")
+        expansion_label.setFont(QFont("Helvetica Neue", 11))
+        expansion_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        expansion_direction_layout.addWidget(expansion_label)
+        
+        # Dropdown
+        self.expansion_direction_combo = QComboBox()
+        self.expansion_direction_combo.addItems(["Auto", "Horizontal", "Vertical"])
+        
+        # Set current value
+        current_direction = self.settings_manager.get_setting('expansion_direction', 'auto')
+        direction_map = {'auto': 0, 'horizontal': 1, 'vertical': 2}
+        self.expansion_direction_combo.setCurrentIndex(direction_map.get(current_direction, 0))
+        
+        self.expansion_direction_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {Colors.DARK_BUTTON_BG};
+                color: {Colors.TEXT_COLOR};
+                border: 1px solid {Colors.BORDER_COLOR};
+                border-radius: 3px;
+                padding: 5px;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-size: 10pt;
+                min-width: 100px;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid {Colors.TEXT_COLOR};
+                margin-right: 5px;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {Colors.DARK_BUTTON_BG};
+                color: {Colors.TEXT_COLOR};
+                border: 1px solid {Colors.BORDER_COLOR};
+                selection-background-color: {Colors.BLUE_ACCENT};
+            }}
+        """)
+        
+        expansion_direction_layout.addWidget(self.expansion_direction_combo)
+        expansion_direction_layout.addStretch()  # Push everything to the left
+        
+        main_layout.addWidget(expansion_direction_frame)
+        
+        # Update controls state
+        self.update_contraction_controls_state()
+    
     def create_ok_button(self, main_layout):
         """Create OK button."""
         ok_button = QPushButton("OK")
@@ -596,6 +674,8 @@ class SettingsDialog(QDialog):
         self.scroll_check.stateChanged.connect(self.on_scroll_toggle)
         self.visible_clicks_check.stateChanged.connect(self.on_visible_clicks_toggle)
         self.active_check.stateChanged.connect(self.on_active_toggle)
+        self.contract_ui_check.stateChanged.connect(self.on_contract_ui_toggle)
+        self.expansion_direction_combo.currentTextChanged.connect(self.on_expansion_direction_changed)
     
     # Hover timer methods for move limit
     def on_enter_minus_move(self):
@@ -771,6 +851,17 @@ class SettingsDialog(QDialog):
         is_active = state == 2  # Qt.CheckState.Checked is 2
         self.settings_manager.update_default_active(is_active)
 
+    def on_contract_ui_toggle(self, state):
+        """Handle contract UI checkbox toggle."""
+        is_enabled = state == 2  # Qt.CheckState.Checked is 2
+        self.settings_manager.update_contract_ui_enabled(is_enabled)
+        self.update_contraction_controls_state()
+
+    def on_expansion_direction_changed(self, text):
+        """Handle expansion direction combo box change."""
+        direction = text.lower()
+        self.settings_manager.update_expansion_direction(direction)
+
     def update_transparency_controls_state(self):
         """Enable/disable transparency controls based on checkbox state."""
         enabled = self.transparency_check.isChecked()
@@ -824,6 +915,72 @@ class SettingsDialog(QDialog):
                     background: #666666;
                     height: 4px;
                     border-radius: 2px;
+                }}
+            """)
+
+    def update_contraction_controls_state(self):
+        """Enable/disable expansion direction controls based on checkbox state."""
+        enabled = self.contract_ui_check.isChecked()
+        self.expansion_direction_combo.setEnabled(enabled)
+        
+        if enabled:
+            self.expansion_direction_combo.setStyleSheet(f"""
+                QComboBox {{
+                    background-color: {Colors.DARK_BUTTON_BG};
+                    color: {Colors.TEXT_COLOR};
+                    border: 1px solid {Colors.BORDER_COLOR};
+                    border-radius: 3px;
+                    padding: 5px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 10pt;
+                    min-width: 100px;
+                }}
+                QComboBox::drop-down {{
+                    border: none;
+                    width: 20px;
+                }}
+                QComboBox::down-arrow {{
+                    image: none;
+                    border-left: 5px solid transparent;
+                    border-right: 5px solid transparent;
+                    border-top: 5px solid {Colors.TEXT_COLOR};
+                    margin-right: 5px;
+                }}
+                QComboBox QAbstractItemView {{
+                    background-color: {Colors.DARK_BUTTON_BG};
+                    color: {Colors.TEXT_COLOR};
+                    border: 1px solid {Colors.BORDER_COLOR};
+                    selection-background-color: {Colors.BLUE_ACCENT};
+                }}
+            """)
+        else:
+            self.expansion_direction_combo.setStyleSheet(f"""
+                QComboBox {{
+                    background-color: {Colors.DARK_BUTTON_BG};
+                    color: {Colors.TEXT_COLOR};
+                    border: 1px solid {Colors.BORDER_COLOR};
+                    border-radius: 3px;
+                    padding: 5px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 10pt;
+                    min-width: 100px;
+                }}
+                QComboBox::drop-down {{
+                    border: none;
+                    width: 20px;
+                }}
+                QComboBox::down-arrow {{
+                    image: none;
+                    border-left: 5px solid transparent;
+                    border-right: 5px solid transparent;
+                    border-top: 5px solid {Colors.TEXT_COLOR};
+                    margin-right: 5px;
+                }}
+                QComboBox QAbstractItemView {{
+                    background-color: {Colors.DARK_BUTTON_BG};
+                    color: {Colors.TEXT_COLOR};
+                    border: 1px solid {Colors.BORDER_COLOR};
+                    selection-background-color: {Colors.DARK_BG};
                 }}
             """)
 

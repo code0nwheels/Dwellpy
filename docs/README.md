@@ -34,6 +34,12 @@ Instead of physically clicking, **just hover your cursor over any area for a sho
 - **Hover to Scroll**: No clicking required - just hover over arrows
 - **Smart Positioning**: Stays out of your way, locks when you need precision
 
+### 🎛️ **Smart UI Management**
+- **Auto-Contraction**: Toolbar shrinks to a single button when not in use
+- **Intelligent Expansion**: Automatically chooses horizontal or vertical layout based on screen space
+- **Directional Control**: Force horizontal or vertical layout to suit your workflow
+- **Instant Settings**: All UI changes apply immediately without restart
+
 ### ♿ **Accessibility First**
 - **Motor Disability Support**: Designed specifically for movement challenges
 - **Customizable Settings**: Adapt to your specific needs and abilities
@@ -119,7 +125,9 @@ Access via **SETUP** button - all settings apply immediately:
 **Window Transparency**: Make toolbar see-through when not in use  
 **Visible Clicks**: Show animated circles when clicks are performed (helpful for confirming actions)  
 **Scroll Widget**: Adjust speed, positioning, and opacity  
-**Auto-Start**: Launch active by default
+**Auto-Start**: Launch active by default  
+**UI Contraction**: Enable automatic toolbar contraction when cursor moves away  
+**Expansion Direction**: Choose how toolbar expands (Auto/Horizontal/Vertical)
 
 ### Accessibility-Friendly Controls
 
@@ -176,6 +184,8 @@ We're working on downloadable executables for even easier installation - no Pyth
 | **Scroll widget interfering** | Use SCROLL button to toggle off (especially with on-screen keyboards) |
 | **Scroll widget not appearing** | Check SCROLL button is green (active) |
 | **Precision issues** | Use temporary mode for specific tasks |
+| **Toolbar disappears** | Move cursor back to where toolbar was - it will expand from contracted state |
+| **Wrong layout direction** | Check Settings → UI Contraction → Expansion Direction |
 
 ### For Different Conditions
 
