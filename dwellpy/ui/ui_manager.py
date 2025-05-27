@@ -9,7 +9,7 @@ import time
 # Updated imports for new structure
 try:
     from ..config.constants import (
-        Colors, BUTTON_SIZE, LAYOUT_MARGIN, LAYOUT_SPACING, BORDER_RADIUS
+        Colors, BUTTON_SIZE, LAYOUT_MARGIN, LAYOUT_SPACING, BORDER_RADIUS, Fonts
     )
 except ImportError:
     # Fallback constants for testing
@@ -87,6 +87,9 @@ class DwellClickerUI:
         # Give settings manager a reference to this UI manager for transparency updates
         self.settings_manager.ui_manager = self
         
+        # Give exit manager a reference to this UI manager for cleanup
+        self.exit_manager.ui_manager = self
+        
         # Apply transparency settings once settings manager is connected
         self.apply_transparency_settings()
         
@@ -119,6 +122,16 @@ class DwellClickerUI:
         
         # Set up window transparency events
         self.setup_transparency_events()
+        
+        # Add close event handler for scroll widget cleanup
+        original_close_event = self.window.closeEvent
+        def close_event_handler(event):
+            self.cleanup_scroll_widget()
+            if original_close_event:
+                original_close_event(event)
+            else:
+                event.accept()
+        self.window.closeEvent = close_event_handler
         
         # Create central widget
         central_widget = QWidget()
@@ -280,7 +293,7 @@ class DwellClickerUI:
                     color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -296,7 +309,7 @@ class DwellClickerUI:
                     color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -312,7 +325,7 @@ class DwellClickerUI:
                     color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -328,7 +341,7 @@ class DwellClickerUI:
                     color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -412,7 +425,7 @@ class DwellClickerUI:
                         color: {Colors.DISABLED_TEXT};
                         border: 1px solid {Colors.BORDER_COLOR};
                         border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Segoe UI';
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                         font-size: 9pt;
                         font-weight: bold;
                     }}
@@ -431,7 +444,7 @@ class DwellClickerUI:
                             color: {Colors.TEXT_COLOR};
                             border: 1px solid {Colors.BLUE_ACCENT};
                             border-radius: {BORDER_RADIUS}px;
-                            font-family: 'Segoe UI';
+                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                             font-size: 9pt;
                             font-weight: bold;
                         }}
@@ -448,7 +461,7 @@ class DwellClickerUI:
                             color: {Colors.TEXT_COLOR};
                             border: 1px solid {Colors.BORDER_COLOR};
                             border-radius: {BORDER_RADIUS}px;
-                            font-family: 'Segoe UI';
+                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                             font-size: 9pt;
                             font-weight: bold;
                         }}
@@ -467,7 +480,7 @@ class DwellClickerUI:
                     color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.RED_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -485,7 +498,7 @@ class DwellClickerUI:
                     color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.GREEN_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -501,7 +514,7 @@ class DwellClickerUI:
                     color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.RED_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -522,7 +535,7 @@ class DwellClickerUI:
                             color: {Colors.TEXT_COLOR};
                             border: 1px solid {Colors.BORDER_COLOR};
                             border-radius: {BORDER_RADIUS}px;
-                            font-family: 'Segoe UI';
+                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                             font-size: 9pt;
                             font-weight: bold;
                         }}
@@ -539,7 +552,7 @@ class DwellClickerUI:
                             color: {Colors.TEXT_COLOR};
                             border: 1px solid {Colors.BORDER_COLOR};
                             border-radius: {BORDER_RADIUS}px;
-                            font-family: 'Segoe UI';
+                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                             font-size: 9pt;
                             font-weight: bold;
                         }}
@@ -557,7 +570,7 @@ class DwellClickerUI:
                         color: {Colors.DISABLED_TEXT};
                         border: 1px solid {Colors.BORDER_COLOR};
                         border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Segoe UI';
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                         font-size: 9pt;
                         font-weight: bold;
                     }}
@@ -580,7 +593,7 @@ class DwellClickerUI:
                         color: {Colors.TEXT_COLOR};
                         border: 1px solid {Colors.GREEN_ACCENT};
                         border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Segoe UI';
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                         font-size: 9pt;
                         font-weight: bold;
                     }}
@@ -597,7 +610,7 @@ class DwellClickerUI:
                         color: {Colors.TEXT_COLOR};
                         border: 1px solid {Colors.BORDER_COLOR};
                         border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Segoe UI';
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                         font-size: 9pt;
                         font-weight: bold;
                     }}
@@ -614,7 +627,7 @@ class DwellClickerUI:
                         color: {Colors.DISABLED_TEXT};
                         border: 1px solid {Colors.BORDER_COLOR};
                         border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Segoe UI';
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                         font-size: 9pt;
                         font-weight: bold;
                     }}
@@ -811,3 +824,17 @@ class DwellClickerUI:
         
         # Update button states to reflect new state
         self.update_button_states()
+
+    def cleanup_scroll_widget(self):
+        """Clean up the scroll widget before application exit."""
+        if hasattr(self, 'scroll_widget') and self.scroll_widget:
+            # Stop any active scrolling
+            self.scroll_widget.stop_scrolling()
+            # Deactivate the widget (this will hide it)
+            self.scroll_widget.set_active(False)
+            # Close the widget completely
+            self.scroll_widget.close()
+            # Clear hover state
+            self.scroll_hover = None
+            self.scroll_dwell_start_time = None
+            self.scroll_dwell_triggered = False

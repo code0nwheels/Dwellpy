@@ -77,7 +77,7 @@ class ExitManager:
         # Message
         message = QLabel("Are you sure you want to exit?", self.confirm_dialog)
         message.setStyleSheet(f"""
-            font-family: 'Segoe UI', Arial;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 14pt;
             color: {TEXT_COLOR};
         """)
@@ -101,7 +101,7 @@ class ExitManager:
                 color: {TEXT_COLOR};
                 border: none;
                 border-radius: 3px;
-                font-family: 'Segoe UI', Arial;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 5px 15px;
@@ -122,7 +122,7 @@ class ExitManager:
                 color: {TEXT_COLOR};
                 border: none;
                 border-radius: 3px;
-                font-family: 'Segoe UI', Arial;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 5px 15px;
@@ -152,6 +152,10 @@ class ExitManager:
             self.move_thread_running_flag = False
             if self.move_tracking_thread:
                 self.move_tracking_thread.join(timeout=1.0)
+        
+        # Clean up scroll widget if UI manager is available
+        if hasattr(self, 'ui_manager') and self.ui_manager:
+            self.ui_manager.cleanup_scroll_widget()
         
         # Close confirmation dialog
         if self.confirm_dialog and self.confirm_dialog.isVisible():

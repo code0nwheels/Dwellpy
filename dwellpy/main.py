@@ -207,6 +207,11 @@ class DwellpyApplication:
         """Clean up application resources."""
         self.logger.info("Starting application cleanup...")
         
+        # Clean up scroll widget first
+        if hasattr(self, 'ui') and self.ui:
+            self.ui.cleanup_scroll_widget()
+            self.logger.info("Scroll widget cleaned up")
+        
         # Stop core services
         self.running = False
         if self.input_manager:

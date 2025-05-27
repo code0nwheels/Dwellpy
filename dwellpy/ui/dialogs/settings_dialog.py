@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
 
 try:
-    from ...config.constants import Colors, BORDER_RADIUS
+    from ...config.constants import Colors, BORDER_RADIUS, Fonts
     from ...utils.helpers import center_window, format_time_display, format_percentage_display
     from ...__init__ import __version__
 except ImportError:
@@ -188,7 +188,7 @@ class SettingsDialog(QDialog):
         # Title label
         title_label = QLabel("Dwellpy Settings")
         title_label.setStyleSheet(f"""
-            font-family: 'Segoe UI', Arial;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 16pt;
             font-weight: bold;
             color: {Colors.TEXT_COLOR};
@@ -220,7 +220,7 @@ class SettingsDialog(QDialog):
         """Create move limit adjustment section."""
         # Label
         move_label = QLabel("Move Limit (px):")
-        move_label.setFont(QFont("Segoe UI", 11))
+        move_label.setFont(QFont("Helvetica Neue", 11))
         move_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
         main_layout.addWidget(move_label)
         
@@ -252,7 +252,7 @@ class SettingsDialog(QDialog):
         # Value label
         self.move_limit_value = QLabel(str(self.settings_manager.get_setting('move_limit', 5)))
         self.move_limit_value.setStyleSheet(f"""
-            font-family: 'Segoe UI', Arial;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 12pt;
             font-weight: bold;
             color: {Colors.TEXT_COLOR};
@@ -266,7 +266,7 @@ class SettingsDialog(QDialog):
         """Create dwell time adjustment section."""
         # Label
         time_label = QLabel("Dwell Time (s):")
-        time_label.setFont(QFont("Segoe UI", 11))
+        time_label.setFont(QFont("Helvetica Neue", 11))
         time_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
         main_layout.addWidget(time_label)
         
@@ -298,7 +298,7 @@ class SettingsDialog(QDialog):
         # Value label
         self.time_value = QLabel(format_time_display(self.settings_manager.get_setting('dwell_time', 1.0)))
         self.time_value.setStyleSheet(f"""
-            font-family: 'Segoe UI', Arial;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 12pt;
             font-weight: bold;
             color: {Colors.TEXT_COLOR};
@@ -318,7 +318,7 @@ class SettingsDialog(QDialog):
         
         self.transparency_check = QCheckBox("Enable window transparency")
         self.transparency_check.setChecked(self.settings_manager.get_setting('transparency_enabled', False))
-        self.transparency_check.setFont(QFont("Segoe UI", 11))
+        self.transparency_check.setFont(QFont("Helvetica Neue", 11))
         self.transparency_check.setStyleSheet(self.get_checkbox_style())
         transparency_enable_layout.addWidget(self.transparency_check)
         
@@ -326,7 +326,7 @@ class SettingsDialog(QDialog):
         
         # Transparency level label
         transparency_label = QLabel("Transparency (%):")
-        transparency_label.setFont(QFont("Segoe UI", 11))
+        transparency_label.setFont(QFont("Helvetica Neue", 11))
         transparency_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
         main_layout.addWidget(transparency_label)
         
@@ -357,7 +357,7 @@ class SettingsDialog(QDialog):
         # Value label
         self.transparency_value = QLabel(format_percentage_display(self.settings_manager.get_setting('transparency_level', 70)))
         self.transparency_value.setStyleSheet(f"""
-            font-family: 'Segoe UI', Arial;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 12pt;
             font-weight: bold;
             color: {Colors.TEXT_COLOR};
@@ -380,7 +380,7 @@ class SettingsDialog(QDialog):
         
         self.scroll_check = QCheckBox("Enable scroll widget")
         self.scroll_check.setChecked(self.settings_manager.get_setting('scroll_enabled', True))
-        self.scroll_check.setFont(QFont("Segoe UI", 11))
+        self.scroll_check.setFont(QFont("Helvetica Neue", 11))
         self.scroll_check.setStyleSheet(self.get_checkbox_style())
         scroll_enable_layout.addWidget(self.scroll_check)
         
@@ -388,7 +388,7 @@ class SettingsDialog(QDialog):
         
         # Scroll speed label
         scroll_speed_label = QLabel("Scroll Speed:")
-        scroll_speed_label.setFont(QFont("Segoe UI", 11))
+        scroll_speed_label.setFont(QFont("Helvetica Neue", 11))
         scroll_speed_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
         main_layout.addWidget(scroll_speed_label)
         
@@ -422,7 +422,7 @@ class SettingsDialog(QDialog):
         # Value label
         self.scroll_speed_value = QLabel(str(self.scroll_speed_slider.value()))
         self.scroll_speed_value.setStyleSheet(f"""
-            font-family: 'Segoe UI', Arial;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 12pt;
             font-weight: bold;
             color: {Colors.TEXT_COLOR};
@@ -444,7 +444,7 @@ class SettingsDialog(QDialog):
         
         self.active_check = QCheckBox("Start active on launch")
         self.active_check.setChecked(self.settings_manager.get_setting('default_active', False))
-        self.active_check.setFont(QFont("Segoe UI", 11))
+        self.active_check.setFont(QFont("Helvetica Neue", 11))
         self.active_check.setStyleSheet(self.get_checkbox_style())
         active_layout.addWidget(self.active_check)
         
@@ -455,7 +455,7 @@ class SettingsDialog(QDialog):
         ok_button = QPushButton("OK")
         ok_button.setFixedSize(250, 35)
         ok_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        ok_button.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        ok_button.setFont(QFont("Helvetica Neue", 12, QFont.Weight.Bold))
         ok_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.BLUE_ACCENT};
@@ -488,7 +488,7 @@ class SettingsDialog(QDialog):
         # Version info
         version_label = QLabel(f"Dwellpy v{__version__}")
         version_label.setStyleSheet("""
-            font-family: 'Segoe UI', Arial;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 9pt;
             color: #999999;
         """)

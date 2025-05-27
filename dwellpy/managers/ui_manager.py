@@ -219,7 +219,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -235,7 +235,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -251,7 +251,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -267,7 +267,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -351,7 +351,7 @@ class DwellClickerUI:
                         color: #999999;
                         border: 1px solid {BORDER_COLOR};
                         border-radius: 5px;
-                        font-family: 'Segoe UI';
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                         font-size: 9pt;
                         font-weight: bold;
                     }}
@@ -370,7 +370,7 @@ class DwellClickerUI:
                             color: {TEXT_COLOR};
                             border: 1px solid {BLUE_ACCENT};
                             border-radius: 5px;
-                            font-family: 'Segoe UI';
+                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                             font-size: 9pt;
                             font-weight: bold;
                         }}
@@ -387,7 +387,7 @@ class DwellClickerUI:
                             color: {TEXT_COLOR};
                             border: 1px solid {BORDER_COLOR};
                             border-radius: 5px;
-                            font-family: 'Segoe UI';
+                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                             font-size: 9pt;
                             font-weight: bold;
                         }}
@@ -406,7 +406,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {RED_ACCENT};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -424,7 +424,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {GREEN_ACCENT};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -440,7 +440,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {RED_ACCENT};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -458,7 +458,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -474,7 +474,7 @@ class DwellClickerUI:
                     color: #999999;
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -492,7 +492,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -508,7 +508,7 @@ class DwellClickerUI:
                     color: #999999;
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -526,7 +526,7 @@ class DwellClickerUI:
                     color: {TEXT_COLOR};
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
@@ -542,7 +542,7 @@ class DwellClickerUI:
                     color: #999999;
                     border: 1px solid {BORDER_COLOR};
                     border-radius: 5px;
-                    font-family: 'Segoe UI';
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 9pt;
                     font-weight: bold;
                 }}
