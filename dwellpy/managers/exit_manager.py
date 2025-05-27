@@ -153,6 +153,10 @@ class ExitManager:
             if self.move_tracking_thread:
                 self.move_tracking_thread.join(timeout=1.0)
         
+        # Clean up scroll widget if UI manager is available
+        if hasattr(self, 'ui_manager') and self.ui_manager:
+            self.ui_manager.cleanup_scroll_widget()
+        
         # Close confirmation dialog
         if self.confirm_dialog and self.confirm_dialog.isVisible():
             self.confirm_dialog.close()
