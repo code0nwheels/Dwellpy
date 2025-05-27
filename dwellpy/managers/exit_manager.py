@@ -77,7 +77,7 @@ class ExitManager:
         # Message
         message = QLabel("Are you sure you want to exit?", self.confirm_dialog)
         message.setStyleSheet(f"""
-            font-family: 'Segoe UI', Arial;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 14pt;
             color: {TEXT_COLOR};
         """)
@@ -101,7 +101,7 @@ class ExitManager:
                 color: {TEXT_COLOR};
                 border: none;
                 border-radius: 3px;
-                font-family: 'Segoe UI', Arial;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 5px 15px;
@@ -122,7 +122,7 @@ class ExitManager:
                 color: {TEXT_COLOR};
                 border: none;
                 border-radius: 3px;
-                font-family: 'Segoe UI', Arial;
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 5px 15px;

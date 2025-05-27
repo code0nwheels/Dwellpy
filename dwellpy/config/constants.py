@@ -77,7 +77,7 @@ BUTTON_STYLES = {
         'color': Colors.TEXT_COLOR,
         'border': f'1px solid {Colors.BORDER_COLOR}',
         'border-radius': f'{BORDER_RADIUS}px',
-        'font-family': "'Segoe UI', Arial",
+        'font-family': "'Helvetica Neue', Helvetica, Arial, sans-serif",
         'font-size': '9pt',
         'font-weight': 'bold'
     },
@@ -131,7 +131,7 @@ QSlider::sub-page:horizontal {{
 
 # Font Configuration
 class Fonts:
-    PRIMARY_FAMILY = "'Segoe UI', Arial"
+    PRIMARY_FAMILY = "'Helvetica Neue', Helvetica, Arial, sans-serif"
     TITLE_SIZE = 16
     REGULAR_SIZE = 11
     BUTTON_SIZE = 9
