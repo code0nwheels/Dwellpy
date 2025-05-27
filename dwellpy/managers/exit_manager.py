@@ -1,7 +1,11 @@
 """Exit functionality for the Dwellpy application."""
 
+import os
+import sys
+import signal
+import psutil
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                           QPushButton, QFrame)
+                           QPushButton, QFrame, QApplication)
 from PyQt6.QtCore import Qt
 from ..utils import center_window
 
@@ -21,18 +25,47 @@ class ExitManager:
         self.button_manager = button_manager
         self.parent_window = parent_window
         self.confirm_dialog = None  # Track confirmation dialog
-        self.move_tracking_thread = None  # Reference to move tracking thread if needed
-        self.move_thread_running_flag = False  # Flag for thread state
         
         # Register button commands
         self.button_manager.register_command("EXIT", self.show_exit_dialog)
         self.button_manager.register_command("EXIT_YES", self.confirm_exit)
         self.button_manager.register_command("EXIT_NO", self.cancel_exit)
     
-    def set_move_thread(self, thread_ref, thread_running_flag):
-        """Set reference to move thread for cleanup on exit."""
-        self.move_tracking_thread = thread_ref
-        self.move_thread_running_flag = thread_running_flag
+    def _force_kill_process_tree(self):
+        """Forcefully kill the current process and all its children."""
+        try:
+            current_pid = os.getpid()
+            parent_process = psutil.Process(current_pid)
+            
+            # Get all child processes
+            children = parent_process.children(recursive=True)
+            
+            # Terminate children first
+            for child in children:
+                try:
+                    child.terminate()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            
+            # Wait a bit for graceful termination
+            gone, alive = psutil.wait_procs(children, timeout=1)
+            
+            # Force kill any remaining children
+            for p in alive:
+                try:
+                    p.kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            
+            # Finally, kill the parent process
+            if sys.platform == "win32":
+                os.kill(current_pid, signal.SIGTERM)
+            else:
+                os.kill(current_pid, signal.SIGKILL)
+                
+        except Exception as e:
+            # Last resort - force exit
+            os._exit(1)
     
     def show_exit_dialog(self):
         """Show exit confirmation dialog."""
@@ -146,31 +179,46 @@ class ExitManager:
         self.confirm_dialog.show()  # Use show() instead of exec() to make it non-modal
     
     def confirm_exit(self):
-        """Exit the application after confirmation."""
-        # Stop move thread if running
-        if hasattr(self, 'move_thread_running_flag') and self.move_thread_running_flag:
-            self.move_thread_running_flag = False
-            if self.move_tracking_thread:
-                self.move_tracking_thread.join(timeout=1.0)
+        """Exit the application after confirmation with force kill."""
+        try:
+            # Close confirmation dialog first
+            if self.confirm_dialog and self.confirm_dialog.isVisible():
+                self.confirm_dialog.close()
+            
+            # Try to save settings quickly
+            if self.settings_manager:
+                try:
+                    self.settings_manager.save_settings()
+                except:
+                    pass  # Don't let save errors prevent exit
+            
+            # Clean up feedback manager if available in main app
+            app = QApplication.instance()
+            if app and hasattr(app, 'feedback_manager'):
+                try:
+                    app.feedback_manager.cleanup()
+                except:
+                    pass
+            
+            # Close parent window if available
+            if self.parent_window:
+                try:
+                    self.parent_window.close()
+                except:
+                    pass
+            
+            # Quit the Qt application
+            if app:
+                try:
+                    app.quit()
+                except:
+                    pass
+            
+        except:
+            pass  # Don't let cleanup errors prevent exit
         
-        # Clean up scroll widget if UI manager is available
-        if hasattr(self, 'ui_manager') and self.ui_manager:
-            self.ui_manager.cleanup_scroll_widget()
-        
-        # Close confirmation dialog
-        if self.confirm_dialog and self.confirm_dialog.isVisible():
-            self.confirm_dialog.close()
-        
-        # Save settings before exiting
-        self.settings_manager.save_settings()
-        
-        # Close parent window which will exit the application
-        if self.parent_window:
-            self.parent_window.close()
-        else:
-            # Fallback if parent window not available
-            import sys
-            sys.exit(0)
+        # Force kill the process tree after a brief delay
+        self._force_kill_process_tree()
     
     def cancel_exit(self):
         """Cancel exit and close confirmation dialog."""
