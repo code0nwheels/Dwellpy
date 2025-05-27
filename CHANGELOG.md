@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.2.1...dwellpy-v0.3.0) (2025-05-27)
+
+
+### Features
+
+* integrate PyPI workflow with Release Please automation ([dbf1c72](https://github.com/code0nwheels/Dwellpy/commit/dbf1c72a88e88c29233e0b34f87a95f9d738204c))
+
+
+### Documentation
+
+* major README restructure with license fixes and platform guidance ([067fe05](https://github.com/code0nwheels/Dwellpy/commit/067fe05b3a7ad2fd3042fe0c66bfe16c44287100))
+
+## [0.2.1](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.2.0...dwellpy-v0.2.1) (2025-05-26)
+
+
+### Bug Fixes
+
+* ignore clicks on default mode (blue) buttons ([#11](https://github.com/code0nwheels/Dwellpy/issues/11)) ([28c2f55](https://github.com/code0nwheels/Dwellpy/commit/28c2f55b4f6c8b10bcf40d1d6060da098fff4e2d))
+
 ## [0.2.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.1.0...dwellpy-v0.2.0) (2025-05-26)
 
 
