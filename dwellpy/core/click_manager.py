@@ -10,6 +10,9 @@ class ClickManager:
         
         # Create pynput mouse controller
         self.mouse = Controller()
+        
+        # Click feedback manager - will be set by main application
+        self.feedback_manager = None
     
     def can_click(self):
         """
@@ -31,8 +34,15 @@ class ClickManager:
             return False
             
         try:
+            # Get current mouse position for feedback
+            current_pos = self.mouse.position
+            
             # Use pynput to perform a left click
             self.mouse.click(Button.left)
+            
+            # Show visual feedback
+            if self.feedback_manager:
+                self.feedback_manager.show_feedback(current_pos, 'left')
             
             self.last_click_time = time.time()
                 
@@ -47,8 +57,15 @@ class ClickManager:
             return False
             
         try:
+            # Get current mouse position for feedback
+            current_pos = self.mouse.position
+            
             # Use pynput to perform a right click
             self.mouse.click(Button.right)
+            
+            # Show visual feedback
+            if self.feedback_manager:
+                self.feedback_manager.show_feedback(current_pos, 'right')
             
             self.last_click_time = time.time()
             return True
@@ -61,8 +78,15 @@ class ClickManager:
             return False
             
         try:
+            # Get current mouse position for feedback
+            current_pos = self.mouse.position
+            
             # Use pynput to perform a double click
             self.mouse.click(Button.left, 2)
+            
+            # Show visual feedback
+            if self.feedback_manager:
+                self.feedback_manager.show_feedback(current_pos, 'double')
             
             self.last_click_time = time.time()
             return True
@@ -75,8 +99,15 @@ class ClickManager:
             return False
             
         try:
+            # Get current mouse position for feedback
+            current_pos = self.mouse.position
+            
             # Use pynput to perform a middle click
             self.mouse.click(Button.middle)
+            
+            # Show visual feedback
+            if self.feedback_manager:
+                self.feedback_manager.show_feedback(current_pos, 'middle')
             
             self.last_click_time = time.time()
             return True
@@ -86,8 +117,15 @@ class ClickManager:
     def mouse_down(self):
         """Press and hold the left mouse button."""
         try:
+            # Get current mouse position for feedback
+            current_pos = self.mouse.position
+            
             # Use pynput to press the mouse button
             self.mouse.press(Button.left)
+            
+            # Show visual feedback for drag start
+            if self.feedback_manager:
+                self.feedback_manager.show_feedback(current_pos, 'drag_down')
             
             self.last_click_time = time.time()
             return True
@@ -97,8 +135,15 @@ class ClickManager:
     def mouse_up(self):
         """Release the left mouse button."""
         try:
+            # Get current mouse position for feedback
+            current_pos = self.mouse.position
+            
             # Use pynput to release the mouse button
             self.mouse.release(Button.left)
+            
+            # Show visual feedback for drag end
+            if self.feedback_manager:
+                self.feedback_manager.show_feedback(current_pos, 'drag_up')
             
             return True
         except Exception as e:

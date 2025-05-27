@@ -43,6 +43,7 @@ from .managers.exit_manager import ExitManager
 from .managers.button_manager import ButtonManager
 from .ui.ui_manager import DwellClickerUI
 from .ui.window_manager import WindowManager
+from .ui.click_feedback import ClickFeedbackManager
 from .config.constants import DEFAULT_MOVE_LIMIT, DEFAULT_DWELL_TIME
 from .__init__ import __version__, __title__, __description__, __author__
 from .utils.logging_config import setup_logging, log_application_start, log_application_shutdown, get_logger
@@ -93,6 +94,12 @@ class DwellpyApplication:
         )
         self.input_manager = InputManager()
         self.click_manager = ClickManager()
+        
+        # Create click feedback manager
+        self.feedback_manager = ClickFeedbackManager()
+        
+        # Connect feedback manager to click manager
+        self.click_manager.feedback_manager = self.feedback_manager
         
         # Create settings manager (must be created before UI)
         self.settings_manager = SettingsManager(self.detector)
@@ -212,6 +219,11 @@ class DwellpyApplication:
         if self.input_manager:
             self.input_manager.stop()
             self.logger.info("Input manager stopped")
+        
+        # Clean up feedback manager
+        if self.feedback_manager:
+            self.feedback_manager.cleanup()
+            self.logger.info("Click feedback manager cleaned up")
         
         # Save settings before exit
         if self.settings_manager:

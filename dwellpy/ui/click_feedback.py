@@ -1,0 +1,246 @@
+"""Click feedback widget for visual click indication."""
+
+import sys
+import time
+from PyQt6.QtWidgets import QWidget, QApplication
+from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtProperty, QRect
+from PyQt6.QtGui import QPainter, QColor, QPen, QBrush
+
+try:
+    from ..config.constants import Colors
+except ImportError:
+    # Fallback if constants not available
+    class Colors:
+        BLUE_ACCENT = "#0078d7"
+        GREEN_ACCENT = "#00d7aa"
+        RED_ACCENT = "#d70000"
+        TEXT_COLOR = "#ffffff"
+
+# Windows DPI awareness for better multi-monitor support
+if sys.platform == "win32":
+    try:
+        import ctypes
+        # Set DPI awareness to handle multiple monitors properly
+        try:
+            # Try the newer SetProcessDpiAwarenessContext first (Windows 10 1703+)
+            ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)  # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        except:
+            try:
+                # Fallback to SetProcessDpiAwareness (Windows 8.1+)
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
+            except:
+                try:
+                    # Final fallback to SetProcessDPIAware (Windows Vista+)
+                    ctypes.windll.user32.SetProcessDPIAware()
+                except:
+                    pass  # DPI awareness not available
+    except ImportError:
+        pass  # ctypes not available
+
+class ClickFeedbackWidget(QWidget):
+    """
+    A floating widget that provides visual feedback when clicks are performed.
+    Shows a brief expanding circle animation at the click location.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # Widget configuration
+        self.widget_size = 60  # Size of the widget
+        self.animation_duration = 400  # Animation duration in milliseconds
+        self.fade_start_delay = 200  # When to start fading out (ms)
+        
+        # Widget setup
+        self.setFixedSize(self.widget_size, self.widget_size)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint | 
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool |
+            Qt.WindowType.WindowTransparentForInput
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        
+        # Animation properties
+        self._radius = 0
+        self._opacity = 1.0
+        
+        # Animation objects
+        self.radius_animation = QPropertyAnimation(self, b"radius")
+        self.opacity_animation = QPropertyAnimation(self, b"opacity")
+        
+        # Setup animations
+        self.setup_animations()
+        
+        # Hide initially
+        self.hide()
+        
+        # Click type colors
+        self.click_colors = {
+            'left': QColor(Colors.BLUE_ACCENT),
+            'right': QColor(Colors.GREEN_ACCENT),
+            'double': QColor(Colors.TEXT_COLOR),
+            'drag_down': QColor(Colors.RED_ACCENT),
+            'drag_up': QColor(Colors.RED_ACCENT),
+            'middle': QColor(Colors.TEXT_COLOR)
+        }
+        self.current_color = QColor(Colors.BLUE_ACCENT)
+        
+    def setup_animations(self):
+        """Setup the radius and opacity animations."""
+        # Radius animation (expanding circle)
+        self.radius_animation.setDuration(self.animation_duration)
+        self.radius_animation.setStartValue(5)
+        self.radius_animation.setEndValue(self.widget_size // 2 - 5)
+        self.radius_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
+        
+        # Opacity animation (fade out)
+        self.opacity_animation.setDuration(self.animation_duration - self.fade_start_delay)
+        self.opacity_animation.setStartValue(1.0)
+        self.opacity_animation.setEndValue(0.0)
+        self.opacity_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
+        
+        # Connect animation finished to hide widget
+        self.radius_animation.finished.connect(self.hide)
+        
+    @pyqtProperty(float)
+    def radius(self):
+        """Get the current animation radius."""
+        return self._radius
+    
+    @radius.setter
+    def radius(self, value):
+        """Set the current animation radius and trigger repaint."""
+        self._radius = value
+        self.update()
+        
+    @pyqtProperty(float)
+    def opacity(self):
+        """Get the current animation opacity."""
+        return self._opacity
+    
+    @opacity.setter
+    def opacity(self, value):
+        """Set the current animation opacity and trigger repaint."""
+        self._opacity = value
+        self.update()
+        
+    def show_click_feedback(self, position, click_type='left'):
+        """
+        Show click feedback at the specified position.
+        
+        Args:
+            position: Tuple (x, y) representing the click position in screen coordinates
+            click_type: String indicating the type of click ('left', 'right', 'double', 'drag_down', 'drag_up', 'middle')
+        """
+        # Set color based on click type
+        if click_type in self.click_colors:
+            self.current_color = self.click_colors[click_type]
+        else:
+            self.current_color = self.click_colors['left']  # Default to left click color
+            
+        # Position the widget centered on the click point
+        widget_x = position[0] - self.widget_size // 2
+        widget_y = position[1] - self.widget_size // 2
+        self.move(widget_x, widget_y)
+        
+        # Reset animation properties
+        self._radius = 5
+        self._opacity = 1.0
+        
+        # Show the widget
+        self.show()
+        self.raise_()
+        
+        # Start animations
+        self.radius_animation.stop()
+        self.opacity_animation.stop()
+        
+        self.radius_animation.start()
+        
+        # Start opacity animation after delay
+        QTimer.singleShot(self.fade_start_delay, lambda: self.opacity_animation.start())
+        
+    def paintEvent(self, event):
+        """Paint the click feedback circle."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Calculate center point
+        center_x = self.width() // 2
+        center_y = self.height() // 2
+        
+        # Set up color with current opacity
+        color = QColor(self.current_color)
+        color.setAlphaF(self._opacity * 0.8)  # Slightly transparent even at full opacity
+        
+        # Draw filled circle
+        brush = QBrush(color)
+        painter.setBrush(brush)
+        painter.setPen(Qt.PenStyle.NoPen)
+        
+        # Draw main circle
+        painter.drawEllipse(
+            int(center_x - self._radius),
+            int(center_y - self._radius),
+            int(self._radius * 2),
+            int(self._radius * 2)
+        )
+        
+        # Draw border circle with more opaque color
+        border_color = QColor(self.current_color)
+        border_color.setAlphaF(self._opacity)
+        pen = QPen(border_color, 2)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        
+        painter.drawEllipse(
+            int(center_x - self._radius),
+            int(center_y - self._radius),
+            int(self._radius * 2),
+            int(self._radius * 2)
+        )
+
+class ClickFeedbackManager:
+    """
+    Manager class for handling click feedback across the application.
+    Provides a simple interface for showing click feedback.
+    """
+    
+    def __init__(self):
+        self.feedback_widget = None
+        self.initialize_widget()
+        
+    def initialize_widget(self):
+        """Initialize the feedback widget."""
+        try:
+            self.feedback_widget = ClickFeedbackWidget()
+        except Exception as e:
+            # If widget creation fails, feedback will be disabled
+            self.feedback_widget = None
+            
+    def show_feedback(self, position, click_type='left'):
+        """
+        Show click feedback at the specified position.
+        
+        Args:
+            position: Tuple (x, y) representing the click position in screen coordinates
+            click_type: String indicating the type of click
+        """
+        if self.feedback_widget is not None:
+            try:
+                self.feedback_widget.show_click_feedback(position, click_type)
+            except Exception as e:
+                # If showing feedback fails, silently ignore
+                pass
+                
+    def cleanup(self):
+        """Clean up resources."""
+        if self.feedback_widget:
+            try:
+                self.feedback_widget.hide()
+                self.feedback_widget.deleteLater()
+            except:
+                pass
+            self.feedback_widget = None 
