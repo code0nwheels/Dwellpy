@@ -3,7 +3,7 @@
 import sys
 import time
 from PyQt6.QtWidgets import QWidget, QApplication
-from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtProperty, QRect
+from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtProperty, QRect, QPoint
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush
 
 try:
@@ -154,6 +154,16 @@ class ClickFeedbackWidget(QWidget):
         # Position the widget centered on the click point
         widget_x = position[0] - self.widget_size // 2
         widget_y = position[1] - self.widget_size // 2
+        
+        # macOS: Adjust for screen coordinates
+        if sys.platform == "darwin":
+            # Get the screen that contains the click point
+            screen = QApplication.screenAt(QPoint(widget_x, widget_y))
+            if screen:
+                # Convert to screen-relative coordinates
+                widget_x = widget_x - screen.geometry().x()
+                widget_y = widget_y - screen.geometry().y()
+        
         self.move(widget_x, widget_y)
         
         # Reset animation properties
