@@ -146,10 +146,9 @@ class ClickFeedbackWidget(QWidget):
             position: Tuple (x, y) representing the click position in screen coordinates
             click_type: String indicating the type of click ('left', 'right', 'double', 'drag_down', 'drag_up', 'middle')
         """
-        # Debug output for macOS
         if sys.platform == "darwin":
-            print(f"macOS: Showing click feedback at {position}, type: {click_type}")
-        
+            print(f"macOS: ClickFeedbackWidget.show_click_feedback called with position {position}, type {click_type}")
+            
         # Set color based on click type
         if click_type in self.click_colors:
             self.current_color = self.click_colors[click_type]
@@ -160,14 +159,11 @@ class ClickFeedbackWidget(QWidget):
         widget_x = position[0] - self.widget_size // 2
         widget_y = position[1] - self.widget_size // 2
         
+        if sys.platform == "darwin":
+            print(f"macOS: Widget will be positioned at {widget_x}, {widget_y}")
+        
         # Simplified positioning for macOS - just use direct coordinates
         self.move(widget_x, widget_y)
-        
-        # Debug output for macOS
-        if sys.platform == "darwin":
-            print(f"macOS: Widget positioned at {widget_x}, {widget_y}")
-            print(f"macOS: Widget size: {self.widget_size}x{self.widget_size}")
-            print(f"macOS: Widget visible: {self.isVisible()}")
         
         # Reset animation properties
         self._radius = 5
@@ -177,11 +173,8 @@ class ClickFeedbackWidget(QWidget):
         self.show()
         self.raise_()
         
-        # Debug output for macOS
         if sys.platform == "darwin":
-            print(f"macOS: After show() - visible: {self.isVisible()}")
-            print(f"macOS: Window opacity: {self.windowOpacity()}")
-            print(f"macOS: Window flags: {self.windowFlags()}")
+            print(f"macOS: Widget shown, visible: {self.isVisible()}")
         
         # Start animations
         self.radius_animation.stop()
@@ -270,12 +263,8 @@ class ClickFeedbackManager:
         """Initialize the feedback widget."""
         try:
             self.feedback_widget = ClickFeedbackWidget()
-            if sys.platform == "darwin":
-                print("macOS: ClickFeedbackWidget initialized successfully")
         except Exception as e:
             # If widget creation fails, feedback will be disabled
-            if sys.platform == "darwin":
-                print(f"macOS: ClickFeedbackWidget initialization failed: {e}")
             self.feedback_widget = None
             
     def show_feedback(self, position, click_type='left'):
@@ -286,14 +275,19 @@ class ClickFeedbackManager:
             position: Tuple (x, y) representing the click position in screen coordinates
             click_type: String indicating the type of click
         """
+        if sys.platform == "darwin":
+            print(f"macOS: ClickFeedbackManager.show_feedback called with position {position}, type {click_type}")
+            
         if self.feedback_widget is not None:
             try:
                 self.feedback_widget.show_click_feedback(position, click_type)
             except Exception as e:
-                # If showing feedback fails, log for debugging on macOS
                 if sys.platform == "darwin":
-                    print(f"macOS: Failed to show feedback: {e}")
-                    
+                    print(f"macOS: Exception in show_feedback: {e}")
+                    import traceback
+                    traceback.print_exc()
+                pass
+                
     def test_feedback(self):
         """Test feedback display for debugging."""
         if self.feedback_widget is not None:
