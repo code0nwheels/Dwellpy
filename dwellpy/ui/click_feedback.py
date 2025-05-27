@@ -146,9 +146,6 @@ class ClickFeedbackWidget(QWidget):
             position: Tuple (x, y) representing the click position in screen coordinates
             click_type: String indicating the type of click ('left', 'right', 'double', 'drag_down', 'drag_up', 'middle')
         """
-        if sys.platform == "darwin":
-            print(f"macOS: ClickFeedbackWidget.show_click_feedback called with position {position}, type {click_type}")
-            
         # Set color based on click type
         if click_type in self.click_colors:
             self.current_color = self.click_colors[click_type]
@@ -156,11 +153,9 @@ class ClickFeedbackWidget(QWidget):
             self.current_color = self.click_colors['left']  # Default to left click color
             
         # Position the widget centered on the click point
-        widget_x = position[0] - self.widget_size // 2
-        widget_y = position[1] - self.widget_size // 2
-        
-        if sys.platform == "darwin":
-            print(f"macOS: Widget will be positioned at {widget_x}, {widget_y}")
+        # Convert to integers to handle float coordinates from pynput on macOS
+        widget_x = int(position[0] - self.widget_size // 2)
+        widget_y = int(position[1] - self.widget_size // 2)
         
         # Simplified positioning for macOS - just use direct coordinates
         self.move(widget_x, widget_y)
@@ -172,9 +167,6 @@ class ClickFeedbackWidget(QWidget):
         # Show the widget
         self.show()
         self.raise_()
-        
-        if sys.platform == "darwin":
-            print(f"macOS: Widget shown, visible: {self.isVisible()}")
         
         # Start animations
         self.radius_animation.stop()
@@ -275,17 +267,11 @@ class ClickFeedbackManager:
             position: Tuple (x, y) representing the click position in screen coordinates
             click_type: String indicating the type of click
         """
-        if sys.platform == "darwin":
-            print(f"macOS: ClickFeedbackManager.show_feedback called with position {position}, type {click_type}")
-            
         if self.feedback_widget is not None:
             try:
                 self.feedback_widget.show_click_feedback(position, click_type)
             except Exception as e:
-                if sys.platform == "darwin":
-                    print(f"macOS: Exception in show_feedback: {e}")
-                    import traceback
-                    traceback.print_exc()
+                # If showing feedback fails, silently ignore to avoid disrupting the app
                 pass
                 
     def test_feedback(self):

@@ -38,17 +38,11 @@ class ClickManager:
             # Get current mouse position for feedback
             current_pos = self.mouse.position
             
-            # Debug output for macOS
-            if sys.platform == "darwin":
-                print(f"macOS: Left click at position {current_pos}")
-            
             # Use pynput to perform a left click
             self.mouse.click(Button.left)
             
             # Show visual feedback
             if self.feedback_manager:
-                if sys.platform == "darwin":
-                    print(f"macOS: Calling show_feedback with position {current_pos}")
                 self.feedback_manager.show_feedback(current_pos, 'left')
             
             self.last_click_time = time.time()
@@ -56,8 +50,6 @@ class ClickManager:
             return True
             
         except Exception as e:
-            if sys.platform == "darwin":
-                print(f"macOS: Error in perform_left_click: {e}")
             return False
 
     def perform_right_click(self, position=None):
