@@ -418,6 +418,67 @@ class DwellClickerUI:
                 opacity = (100 - transparency_level) / 100.0
                 self.window.setWindowOpacity(opacity)
     
+    def update_contracted_button_state(self):
+        """Update the text and style of the contracted button to match current status."""
+        if not self.contracted_button or not self.is_contracted:
+            return
+            
+        status_text = self.get_current_status_text()
+        self.contracted_button.setText(status_text)
+        
+        # Update button style to match current state
+        if not self.is_active:
+            # OFF state - red like the ON/OFF button when off
+            self.contracted_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {Colors.RED_ACCENT};
+                    color: {Colors.TEXT_COLOR};
+                    border: 1px solid {Colors.RED_ACCENT};
+                    border-radius: {BORDER_RADIUS}px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 8pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {Colors.RED_HOVER};
+                    border: 1px solid {Colors.RED_HOVER};
+                }}
+            """)
+        elif self.is_temporary_mode:
+            # Temporary mode - red like temporary mode buttons
+            self.contracted_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {Colors.RED_ACCENT};
+                    color: {Colors.TEXT_COLOR};
+                    border: 1px solid {Colors.RED_ACCENT};
+                    border-radius: {BORDER_RADIUS}px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 8pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {Colors.RED_HOVER};
+                    border: 1px solid {Colors.RED_HOVER};
+                }}
+            """)
+        else:
+            # Default/permanent mode - blue like default mode buttons
+            self.contracted_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {Colors.BLUE_ACCENT};
+                    color: {Colors.TEXT_COLOR};
+                    border: 1px solid {Colors.BLUE_ACCENT};
+                    border-radius: {BORDER_RADIUS}px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 8pt;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: {Colors.BLUE_HOVER};
+                    border: 1px solid {Colors.BLUE_HOVER};
+                }}
+            """)
+    
     def contract_ui(self):
         """Contract the UI to a single button."""
         if self.is_contracted or not self.settings_manager:
@@ -448,6 +509,9 @@ class DwellClickerUI:
         if not self.contracted_button:
             self.contracted_button = self.create_contracted_button()
             self.original_layout.addWidget(self.contracted_button)
+        else:
+            # Update the text to show current status
+            self.update_contracted_button_state()
         
         # Show contracted button
         self.contracted_button.show()
@@ -498,29 +562,26 @@ class DwellClickerUI:
                     # Recursively clear nested layouts
                     self.clear_layout(child.layout())
     
+    def get_current_status_text(self):
+        """Get the current status text for the contracted button."""
+        if not self.is_active:
+            return "OFF"
+        
+        # Show current mode, with indicator for temporary mode
+        if self.is_temporary_mode:
+            return f"{self.current_mode}*"  # Asterisk indicates temporary
+        else:
+            return self.current_mode
+    
     def create_contracted_button(self):
-        """Create the contracted button."""
-        button = QPushButton(CONTRACT_BUTTON_TEXT)
+        """Create the contracted button showing current status."""
+        # Get current status text
+        status_text = self.get_current_status_text()
+        
+        button = QPushButton(status_text)
         button.setFixedSize(CONTRACT_BUTTON_SIZE[0], CONTRACT_BUTTON_SIZE[1])
         button.setObjectName("CONTRACTED")  # Give it an ID for button manager
         button.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        # Style the contracted button
-        button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {Colors.DARK_BUTTON_BG};
-                color: {Colors.TEXT_COLOR};
-                border: 1px solid {Colors.BORDER_COLOR};
-                border-radius: {BORDER_RADIUS}px;
-                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                font-size: 14pt;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background-color: #3d3d3d;
-                border: 1px solid {Colors.BLUE_ACCENT};
-            }}
-        """)
         
         # Connect click to expand
         button.clicked.connect(self.expand_ui)
@@ -544,6 +605,12 @@ class DwellClickerUI:
         
         # Hide initially
         button.hide()
+        
+        # Store the button reference before applying state-based styling
+        self.contracted_button = button
+        
+        # Apply initial state-based styling
+        self.update_contracted_button_state()
         
         return button
     
@@ -912,6 +979,9 @@ class DwellClickerUI:
         self.is_active = not self.is_active
         self.update_button_states()
         
+        # Update contracted button text if UI is contracted
+        self.update_contracted_button_state()
+        
         # Apply scroll settings which will show/hide widget based on active state
         self.apply_scroll_settings()
         
@@ -965,6 +1035,9 @@ class DwellClickerUI:
         
         # Update UI to reflect new state
         self.update_button_states()
+        
+        # Update contracted button text if UI is contracted
+        self.update_contracted_button_state()
     
     def process_dwell_event(self, center):
         """Process a dwell event with scroll widget support."""
@@ -1028,6 +1101,8 @@ class DwellClickerUI:
             self.current_mode = self.default_mode
             self.is_temporary_mode = False
             self.update_button_states()
+            # Update contracted button text if UI is contracted
+            self.update_contracted_button_state()
     
     def handle_drag(self, center):
         """Handle drag operations that require two dwells."""
@@ -1053,6 +1128,8 @@ class DwellClickerUI:
                     self.is_temporary_mode = False
         
         self.update_button_states()
+        # Update contracted button text if UI is contracted
+        self.update_contracted_button_state()
 
     
     def update_scroll_widget_position(self, cursor_pos):

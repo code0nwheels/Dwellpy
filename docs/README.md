@@ -125,7 +125,7 @@ Access via **SETUP** button - all settings apply immediately:
 **Window Transparency**: Make toolbar see-through when not in use  
 **Visible Clicks**: Show animated circles when clicks are performed (helpful for confirming actions)  
 **Scroll Widget**: Adjust speed, positioning, and opacity  
-**Auto-Start**: Launch active by default  
+**Auto-Start**: Launch active by default
 **UI Contraction**: Enable automatic toolbar contraction when cursor moves away  
 **Expansion Direction**: Choose how toolbar expands (Auto/Horizontal/Vertical)
 
