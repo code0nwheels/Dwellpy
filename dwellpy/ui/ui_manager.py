@@ -281,6 +281,9 @@ class DwellClickerUI:
     
     def _rebuild_layout(self, direction):
         """Rebuild the UI layout with the specified direction."""
+        # Store current window position before resizing
+        current_pos = self.window.pos()
+        
         # Create a new central widget to avoid layout conflicts
         new_central_widget = QWidget()
         new_central_widget.setStyleSheet(f"background-color: {Colors.DARK_BG};")
@@ -316,6 +319,9 @@ class DwellClickerUI:
             
             self.window.setFixedSize(window_width, window_height)
         
+        # Ensure window stays within screen bounds after resizing
+        self._ensure_window_in_bounds(current_pos)
+        
         # Set the layout to the new central widget
         new_central_widget.setLayout(new_layout)
         
@@ -336,6 +342,148 @@ class DwellClickerUI:
         
         # Store the new layout
         self.original_layout = new_layout
+    
+    def _calculate_optimal_expansion_position(self, contracted_pos, expanded_size):
+        """Calculate the optimal position for the expanded window to avoid going off-screen."""
+        try:
+            from PyQt6.QtGui import QGuiApplication
+            
+            # Get all available screens
+            app = QGuiApplication.instance()
+            screens = app.screens()
+            
+            # Calculate the combined desktop geometry (all monitors)
+            desktop_rect = None
+            for screen in screens:
+                screen_geometry = screen.geometry()
+                if desktop_rect is None:
+                    desktop_rect = screen_geometry
+                else:
+                    desktop_rect = desktop_rect.united(screen_geometry)
+            
+            # If we couldn't get screen info, return original position
+            if desktop_rect is None:
+                return contracted_pos.x(), contracted_pos.y()
+            
+            # Calculate available space in each direction from the contracted position
+            space_right = desktop_rect.right() - (contracted_pos.x() + CONTRACT_BUTTON_SIZE[0])
+            space_left = contracted_pos.x() - desktop_rect.left()
+            space_bottom = desktop_rect.bottom() - (contracted_pos.y() + CONTRACT_BUTTON_SIZE[1])
+            space_top = contracted_pos.y() - desktop_rect.top()
+            
+            # Determine optimal position based on expansion direction and available space
+            direction = self.current_expansion_direction or 'horizontal'
+            
+            if direction == 'horizontal':
+                # For horizontal expansion, try to keep the same Y position
+                new_y = contracted_pos.y()
+                
+                # Check if we can expand to the right from current position
+                if space_right >= expanded_size.width() - CONTRACT_BUTTON_SIZE[0]:
+                    # Enough space to the right - keep current X position
+                    new_x = contracted_pos.x()
+                else:
+                    # Not enough space to the right - position so the right edge aligns with desktop edge
+                    new_x = desktop_rect.right() - expanded_size.width()
+                    
+                    # Make sure we don't go off the left edge
+                    if new_x < desktop_rect.left():
+                        new_x = desktop_rect.left()
+                        
+            else:  # vertical expansion
+                # For vertical expansion, try to keep the same X position
+                new_x = contracted_pos.x()
+                
+                # Check if we can expand downward from current position
+                if space_bottom >= expanded_size.height() - CONTRACT_BUTTON_SIZE[1]:
+                    # Enough space below - keep current Y position
+                    new_y = contracted_pos.y()
+                else:
+                    # Not enough space below - position so the bottom edge aligns with desktop edge
+                    new_y = desktop_rect.bottom() - expanded_size.height()
+                    
+                    # Make sure we don't go off the top edge
+                    if new_y < desktop_rect.top():
+                        new_y = desktop_rect.top()
+            
+            # Final bounds check across all monitors
+            new_x = max(desktop_rect.left(), min(new_x, desktop_rect.right() - expanded_size.width()))
+            new_y = max(desktop_rect.top(), min(new_y, desktop_rect.bottom() - expanded_size.height()))
+            
+            return new_x, new_y
+            
+        except Exception:
+            # Fallback to original position
+            return contracted_pos.x(), contracted_pos.y()
+
+    def _ensure_window_in_bounds(self, preferred_pos):
+        """Ensure the window stays within screen bounds, adjusting position if necessary."""
+        try:
+            from PyQt6.QtGui import QGuiApplication
+            
+            # Get all available screens
+            app = QGuiApplication.instance()
+            screens = app.screens()
+            
+            # Calculate the combined desktop geometry (all monitors)
+            desktop_rect = None
+            for screen in screens:
+                screen_geometry = screen.geometry()
+                if desktop_rect is None:
+                    desktop_rect = screen_geometry
+                else:
+                    desktop_rect = desktop_rect.united(screen_geometry)
+            
+            # If we couldn't get screen info, keep current position
+            if desktop_rect is None:
+                return
+            
+            window_size = self.window.size()
+            
+            # If we're expanding from a contracted state, use optimal positioning
+            if hasattr(self, '_expanding_from_contracted') and self._expanding_from_contracted:
+                new_x, new_y = self._calculate_optimal_expansion_position(preferred_pos, window_size)
+                self._expanding_from_contracted = False  # Reset flag
+            else:
+                # Calculate the bounds across all monitors
+                min_x = desktop_rect.left()
+                min_y = desktop_rect.top()
+                max_x = desktop_rect.right() - window_size.width()
+                max_y = desktop_rect.bottom() - window_size.height()
+                
+                # For horizontal expansion near screen edges, we need special handling
+                if not self.is_contracted:  # Only during expansion
+                    # If we're expanding and the preferred position would put us off-screen
+                    if preferred_pos.x() < min_x:
+                        # Too far left - position at left edge
+                        new_x = min_x
+                    elif preferred_pos.x() > max_x:
+                        # Too far right - position at right edge
+                        new_x = max_x
+                    else:
+                        # Position is fine horizontally
+                        new_x = preferred_pos.x()
+                    
+                    if preferred_pos.y() < min_y:
+                        # Too far up - position at top edge
+                        new_y = min_y
+                    elif preferred_pos.y() > max_y:
+                        # Too far down - position at bottom edge
+                        new_y = max_y
+                    else:
+                        # Position is fine vertically
+                        new_y = preferred_pos.y()
+                else:
+                    # For contraction, just ensure within bounds
+                    new_x = max(min_x, min(preferred_pos.x(), max_x))
+                    new_y = max(min_y, min(preferred_pos.y(), max_y))
+            
+            # Move window to the adjusted position
+            self.window.move(new_x, new_y)
+            
+        except Exception:
+            # If there's any error, keep the window at its current position
+            pass
     
     def apply_scroll_settings(self):
         """Apply scroll widget settings from the settings manager."""
@@ -495,6 +643,9 @@ class DwellClickerUI:
         
         self.is_contracted = True
         
+        # Store current window position before resizing
+        current_pos = self.window.pos()
+        
         # Determine and store expansion direction
         self.current_expansion_direction = self.determine_expansion_direction()
         
@@ -521,11 +672,17 @@ class DwellClickerUI:
             CONTRACT_BUTTON_SIZE[0] + (LAYOUT_MARGIN * 2),
             CONTRACT_BUTTON_SIZE[1] + (LAYOUT_MARGIN * 2)
         )
+        
+        # Ensure window stays within screen bounds after resizing to contracted form
+        self._ensure_window_in_bounds(current_pos)
     
     def expand_ui(self):
         """Expand the UI to show all buttons in the determined direction."""
         if not self.is_contracted:
             return
+        
+        # Set flag to indicate we're expanding from contracted state
+        self._expanding_from_contracted = True
         
         self.is_contracted = False
         
