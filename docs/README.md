@@ -12,6 +12,12 @@ Built for users with motor disabilities who use head trackers, eye-tracking syst
 
 ### For End Users
 
+**Linux (Automated Install):**
+```bash
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
+```
+
+**All Platforms (pip):**
 ```bash
 pip install dwellpy
 dwellpy

@@ -31,6 +31,10 @@ This guide helps you diagnose and fix common issues with Dwellpy.
    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
    source ~/.bashrc
    ```
+3. **Alternative**: Try the automated installer:
+   ```
+   curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
+   ```
 
 ### "pip is not recognized" (Windows)
 **Cause**: Python wasn't installed correctly or PATH wasn't set.
@@ -184,6 +188,11 @@ sudo dnf install python3-tkinter python3-devel
 
 # Arch
 sudo pacman -S tk python-dev
+```
+
+**Alternative**: Use the automated installer which handles dependencies:
+```
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
 ```
 
 ### Linux: Works in X11 but not Wayland
