@@ -4,7 +4,7 @@ import sys
 import time
 from PyQt6.QtWidgets import QWidget, QApplication
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtProperty, QRect, QPoint
-from PyQt6.QtGui import QPainter, QColor, QPen, QBrush
+from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QCursor
 
 try:
     from ..config.constants import Colors
@@ -138,6 +138,65 @@ class ClickFeedbackWidget(QWidget):
         self._opacity = value
         self.update()
         
+    def _convert_pynput_to_qt_coords(self, pynput_pos):
+        """Convert pynput coordinates to Qt coordinates for multi-monitor consistency."""
+        try:
+            # Get the screen that contains this position
+            app = QApplication.instance()
+            if not app:
+                return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+            
+            # First, try using Qt's cursor position as it should be more accurate
+            try:
+                qt_direct = QCursor.pos()
+                # If Qt and pynput positions are very close, prefer Qt
+                dx = abs(qt_direct.x() - pynput_pos[0])
+                dy = abs(qt_direct.y() - pynput_pos[1])
+                if dx < 10 and dy < 10:  # Within 10 pixels, use Qt directly
+                    return qt_direct
+            except:
+                pass
+            
+            # Find which screen contains the pynput position
+            target_screen = None
+            for screen in app.screens():
+                geometry = screen.geometry()
+                # Expand the geometry slightly to handle edge cases
+                expanded_geom = geometry.adjusted(-10, -10, 10, 10)
+                if (expanded_geom.x() <= pynput_pos[0] < expanded_geom.x() + expanded_geom.width() and
+                    expanded_geom.y() <= pynput_pos[1] < expanded_geom.y() + expanded_geom.height()):
+                    target_screen = screen
+                    break
+            
+            if target_screen:
+                # Account for DPI scaling
+                device_pixel_ratio = target_screen.devicePixelRatio()
+                if device_pixel_ratio != 1.0:
+                    # Get the logical geometry (what Qt thinks the screen size is)
+                    logical_geom = target_screen.geometry()
+                    
+                    # Convert pynput position to relative position on this screen
+                    relative_x = pynput_pos[0] - logical_geom.x()
+                    relative_y = pynput_pos[1] - logical_geom.y()
+                    
+                    # Apply DPI scaling
+                    scaled_x = relative_x / device_pixel_ratio
+                    scaled_y = relative_y / device_pixel_ratio
+                    
+                    # Convert back to global coordinates
+                    qt_x = logical_geom.x() + scaled_x
+                    qt_y = logical_geom.y() + scaled_y
+                    
+                    return QPoint(int(qt_x), int(qt_y))
+            
+            # If no scaling needed or screen not found, use direct conversion
+            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+            
+        except Exception as e:
+            print(f"ClickFeedback coordinate conversion error: {e}")
+            # Fallback to direct conversion
+            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+
     def show_click_feedback(self, position, click_type='left'):
         """
         Show click feedback at the specified position.
@@ -152,12 +211,14 @@ class ClickFeedbackWidget(QWidget):
         else:
             self.current_color = self.click_colors['left']  # Default to left click color
             
-        # Position the widget centered on the click point
-        # Convert to integers to handle float coordinates from pynput on macOS
-        widget_x = int(position[0] - self.widget_size // 2)
-        widget_y = int(position[1] - self.widget_size // 2)
+        # Convert pynput coordinates to Qt coordinates for multi-monitor consistency
+        qt_position = self._convert_pynput_to_qt_coords(position)
         
-        # Simplified positioning for macOS - just use direct coordinates
+        # Position the widget centered on the click point
+        widget_x = qt_position.x() - self.widget_size // 2
+        widget_y = qt_position.y() - self.widget_size // 2
+        
+        # Position widget using the corrected coordinates
         self.move(widget_x, widget_y)
         
         # Reset animation properties
