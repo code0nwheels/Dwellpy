@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.4.0...dwellpy-v0.5.0) (2025-05-29)
+
+
+### Features
+
+* add visual click feedback with animated circles ([2d44b19](https://github.com/code0nwheels/Dwellpy/commit/2d44b19924229c172498665d03691d91eac303e6))
+
 ## [0.4.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.3.0...dwellpy-v0.4.0) (2025-05-29)
 
 
