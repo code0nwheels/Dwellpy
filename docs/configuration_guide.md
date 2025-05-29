@@ -73,7 +73,7 @@ Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog.
 - Reduces visual distractions during regular use
 - Gaming or video applications where animations might interfere
 - Battery optimization on portable devices
-- Motion sensitivity or seizure concerns
+- Motion sensitivity or seizure concerns.
 
 **Default setting**: Enabled
 
