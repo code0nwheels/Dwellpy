@@ -1,7 +1,7 @@
 #!/bin/bash
 # Dwellpy Linux Uninstall Script - Updated Version
 # Removes Dwellpy installation and auto-start configuration
-# Usage: curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/uninstall.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-uninstall.sh | bash
 
 set -e  # Exit on any error
 
