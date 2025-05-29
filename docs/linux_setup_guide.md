@@ -22,8 +22,10 @@ This script will:
 - ✅ Download and install Dwellpy from source
 - ✅ Create a launcher script in `~/.local/bin/dwellpy`
 - ✅ Add the launcher to your PATH
-- ✅ Set up a systemd service for auto-start
+- ✅ Create a desktop menu entry (appears in Applications menu)
+- ✅ Optionally set up autostart (asks for your preference)
 - ✅ Check for X11/Wayland compatibility
+- ✅ Detect desktop environment and optimize setup
 
 ### Supported Distributions
 - Ubuntu/Debian/Pop!_OS/Linux Mint
@@ -32,10 +34,17 @@ This script will:
 - Arch Linux/Manjaro
 - openSUSE
 
-After installation completes, you can start Dwellpy with:
-```bash
-dwellpy
-```
+### Installation Features
+The automated installer provides:
+- **Desktop Integration**: Dwellpy appears in your Applications menu
+- **Optional Auto-start**: Choose whether Dwellpy starts automatically when you log in
+- **Enhanced Launcher**: Improved startup script with GUI environment detection
+- **Comprehensive Logging**: Installation and runtime logs for troubleshooting
+
+After installation completes, you can:
+- Start from command line: `dwellpy`
+- Start from Applications menu: Look for "Dwellpy" in Accessibility or System Tools
+- Start automatically: If you chose auto-start during installation
 
 ## Manual Installation (Alternative)
 
@@ -110,64 +119,54 @@ Dwellpy currently requires X11. If you're using Wayland:
 
 The automated install script will detect Wayland and warn you about this requirement.
 
-## Managing the Dwellpy Service
+## Managing Auto-Start
 
-If you used the automated installer, Dwellpy is set up as a systemd user service:
-
-### Check service status:
+### Check if auto-start is enabled:
 ```bash
-systemctl --user status dwellpy.service
-```
-
-### Start the service manually:
-```bash
-systemctl --user start dwellpy.service
-```
-
-### Stop the service:
-```bash
-systemctl --user stop dwellpy.service
+ls -la ~/.config/autostart/dwellpy.desktop
 ```
 
 ### Disable auto-start:
 ```bash
-systemctl --user disable dwellpy.service
+rm ~/.config/autostart/dwellpy.desktop
 ```
 
-### Re-enable auto-start:
+### Enable auto-start (if not set up during installation):
 ```bash
-systemctl --user enable dwellpy.service
+# Copy the desktop entry to autostart
+cp ~/.local/share/applications/dwellpy.desktop ~/.config/autostart/dwellpy.desktop
 ```
 
-## Manual Auto-Start Setup
+### Desktop Environment Settings:
+You can also manage auto-start through your desktop environment:
+- **GNOME**: Settings → Applications → Startup Applications
+- **KDE**: System Settings → Startup and Shutdown → Autostart  
+- **XFCE**: Settings → Session and Startup → Application Autostart
+- **Ubuntu**: Search for "Startup Applications" in Activities
 
-If you installed manually and want auto-start, create a systemd user service:
+## Manual Auto-Start Setup (For Manual Installation)
 
-1. Create the service file:
-   ```bash
-   mkdir -p ~/.config/systemd/user
-   cat > ~/.config/systemd/user/dwellpy.service << EOF
-   [Unit]
-   Description=Dwellpy accessibility tool
-   After=graphical-session.target
+If you installed manually and want auto-start, create an XDG autostart entry:
 
-   [Service]
-   Type=simple
-   ExecStart=dwellpy
-   Restart=on-failure
-   Environment=DISPLAY=:0
+```bash
+# Create autostart directory
+mkdir -p ~/.config/autostart
 
-   [Install]
-   WantedBy=default.target
-   EOF
-   ```
-
-2. Enable and start the service:
-   ```bash
-   systemctl --user daemon-reload
-   systemctl --user enable dwellpy.service
-   systemctl --user start dwellpy.service
-   ```
+# Create desktop entry
+cat > ~/.config/autostart/dwellpy.desktop << EOF
+[Desktop Entry]
+Type=Application
+Name=Dwellpy
+Comment=Click by hovering - accessibility tool
+Exec=dwellpy
+Icon=applications-accessibility
+Categories=Accessibility;Utility;
+StartupNotify=false
+NoDisplay=false
+Hidden=false
+X-GNOME-Autostart-enabled=true
+EOF
+```
 
 ## Updating Dwellpy
 
@@ -185,22 +184,40 @@ pip3 install --upgrade dwellpy
 ## Uninstalling
 
 ### If installed with automated script:
+Use the automated uninstall script:
 ```bash
-# Stop and disable the service
-systemctl --user stop dwellpy.service
-systemctl --user disable dwellpy.service
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-uninstall.sh | bash
+```
 
-# Remove installation directory
-rm -rf ~/.local/dwellpy
+This will safely remove:
+- ✅ All Dwellpy source code and files
+- ✅ Desktop menu entry
+- ✅ Auto-start configuration
+- ✅ Launcher script
+- ✅ Running Dwellpy processes
+- ✅ Empty directories (if no other apps use them)
+
+**Optional removal**: The uninstaller will ask if you want to remove the PATH modification from `~/.bashrc` (it backs up the file first).
+
+### Manual uninstall (if needed):
+```bash
+# Stop running processes
+pkill -f "python3 -m dwellpy.main"
+
+# Remove auto-start
+rm -f ~/.config/autostart/dwellpy.desktop
+
+# Remove desktop menu entry  
+rm -f ~/.local/share/applications/dwellpy.desktop
 
 # Remove launcher script
 rm -f ~/.local/bin/dwellpy
 
-# Remove service file
-rm -f ~/.config/systemd/user/dwellpy.service
+# Remove source code
+rm -rf ~/.local/dwellpy
 
-# Reload systemd
-systemctl --user daemon-reload
+# Update desktop database
+update-desktop-database ~/.local/share/applications 2>/dev/null || true
 ```
 
 ### If installed with pip:

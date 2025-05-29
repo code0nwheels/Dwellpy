@@ -36,6 +36,11 @@ This guide helps you diagnose and fix common issues with Dwellpy.
    curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
    ```
 
+*If you need to completely remove and reinstall:*
+```
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-uninstall.sh | bash
+```
+
 ### "pip is not recognized" (Windows)
 **Cause**: Python wasn't installed correctly or PATH wasn't set.
 
@@ -193,6 +198,11 @@ sudo pacman -S tk python-dev
 **Alternative**: Use the automated installer which handles dependencies:
 ```
 curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
+```
+
+*If you need to completely remove and reinstall:*
+```
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-uninstall.sh | bash
 ```
 
 ### Linux: Works in X11 but not Wayland
