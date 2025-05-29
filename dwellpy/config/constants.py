@@ -156,7 +156,13 @@ DEFAULT_SETTINGS = {
     'scroll_speed': SCROLL_INTERVAL,
     'scroll_amount': SCROLL_AMOUNT,
     'scroll_opacity_base': SCROLL_OPACITY_BASE,
-    'scroll_opacity_hover': SCROLL_OPACITY_HOVER
+    'scroll_opacity_hover': SCROLL_OPACITY_HOVER,
+    'click_color_left': '#00e676',
+    'click_color_right': '#ff9800',
+    'click_color_double': '#e91e63',
+    'click_color_drag_down': '#9c27b0',
+    'click_color_drag_up': '#673ab7',
+    'click_color_middle': '#00bcd4'
 }
 
 # Available Click Modes

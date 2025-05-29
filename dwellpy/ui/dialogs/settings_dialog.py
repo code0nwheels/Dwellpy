@@ -1,9 +1,9 @@
 """Settings dialog for the Dwellpy application."""
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                           QPushButton, QSlider, QCheckBox, QFrame)
+                           QPushButton, QSlider, QCheckBox, QFrame, QColorDialog)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QColor
 
 try:
     from ...config.constants import Colors, BORDER_RADIUS, Fonts
@@ -116,7 +116,7 @@ class SettingsDialog(QDialog):
     
     def setup_ui(self):
         """Setup the dialog UI."""
-        self.setFixedSize(350, 580)  # Increased height for scroll settings
+        self.setFixedSize(350, 680)  # Increased height for click colors
         
         # Set window flags for frameless window
         self.setWindowFlags(
@@ -172,6 +172,12 @@ class SettingsDialog(QDialog):
         
         # Visible Clicks section
         self.create_visible_clicks_section(main_layout)
+        
+        # Click Colors section
+        self.create_click_colors_section(main_layout)
+        
+        # Add separator
+        self.add_separator(main_layout)
         
         # Default active state
         self.create_active_state_section(main_layout)
@@ -457,6 +463,59 @@ class SettingsDialog(QDialog):
         
         main_layout.addWidget(visible_clicks_frame)
     
+    def create_click_colors_section(self, main_layout):
+        """Create click colors customization section."""
+        # Section title
+        colors_label = QLabel("Click Colors:")
+        colors_label.setFont(QFont("Helvetica Neue", 11))
+        colors_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        main_layout.addWidget(colors_label)
+        
+        # Default colors to use if not set in settings
+        default_colors = {
+            'left': "#00e676",
+            'right': "#ff9800", 
+            'double': "#e91e63",
+            'drag_down': "#9c27b0",
+            'drag_up': "#673ab7",
+            'middle': "#00bcd4"
+        }
+        
+        # Color names for display
+        color_names = {
+            'left': "Left Click",
+            'right': "Right Click", 
+            'double': "Double Click",
+            'drag_down': "Drag Start",
+            'drag_up': "Drag End",
+            'middle': "Middle Click"
+        }
+        
+        # Create color picker buttons in two rows
+        # First row: Left, Right, Double
+        row1_frame = QFrame()
+        row1_layout = QHBoxLayout(row1_frame)
+        row1_layout.setContentsMargins(0, 0, 0, 0)
+        row1_layout.setSpacing(5)
+        
+        for click_type in ['left', 'right', 'double']:
+            color_btn = self.create_color_button(click_type, color_names[click_type], default_colors[click_type])
+            row1_layout.addWidget(color_btn)
+        
+        main_layout.addWidget(row1_frame)
+        
+        # Second row: Drag Start, Drag End, Middle
+        row2_frame = QFrame()
+        row2_layout = QHBoxLayout(row2_frame)
+        row2_layout.setContentsMargins(0, 0, 0, 0)
+        row2_layout.setSpacing(5)
+        
+        for click_type in ['drag_down', 'drag_up', 'middle']:
+            color_btn = self.create_color_button(click_type, color_names[click_type], default_colors[click_type])
+            row2_layout.addWidget(color_btn)
+        
+        main_layout.addWidget(row2_frame)
+    
     def create_active_state_section(self, main_layout):
         """Create default active state section."""
         active_frame = QFrame()
@@ -534,6 +593,86 @@ class SettingsDialog(QDialog):
             }}
         """)
         return button
+    
+    def create_color_button(self, click_type, display_name, default_color):
+        """Create a color picker button for a specific click type."""
+        # Get current color from settings or use default
+        current_color = self.settings_manager.get_setting(f'click_color_{click_type}', default_color)
+        
+        # Create button frame
+        btn_frame = QFrame()
+        btn_layout = QVBoxLayout(btn_frame)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setSpacing(2)
+        
+        # Label
+        label = QLabel(display_name)
+        label.setFont(QFont("Helvetica Neue", 9))
+        label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        btn_layout.addWidget(label)
+        
+        # Color button
+        color_btn = QPushButton()
+        color_btn.setFixedSize(80, 25)
+        color_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        color_btn.setProperty('click_type', click_type)  # Store click type for reference
+        
+        # Style the button with current color
+        self.update_color_button_style(color_btn, current_color)
+        
+        # Connect click event
+        color_btn.clicked.connect(lambda: self.open_color_picker(click_type, color_btn))
+        
+        btn_layout.addWidget(color_btn)
+        
+        return btn_frame
+    
+    def update_color_button_style(self, button, color_hex):
+        """Update a color button's style to show the selected color."""
+        button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {color_hex};
+                border: 2px solid {Colors.BORDER_COLOR};
+                border-radius: 3px;
+                color: {'#000000' if self.is_light_color(color_hex) else '#ffffff'};
+                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                font-size: 8pt;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                border: 2px solid {Colors.TEXT_COLOR};
+            }}
+        """)
+        button.setText(color_hex.upper())
+    
+    def is_light_color(self, color_hex):
+        """Check if a color is light (for text contrast)."""
+        try:
+            # Convert hex to RGB
+            color_hex = color_hex.lstrip('#')
+            r, g, b = tuple(int(color_hex[i:i+2], 16) for i in (0, 2, 4))
+            # Calculate luminance
+            luminance = (0.299 * r + 0.587 * g + 0.114 * b)
+            return luminance > 128
+        except:
+            return False
+    
+    def open_color_picker(self, click_type, button):
+        """Open color picker dialog for a specific click type."""
+        # Get current color
+        current_color_hex = self.settings_manager.get_setting(f'click_color_{click_type}', '#ffffff')
+        current_color = QColor(current_color_hex)
+        
+        # Open color dialog
+        color = QColorDialog.getColor(current_color, self, f"Choose {click_type.replace('_', ' ').title()} Color")
+        
+        if color.isValid():
+            color_hex = color.name()
+            # Update settings
+            self.settings_manager.set_setting(f'click_color_{click_type}', color_hex)
+            # Update button appearance
+            self.update_color_button_style(button, color_hex)
     
     def add_separator(self, layout):
         """Add a visual separator line."""

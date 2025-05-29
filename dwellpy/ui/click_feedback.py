@@ -88,16 +88,37 @@ class ClickFeedbackWidget(QWidget):
         # Hide initially
         self.hide()
         
-        # Click type colors
-        self.click_colors = {
-            'left': QColor(Colors.BLUE_ACCENT),
-            'right': QColor(Colors.GREEN_ACCENT),
-            'double': QColor(Colors.TEXT_COLOR),
-            'drag_down': QColor(Colors.RED_ACCENT),
-            'drag_up': QColor(Colors.RED_ACCENT),
-            'middle': QColor(Colors.TEXT_COLOR)
+        # Settings manager - will be set by the feedback manager
+        self.settings_manager = None
+        
+        # Default click type colors (fallback if settings not available)
+        self.default_click_colors = {
+            'left': QColor("#00e676"),       # Bright green - clearly intentional
+            'right': QColor("#ff9800"),      # Orange - distinct from other actions  
+            'double': QColor("#e91e63"),     # Pink/magenta - clearly special action
+            'drag_down': QColor("#9c27b0"),  # Purple - start of drag operation
+            'drag_up': QColor("#673ab7"),    # Darker purple - end of drag operation
+            'middle': QColor("#00bcd4")      # Cyan - distinct middle click
         }
         self.current_color = QColor(Colors.BLUE_ACCENT)
+        
+    def set_settings_manager(self, settings_manager):
+        """Set the settings manager for accessing color settings."""
+        self.settings_manager = settings_manager
+        
+    def get_click_color(self, click_type):
+        """Get the color for a specific click type from settings or defaults."""
+        if self.settings_manager:
+            # Get color from settings
+            color_hex = self.settings_manager.get_setting(f'click_color_{click_type}', None)
+            if color_hex:
+                return QColor(color_hex)
+        
+        # Fallback to default colors
+        if click_type in self.default_click_colors:
+            return self.default_click_colors[click_type]
+        else:
+            return self.default_click_colors['left']
         
     def setup_animations(self):
         """Setup the radius and opacity animations."""
@@ -205,12 +226,9 @@ class ClickFeedbackWidget(QWidget):
             position: Tuple (x, y) representing the click position in screen coordinates
             click_type: String indicating the type of click ('left', 'right', 'double', 'drag_down', 'drag_up', 'middle')
         """
-        # Set color based on click type
-        if click_type in self.click_colors:
-            self.current_color = self.click_colors[click_type]
-        else:
-            self.current_color = self.click_colors['left']  # Default to left click color
-            
+        # Set color based on click type using settings or defaults
+        self.current_color = self.get_click_color(click_type)
+        
         # Convert pynput coordinates to Qt coordinates for multi-monitor consistency
         qt_position = self._convert_pynput_to_qt_coords(position)
         
@@ -317,10 +335,19 @@ class ClickFeedbackManager:
         """Set the settings manager for checking if visible clicks are enabled."""
         self.settings_manager = settings_manager
         
+        # Also set it on the feedback widget for color access
+        if self.feedback_widget:
+            self.feedback_widget.set_settings_manager(settings_manager)
+        
     def initialize_widget(self):
         """Initialize the feedback widget."""
         try:
             self.feedback_widget = ClickFeedbackWidget()
+            
+            # Set settings manager if we have one
+            if self.settings_manager:
+                self.feedback_widget.set_settings_manager(self.settings_manager)
+                
         except Exception as e:
             # If widget creation fails, feedback will be disabled
             self.feedback_widget = None
