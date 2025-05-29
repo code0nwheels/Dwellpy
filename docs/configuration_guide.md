@@ -52,24 +52,56 @@ Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog.
 ### Visible Clicks
 **What it does**: Shows a brief visual animation (expanding circle) at the location where clicks are performed.
 
-**Colors by click type**:
-- **Blue**: Left clicks
-- **Green**: Right clicks  
-- **White**: Double clicks and middle clicks
-- **Red**: Drag actions (both down and up)
+**Colors by click type** (customizable in settings):
+- **Left clicks**: Bright green (default: #00e676)
+- **Right clicks**: Orange (default: #ff9800)  
+- **Double clicks**: Pink/magenta (default: #e91e63)
+- **Drag start**: Purple (default: #9c27b0)
+- **Drag end**: Darker purple (default: #673ab7)
+- **Middle clicks**: Cyan (default: #00bcd4)
+
+**Color customization**: Click any color button in the "Click Colors" section to open a color picker and personalize each action type.
 
 **When to enable**: 
 - Learning to use Dwellpy effectively
 - Confirming clicks are happening where expected
 - Troubleshooting click accuracy issues
 - Presentations or demonstrations
+- Want distinctive visual confirmation that differs from system feedback
 
 **When to disable**: 
 - Reduces visual distractions during regular use
 - Gaming or video applications where animations might interfere
 - Battery optimization on portable devices
+- Motion sensitivity or seizure concerns
 
 **Default setting**: Enabled
+
+### Click Colors
+**What it does**: Customize the colors used for visible click feedback animations for each action type.
+
+**Available customizations**:
+- **Left Click**: Color for standard left mouse clicks
+- **Right Click**: Color for context menu/right mouse clicks  
+- **Double Click**: Color for double-click actions
+- **Drag Start**: Color shown when drag operation begins (mouse down)
+- **Drag End**: Color shown when drag operation completes (mouse up)
+- **Middle Click**: Color for middle mouse button clicks
+
+**How to customize**:
+1. Open settings with the **SETUP** button
+2. Scroll down to the "Click Colors" section
+3. Click any color button to open a color picker
+4. Choose your preferred color from the picker
+5. Colors update immediately and are saved automatically
+
+**Design tips**:
+- Use high contrast colors that stand out against your typical background
+- Consider accessibility - avoid color combinations that are hard to distinguish
+- Different colors for different actions help identify which type of click occurred
+- Bright, saturated colors are more visible during quick animations
+
+**Default colors** are designed to be vibrant and distinct from typical system feedback, making it clear when Dwellpy is performing intentional actions rather than accidental system responses.
 
 ### Start Active on Launch
 **What it does**: Automatically turns on dwell clicking when Dwellpy starts.
@@ -158,11 +190,12 @@ Move Limit: 15-20 pixels
 Dwell Time: 0.8-1.2 seconds
 Scroll Speed: 2-3
 Visible Clicks: Disabled (reduces eye strain)
+Click Colors: Muted/darker colors if visible clicks enabled
 Auto Collapse: Enabled
 Expansion Direction: Horizontal (easier eye movement patterns)
 ```
 
-**Why**: Eye trackers can be less precise than other input methods. Longer dwell time prevents accidental activation from brief glances. Horizontal layout supports natural left-right eye scanning.
+**Why**: Eye trackers can be less precise than other input methods. Longer dwell time prevents accidental activation from brief glances. Horizontal layout supports natural left-right eye scanning. If using visible clicks, consider softer colors to reduce visual fatigue.
 
 ## Troubleshooting Settings
 
@@ -196,6 +229,9 @@ Expansion Direction: Horizontal (easier eye movement patterns)
 - Disable visible clicks if animations cause seizures or motion sensitivity
 - Adjust expansion direction if UI blocks important screen areas
 - Consider transparency settings if collapsed UI is hard to see
+- Customize click colors if default colors clash with your applications or are hard to see
+- Use darker/muted colors for extended use to reduce eye strain
+- Choose high-contrast colors if you have difficulty seeing the feedback animations
 
 ## Advanced Tips
 
@@ -216,14 +252,14 @@ Your settings are saved automatically, but if you find settings that work well, 
 
 ## Quick Reference
 
-| Task | Move Limit | Dwell Time | Visible Clicks | Auto Collapse | Notes |
-|------|------------|------------|----------------|---------------|-------|
-| General use | 8-12px | 0.6-0.8s | Enabled | Enabled | Balanced settings |
-| Reading/browsing | 10-15px | 0.4-0.6s | Enabled | Enabled | Enable scroll widget |
-| Precision work | 5-8px | 0.8-1.0s | Enabled | Disabled | Temporary mode helpful |
-| Gaming | 6-10px | 0.3-0.5s | Disabled | Disabled | Fast response needed |
-| Drawing/design | 3-6px | 1.0-1.5s | Enabled | Disabled | Maximum precision |
-| Learning/training | 8-12px | 0.8-1.2s | Enabled | Disabled | Visual feedback helpful |
+| Task | Move Limit | Dwell Time | Visible Clicks | Click Colors | Auto Collapse | Notes |
+|------|------------|------------|----------------|--------------|---------------|-------|
+| General use | 8-12px | 0.6-0.8s | Enabled | Default/bright | Enabled | Balanced settings |
+| Reading/browsing | 10-15px | 0.4-0.6s | Enabled | Default/bright | Enabled | Enable scroll widget |
+| Precision work | 5-8px | 0.8-1.0s | Enabled | High-contrast | Disabled | Temporary mode helpful |
+| Gaming | 6-10px | 0.3-0.5s | Disabled | N/A | Disabled | Fast response needed |
+| Drawing/design | 3-6px | 1.0-1.5s | Enabled | Muted/subtle | Disabled | Maximum precision |
+| Learning/training | 8-12px | 0.8-1.2s | Enabled | Bright/distinct | Disabled | Visual feedback helpful |
 
 Remember: These are starting points. Everyone's needs are different, so experiment to find what works best for you.
 
