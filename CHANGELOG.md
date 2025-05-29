@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.3.0...dwellpy-v0.4.0) (2025-05-29)
+
+
+### Features
+
+* add visible clicks feature with customizable feedback ([d774d5f](https://github.com/code0nwheels/Dwellpy/commit/d774d5f2a969fdd62d63434edb2cada82146e073))
+
 ## [0.3.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.2.1...dwellpy-v0.3.0) (2025-05-27)
 
 
