@@ -3,7 +3,7 @@ name: Update Wiki
 on:
   push:
     branches:
-      - ui/hide-options
+      - main
     paths:
       - 'docs/**'
   workflow_dispatch:
