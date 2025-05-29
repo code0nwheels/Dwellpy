@@ -4,14 +4,24 @@ This guide explains how to adjust Dwellpy's settings for your specific needs.
 
 ## Opening Settings
 
-Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog.
+Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog. The settings are organized into four main tabs for easy navigation:
 
-## Core Settings
+- **🎯 Dwell**: Movement detection and timing settings
+- **👁️ Visual**: Appearance and click feedback options  
+- **📜 Scroll**: Scroll widget configuration
+- **⚙️ General**: Startup and UI behavior settings
 
-### Move Limit (3-20 pixels)
+## Dwell Tab
+
+The Dwell tab contains the core settings that control how dwell clicking works.
+
+### Movement Detection
+This section controls how much your cursor can move while still counting as "dwelling" in one spot.
+
+#### Move Limit (3-20 pixels)
 **What it does**: Maximum distance your cursor can move while still "dwelling" in one spot.
 
-**How to adjust**: Use the slider or hover over the +/- buttons.
+**How to adjust**: Use the slider or hover over the +/- buttons for quick adjustment.
 
 **Recommended values**:
 - **3-8 pixels**: Good cursor control (regular mouse, precise head tracker)
@@ -23,10 +33,13 @@ Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog.
 - Too low = hard to dwell (keeps resetting)
 - Too high = accidental clicks when moving between targets
 
-### Dwell Time (0.1-2.0 seconds)
+### Dwell Timing
+This section controls how long you must hold your cursor still before a click happens.
+
+#### Dwell Time (0.1-2.0 seconds)
 **What it does**: How long you must hold your cursor in position before a click happens.
 
-**How to adjust**: Use the slider or hover over the +/- buttons.
+**How to adjust**: Use the slider or hover over the +/- buttons for quick adjustment.
 
 **Recommended values**:
 - **0.1-0.5 seconds**: Quick response, less fatigue
@@ -38,9 +51,14 @@ Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog.
 - Longer times = slower but more deliberate
 - Most users find 0.6-0.8 seconds works well
 
-## Visual Settings
+## Visual Tab
 
-### Window Transparency
+The Visual tab contains settings for how Dwellpy looks and provides visual feedback.
+
+### Window Appearance
+This section controls how the Dwellpy toolbar looks and behaves.
+
+#### Window Transparency
 **Enable window transparency**: Makes the toolbar see-through when your cursor isn't over it.
 
 **Transparency level**: How see-through the toolbar becomes (10-90%).
@@ -49,18 +67,11 @@ Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog.
 
 **Recommended**: Enable at 70% transparency for most users.
 
-### Visible Clicks
+### Click Feedback
+This section controls visual indicators to show where and what type of clicks are performed.
+
+#### Visible Clicks
 **What it does**: Shows a brief visual animation (expanding circle) at the location where clicks are performed.
-
-**Colors by click type** (customizable in settings):
-- **Left clicks**: Bright green (default: #00e676)
-- **Right clicks**: Orange (default: #ff9800)  
-- **Double clicks**: Pink/magenta (default: #e91e63)
-- **Drag start**: Purple (default: #9c27b0)
-- **Drag end**: Darker purple (default: #673ab7)
-- **Middle clicks**: Cyan (default: #00bcd4)
-
-**Color customization**: Click any color button in the "Click Colors" section to open a color picker and personalize each action type.
 
 **When to enable**: 
 - Learning to use Dwellpy effectively
@@ -77,21 +88,21 @@ Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog.
 
 **Default setting**: Enabled
 
-### Click Colors
+#### Click Colors
 **What it does**: Customize the colors used for visible click feedback animations for each action type.
 
 **Available customizations**:
-- **Left Click**: Color for standard left mouse clicks
-- **Right Click**: Color for context menu/right mouse clicks  
-- **Double Click**: Color for double-click actions
-- **Drag Start**: Color shown when drag operation begins (mouse down)
-- **Drag End**: Color shown when drag operation completes (mouse up)
-- **Middle Click**: Color for middle mouse button clicks
+- **Left Click**: Color for standard left mouse clicks (default: bright green #00e676)
+- **Right Click**: Color for context menu/right mouse clicks (default: orange #ff9800)
+- **Double Click**: Color for double-click actions (default: pink/magenta #e91e63)
+- **Drag Start**: Color shown when drag operation begins (default: purple #9c27b0)
+- **Drag End**: Color shown when drag operation completes (default: darker purple #673ab7)
+- **Middle Click**: Color for middle mouse button clicks (default: cyan #00bcd4)
 
 **How to customize**:
 1. Open settings with the **SETUP** button
-2. Scroll down to the "Click Colors" section
-3. Click any color button to open a color picker
+2. Go to the **Visual** tab
+3. In the "Click Feedback" section, click any color button to open a color picker
 4. Choose your preferred color from the picker
 5. Colors update immediately and are saved automatically
 
@@ -103,23 +114,21 @@ Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog.
 
 **Default colors** are designed to be vibrant and distinct from typical system feedback, making it clear when Dwellpy is performing intentional actions rather than accidental system responses.
 
-### Start Active on Launch
-**What it does**: Automatically turns on dwell clicking when Dwellpy starts.
+## Scroll Tab
 
-**When to enable**: If you always want dwell clicking active immediately.
+The Scroll tab contains settings for the floating scroll widget.
 
-**When to disable**: If you prefer to manually turn it on when needed.
+### Scroll Widget
+This section controls a floating scroll widget that appears near your cursor for easy scrolling.
 
-## Scroll Widget Settings
-
-### Enable Scroll Widget
+#### Enable Scroll Widget
 **What it does**: Shows/hides the floating scroll helper that follows your cursor.
 
 **When to enable**: For reading documents, browsing web pages, or working with long content.
 
 **When to disable**: When using on-screen keyboards or other tools that might conflict.
 
-### Scroll Speed (1-10)
+#### Scroll Speed (1-10)
 **What it does**: Controls how fast scrolling happens when you hover over the scroll arrows.
 
 **Scale**: 1 = slowest (200ms between scrolls), 10 = fastest (20ms between scrolls)
@@ -128,6 +137,65 @@ Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog.
 - **1-3**: Slow, controlled scrolling for precise reading
 - **4-6**: Medium speed for general use
 - **7-10**: Fast scrolling for quickly moving through content
+
+## General Tab
+
+The General tab contains startup and UI behavior settings.
+
+### Startup Behavior
+This section controls how Dwellpy should behave when first launched.
+
+#### Start Active on Launch
+**What it does**: Automatically turns on dwell clicking when Dwellpy starts.
+
+**When to enable**: If you always want dwell clicking active immediately.
+
+**When to disable**: If you prefer to manually turn it on when needed.
+
+### UI Behavior
+This section controls how the toolbar behaves when you're not using it.
+
+#### Auto Collapse UI
+**What it does**: Automatically shrinks the Dwellpy toolbar to a single button when your cursor moves away from it.
+
+**How it works**: 
+- When enabled, the toolbar contracts to a small button showing current status after 1 second
+- The contracted button shows current mode (e.g., "LEFT", "OFF", "DRAG*" for temporary mode)
+- Hover over the contracted button to expand back to full toolbar
+- Auto-expands when cursor returns to the area
+
+**When to enable**:
+- Reduce screen clutter during regular computer use
+- Maximize available screen real estate
+- Minimize visual distractions while keeping Dwellpy accessible
+
+**When to disable**:
+- Prefer having all controls always visible
+- Frequently switch between click modes
+- Using touch screen or other direct input methods
+
+**Default setting**: Disabled
+
+#### Expansion Direction
+**What it controls**: Which direction the UI expands when auto-collapse is enabled.
+
+**Options** (radio button selection):
+- **Auto (recommended)**: Automatically chooses the best direction based on screen position and available space
+- **Horizontal (left-to-right)**: Always expands left-to-right (traditional toolbar layout)
+- **Vertical (top-to-bottom)**: Always expands top-to-bottom (column layout)
+
+**Auto mode logic**:
+- Analyzes available screen space in all directions
+- Prefers horizontal expansion when space permits
+- Falls back to vertical if horizontal space is limited
+- Considers screen edges and multi-monitor setups
+
+**When to use specific directions**:
+- **Horizontal**: Wide screens, traditional desktop layouts
+- **Vertical**: Narrow screens, side-mounted positioning, ultrawide monitors
+- **Auto**: Most users - let Dwellpy choose the optimal layout
+
+**Note**: This setting only applies when "Contract UI when cursor is outside" is enabled.
 
 ## Click Mode Settings
 
@@ -143,6 +211,19 @@ Dwellpy has two types of click modes:
 3. **Return to LEFT**: All modes return to LEFT click after being used once
 
 The default mode is always LEFT click and cannot be changed.
+
+## Settings Navigation Tips
+
+### Quick Adjustments
+- **Hover over +/- buttons** in any tab for quick value adjustments (repeats every 0.5 seconds)
+- **Use sliders** for more precise control
+- **Color buttons** open color pickers immediately for customization
+
+### Tab Organization
+- **Dwell tab**: Start here for basic functionality setup
+- **Visual tab**: Customize appearance and feedback
+- **Scroll tab**: Configure scrolling helper
+- **General tab**: Set startup and advanced UI behavior
 
 ## Condition-Specific Recommendations
 
@@ -252,14 +333,21 @@ Your settings are saved automatically, but if you find settings that work well, 
 
 ## Quick Reference
 
-| Task | Move Limit | Dwell Time | Visible Clicks | Click Colors | Auto Collapse | Notes |
-|------|------------|------------|----------------|--------------|---------------|-------|
-| General use | 8-12px | 0.6-0.8s | Enabled | Default/bright | Enabled | Balanced settings |
-| Reading/browsing | 10-15px | 0.4-0.6s | Enabled | Default/bright | Enabled | Enable scroll widget |
-| Precision work | 5-8px | 0.8-1.0s | Enabled | High-contrast | Disabled | Temporary mode helpful |
-| Gaming | 6-10px | 0.3-0.5s | Disabled | N/A | Disabled | Fast response needed |
-| Drawing/design | 3-6px | 1.0-1.5s | Enabled | Muted/subtle | Disabled | Maximum precision |
-| Learning/training | 8-12px | 0.8-1.2s | Enabled | Bright/distinct | Disabled | Visual feedback helpful |
+| Task | Tab | Move Limit | Dwell Time | Visible Clicks | Click Colors | Auto Collapse | Notes |
+|------|-----|------------|------------|----------------|--------------|---------------|-------|
+| General use | Dwell/Visual | 8-12px | 0.6-0.8s | Enabled | Default/bright | Enabled | Balanced settings |
+| Reading/browsing | All tabs | 10-15px | 0.4-0.6s | Enabled | Default/bright | Enabled | Enable scroll widget |
+| Precision work | Dwell/Visual | 5-8px | 0.8-1.0s | Enabled | High-contrast | Disabled | Temporary mode helpful |
+| Gaming | Dwell/Visual | 6-10px | 0.3-0.5s | Disabled | N/A | Disabled | Fast response needed |
+| Drawing/design | Dwell/Visual | 3-6px | 1.0-1.5s | Enabled | Muted/subtle | Disabled | Maximum precision |
+| Learning/training | All tabs | 8-12px | 0.8-1.2s | Enabled | Bright/distinct | Disabled | Visual feedback helpful |
+
+**Settings Location Guide**:
+- **Move Limit & Dwell Time**: Dwell tab
+- **Visible Clicks & Click Colors**: Visual tab  
+- **Auto Collapse & Expansion Direction**: General tab
+- **Scroll Widget**: Scroll tab
+- **Transparency**: Visual tab
 
 Remember: These are starting points. Everyone's needs are different, so experiment to find what works best for you.
 

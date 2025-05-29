@@ -46,8 +46,10 @@ python -m dwellpy.main
 - **Multiple click types**: Left, right, double-click, and drag operations
 - **Smart scrolling**: Floating widget for hands-free document navigation
 - **Visual feedback**: Customizable click animations with distinctive colors for each action type
+- **Organized settings**: Tabbed interface with logical grouping (Dwell, Visual, Scroll, General)
+- **Dwell-friendly controls**: Large buttons with hover functionality for easy adjustment
 - **Auto-collapse UI**: Minimize screen clutter with intelligent toolbar behavior
-- **Configurable**: Adjust sensitivity for different motor abilities
+- **Configurable**: Adjust sensitivity for different motor abilities and use cases
 - **Cross-platform**: Windows, macOS, and Linux support
 
 ## Documentation
