@@ -27,6 +27,7 @@ Instead of physically clicking, **just hover your cursor over any area for a sho
 - **Multiple Click Types**: Left, right, double-click, and drag operations
 - **Intelligent Modes**: Temporary mode switching with visual feedback  
 - **Adaptive Sensitivity**: Customizable hover time and movement tolerance
+- **Visual Click Feedback**: See where clicks happen with animated indicators
 
 ### 📜 **Hands-Free Scrolling**
 - **Floating Scroll Widget**: Follows your cursor automatically
@@ -116,6 +117,7 @@ Access via **SETUP** button - all settings apply immediately:
 ### Advanced Settings
 
 **Window Transparency**: Make toolbar see-through when not in use  
+**Visible Clicks**: Show animated circles when clicks are performed (helpful for confirming actions)  
 **Scroll Widget**: Adjust speed, positioning, and opacity  
 **Auto-Start**: Launch active by default
 
