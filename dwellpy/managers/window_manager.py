@@ -65,8 +65,51 @@ class WindowManager:
         # Calculate new position (QPoint + QPoint = QPoint)
         new_position = self.window_start_position + delta
         
+        # Apply boundary checking to keep window within screen bounds
+        bounded_position = self._ensure_position_in_bounds(new_position, window)
+        
         # Move the window
-        window.move(new_position)
+        window.move(bounded_position)
+    
+    def _ensure_position_in_bounds(self, position, window):
+        """Ensure the window position stays within screen bounds, considering all monitors."""
+        try:
+            from PyQt6.QtGui import QGuiApplication
+            
+            # Get all available screens
+            app = QGuiApplication.instance()
+            screens = app.screens()
+            
+            # Calculate the combined desktop geometry (all monitors)
+            desktop_rect = None
+            for screen in screens:
+                screen_geometry = screen.geometry()
+                if desktop_rect is None:
+                    desktop_rect = screen_geometry
+                else:
+                    desktop_rect = desktop_rect.united(screen_geometry)
+            
+            # If we couldn't get screen info, return original position
+            if desktop_rect is None:
+                return position
+            
+            window_size = window.size()
+            
+            # Calculate the bounds across all monitors
+            min_x = desktop_rect.left()
+            min_y = desktop_rect.top()
+            max_x = desktop_rect.right() - window_size.width()
+            max_y = desktop_rect.bottom() - window_size.height()
+            
+            # Constrain position to the combined desktop bounds
+            bounded_x = max(min_x, min(position.x(), max_x))
+            bounded_y = max(min_y, min(position.y(), max_y))
+            
+            return QPoint(bounded_x, bounded_y)
+            
+        except Exception:
+            # If there's any error, return the original position
+            return position
     
     def stop_drag(self, event, window):
         """Stop the drag operation when mouse is released."""

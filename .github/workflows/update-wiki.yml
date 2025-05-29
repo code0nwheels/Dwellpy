@@ -1,0 +1,99 @@
+name: Update Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-wiki:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Clone wiki repository
+        run: |
+          git clone https://github.com/${{ github.repository }}.wiki.git wiki-repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Copy and rename documentation files
+        run: |
+          cd wiki-repo
+          
+          # Create file mappings from docs/ to wiki format
+          declare -A file_mappings=(
+            ["../docs/wiki_home_page.md"]="Home.md"
+            ["../docs/windows_setup_guide.md"]="Windows-Setup.md"
+            ["../docs/macos_setup_guide.md"]="macOS-Setup.md"
+            ["../docs/linux_setup_guide.md"]="Linux-Setup.md"
+            ["../docs/configuration_guide.md"]="Configuration.md"
+            ["../docs/troubleshooting_guide.md"]="Troubleshooting.md"
+            ["../docs/CONTRIBUTING.md"]="Contributing.md"
+          )
+          
+          # Copy files with proper naming
+          for source_file in "${!file_mappings[@]}"; do
+            target_file="${file_mappings[$source_file]}"
+            if [ -f "$source_file" ]; then
+              echo "Copying $source_file to $target_file"
+              cp "$source_file" "$target_file"
+            else
+              echo "Warning: $source_file not found"
+            fi
+          done
+      
+      - name: Check for changes and commit
+        run: |
+          cd wiki-repo
+          
+          # Check if there are any changes
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          # Add all changes
+          git add .
+          
+          # Get the latest commit message from the main repo for context
+          cd ..
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          cd wiki-repo
+          
+          # Commit changes
+          git commit -m "docs: update wiki pages from docs/ folder
+
+          Source commit: $COMMIT_MSG
+          
+          Auto-updated by GitHub Actions"
+      
+      - name: Push changes to wiki
+        run: |
+          cd wiki-repo
+          
+          # Check if there are commits to push
+          if git log origin/master..HEAD --oneline | grep -q .; then
+            echo "Pushing changes to wiki..."
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git
+            echo "Wiki updated successfully!"
+          else
+            echo "No new commits to push"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

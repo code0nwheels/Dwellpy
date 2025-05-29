@@ -10,7 +10,8 @@ from ..config.constants import (
     DEFAULT_SETTINGS, SETTINGS_FILENAME,
     MIN_MOVE_LIMIT, MAX_MOVE_LIMIT,
     MIN_DWELL_TIME, MAX_DWELL_TIME,
-    MIN_TRANSPARENCY, MAX_TRANSPARENCY
+    MIN_TRANSPARENCY, MAX_TRANSPARENCY,
+    EXPANSION_DIRECTIONS
 )
 from ..utils.helpers import get_settings_file_path, get_screen_center, clamp_value
 from ..ui.dialogs.settings_dialog import SettingsDialog
@@ -322,6 +323,41 @@ class SettingsManager:
         self.settings['visible_clicks_enabled'] = enabled
         self.logger.info(f"Visible clicks enabled: {enabled}")
     
+    def update_contract_ui_enabled(self, enabled: bool) -> None:
+        """
+        Update UI contraction enabled setting and apply immediately.
+        
+        Args:
+            enabled: Whether UI contraction is enabled
+        """
+        self.settings['contract_ui_enabled'] = enabled
+        
+        # Apply contraction change immediately if UI manager is available
+        if self.ui_manager:
+            self.ui_manager.apply_contraction_settings()
+        
+        self.logger.info(f"UI contraction enabled: {enabled}")
+    
+    def update_expansion_direction(self, direction: str) -> None:
+        """
+        Update UI expansion direction setting and apply immediately.
+        
+        Args:
+            direction: Expansion direction ('auto', 'horizontal', 'vertical')
+        """
+        valid_directions = ['auto', 'horizontal', 'vertical']
+        
+        if direction in valid_directions:
+            self.settings['expansion_direction'] = direction
+            
+            # Apply expansion direction change immediately if UI manager is available
+            if self.ui_manager:
+                self.ui_manager.apply_expansion_settings()
+            
+            self.logger.info(f"UI expansion direction updated to: {direction}")
+        else:
+            self.logger.warning(f"Invalid expansion direction: {direction}")
+    
     def update_default_mode(self, mode: str) -> None:
         """
         Update default click mode setting.
@@ -351,6 +387,8 @@ class SettingsManager:
         if self.ui_manager:
             self.ui_manager.apply_transparency_settings()
             self.ui_manager.apply_scroll_settings()
+            self.ui_manager.apply_contraction_settings()
+            self.ui_manager.apply_expansion_settings()
         
         self.logger.info("Settings reset to defaults")
     

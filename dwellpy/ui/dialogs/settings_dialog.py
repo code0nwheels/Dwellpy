@@ -1,7 +1,7 @@
 """Settings dialog for the Dwellpy application."""
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                           QPushButton, QSlider, QCheckBox, QFrame, QColorDialog)
+                           QPushButton, QSlider, QCheckBox, QFrame, QComboBox, QColorDialog, QTabWidget, QWidget, QRadioButton, QButtonGroup)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor
 
@@ -16,6 +16,7 @@ except ImportError:
         DARK_BUTTON_BG = "#2d2d2d"
         TEXT_COLOR = "#ffffff"
         BLUE_ACCENT = "#0078d7"
+        BLUE_HOVER = "#0069c0"
         SLIDER_TRACK = "#444444"
         BORDER_COLOR = "#3c3c3c"
     
@@ -115,8 +116,8 @@ class SettingsDialog(QDialog):
         self.scroll_speed_plus_repeat.timeout.connect(self.on_hover_plus_scroll_speed)
     
     def setup_ui(self):
-        """Setup the dialog UI."""
-        self.setFixedSize(350, 680)  # Increased height for click colors
+        """Setup the dialog UI with left-side wide tabs for dwell-friendly navigation."""
+        self.setFixedSize(550, 550)  # Much taller to accommodate all content
         
         # Set window flags for frameless window
         self.setWindowFlags(
@@ -128,59 +129,66 @@ class SettingsDialog(QDialog):
         # Make dialog non-modal
         self.setModal(False)
         
-        # Apply dark theme
+        # Apply dark theme with left-side tab styling
         self.setStyleSheet(f"""
             QDialog {{
                 background-color: {Colors.DARK_BG};
                 color: {Colors.TEXT_COLOR};
                 border: 1px solid {Colors.BORDER_COLOR};
             }}
+            QTabWidget::pane {{
+                border: 1px solid {Colors.BORDER_COLOR};
+                background-color: {Colors.DARK_BG};
+                margin-top: 0px;
+            }}
+            QTabBar::tab {{
+                background-color: {Colors.DARK_BUTTON_BG};
+                color: {Colors.TEXT_COLOR};
+                padding: 8px 15px;
+                margin-right: 2px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                min-width: 100px;
+                min-height: 20px;
+                font-size: 10pt;
+                font-weight: bold;
+            }}
+            QTabBar[tabPosition="2"]::tab {{
+                writing-mode: horizontal-tb;
+                text-orientation: mixed;
+                padding: 8px 12px;
+            }}
+            QTabBar::tab:selected {{
+                background-color: {Colors.BLUE_ACCENT};
+                color: {Colors.TEXT_COLOR};
+            }}
+            QTabBar::tab:hover {{
+                background-color: {Colors.BLUE_HOVER};
+            }}
+            QTabWidget::tab-bar {{
+                alignment: center;
+            }}
         """)
         
         # Main layout
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 15, 20, 10)
+        main_layout.setContentsMargins(10, 8, 10, 8)
         main_layout.setSpacing(8)
         
         # Title area with close button
         title_frame = self.create_title_frame()
         main_layout.addWidget(title_frame)
         
-        # Move Limit section
-        self.create_move_limit_section(main_layout)
+        # Create tab widget with top tabs and shorter names
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)  # Top tabs
+        main_layout.addWidget(self.tab_widget)
         
-        # Add separator
-        self.add_separator(main_layout)
-        
-        # Dwell Time section
-        self.create_dwell_time_section(main_layout)
-        
-        # Add separator
-        self.add_separator(main_layout)
-        
-        # Transparency section
-        self.create_transparency_section(main_layout)
-        
-        # Add separator
-        self.add_separator(main_layout)
-        
-        # Scroll Widget section
-        self.create_scroll_widget_section(main_layout)
-        
-        # Add separator
-        self.add_separator(main_layout)
-        
-        # Visible Clicks section
-        self.create_visible_clicks_section(main_layout)
-        
-        # Click Colors section
-        self.create_click_colors_section(main_layout)
-        
-        # Add separator
-        self.add_separator(main_layout)
-        
-        # Default active state
-        self.create_active_state_section(main_layout)
+        # Create tabs
+        self.create_dwell_movement_tab()
+        self.create_visual_feedback_tab()
+        self.create_scroll_widget_tab()
+        self.create_general_tab()
         
         # OK button
         self.create_ok_button(main_layout)
@@ -228,13 +236,111 @@ class SettingsDialog(QDialog):
         
         return title_frame
     
-    def create_move_limit_section(self, main_layout):
+    def create_dwell_movement_tab(self):
+        """Create dwell movement tab."""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(20)
+        
+        # Movement Detection Section
+        movement_header = self.create_section_header("Movement Detection", 
+                                                   "How much your cursor can move while still counting as 'dwelling' in one spot")
+        layout.addWidget(movement_header)
+        
+        self.create_move_limit_section(layout)
+        
+        # Timing Section  
+        timing_header = self.create_section_header("Dwell Timing",
+                                                 "How long you must hold your cursor still before a click happens")
+        layout.addWidget(timing_header)
+        
+        self.create_dwell_time_section(layout)
+        
+        # Add stretch to push content to the top
+        layout.addStretch()
+        
+        self.tab_widget.addTab(tab, "Dwell")
+    
+    def create_visual_feedback_tab(self):
+        """Create visual feedback tab."""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(20)
+        
+        # Window Appearance Section
+        appearance_header = self.create_section_header("Window Appearance",
+                                                     "Control how the Dwellpy toolbar looks and behaves")
+        layout.addWidget(appearance_header)
+        
+        self.create_transparency_section(layout)
+        
+        # Click Feedback Section
+        feedback_header = self.create_section_header("Click Feedback",
+                                                   "Visual indicators to show where and what type of clicks are performed")
+        layout.addWidget(feedback_header)
+        
+        self.create_visible_clicks_section(layout)
+        self.create_click_colors_section(layout)
+        
+        # Add stretch to push content to the top
+        layout.addStretch()
+        
+        self.tab_widget.addTab(tab, "Visual")
+    
+    def create_scroll_widget_tab(self):
+        """Create scroll widget tab."""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(20)
+        
+        # Scroll Widget Section
+        scroll_header = self.create_section_header("Scroll Widget",
+                                                 "A floating scroll widget that appears near your cursor for easy scrolling")
+        layout.addWidget(scroll_header)
+        
+        self.create_scroll_widget_section(layout)
+        
+        # Add stretch to push content to the top
+        layout.addStretch()
+        
+        self.tab_widget.addTab(tab, "Scroll")
+    
+    def create_general_tab(self):
+        """Create general tab."""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(20)
+        
+        # Startup Behavior Section
+        startup_header = self.create_section_header("Startup Behavior",
+                                                  "How Dwellpy should behave when first launched")
+        layout.addWidget(startup_header)
+        
+        self.create_active_state_section(layout)
+        
+        # UI Behavior Section
+        ui_header = self.create_section_header("UI Behavior",
+                                             "How the toolbar behaves when you're not using it")
+        layout.addWidget(ui_header)
+        
+        self.create_ui_contraction_section(layout)
+        
+        # Add stretch to push content to the top
+        layout.addStretch()
+        
+        self.tab_widget.addTab(tab, "General")
+    
+    def create_move_limit_section(self, layout):
         """Create move limit adjustment section."""
         # Label
         move_label = QLabel("Move Limit (px):")
         move_label.setFont(QFont("Helvetica Neue", 11))
         move_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
-        main_layout.addWidget(move_label)
+        layout.addWidget(move_label)
         
         # Controls frame
         move_frame = QFrame()
@@ -272,15 +378,15 @@ class SettingsDialog(QDialog):
         self.move_limit_value.setFixedWidth(30)
         move_layout.addWidget(self.move_limit_value)
         
-        main_layout.addWidget(move_frame)
+        layout.addWidget(move_frame)
     
-    def create_dwell_time_section(self, main_layout):
+    def create_dwell_time_section(self, layout):
         """Create dwell time adjustment section."""
         # Label
         time_label = QLabel("Dwell Time (s):")
         time_label.setFont(QFont("Helvetica Neue", 11))
         time_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
-        main_layout.addWidget(time_label)
+        layout.addWidget(time_label)
         
         # Controls frame
         time_frame = QFrame()
@@ -318,9 +424,9 @@ class SettingsDialog(QDialog):
         self.time_value.setFixedWidth(30)
         time_layout.addWidget(self.time_value)
         
-        main_layout.addWidget(time_frame)
+        layout.addWidget(time_frame)
     
-    def create_transparency_section(self, main_layout):
+    def create_transparency_section(self, layout):
         """Create transparency adjustment section."""
         # Enable checkbox
         transparency_enable_frame = QFrame()
@@ -334,13 +440,13 @@ class SettingsDialog(QDialog):
         self.transparency_check.setStyleSheet(self.get_checkbox_style())
         transparency_enable_layout.addWidget(self.transparency_check)
         
-        main_layout.addWidget(transparency_enable_frame)
+        layout.addWidget(transparency_enable_frame)
         
         # Transparency level label
         transparency_label = QLabel("Transparency (%):")
         transparency_label.setFont(QFont("Helvetica Neue", 11))
         transparency_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
-        main_layout.addWidget(transparency_label)
+        layout.addWidget(transparency_label)
         
         # Controls frame
         transparency_frame = QFrame()
@@ -358,6 +464,7 @@ class SettingsDialog(QDialog):
         self.transparency_slider = QSlider(Qt.Orientation.Horizontal)
         self.transparency_slider.setRange(10, 90)
         self.transparency_slider.setValue(self.settings_manager.get_setting('transparency_level', 70))
+        self.transparency_slider.setStyleSheet(self.get_slider_style())
         transparency_layout.addWidget(self.transparency_slider)
         
         # Plus button
@@ -377,77 +484,9 @@ class SettingsDialog(QDialog):
         self.transparency_value.setFixedWidth(40)
         transparency_layout.addWidget(self.transparency_value)
         
-        main_layout.addWidget(transparency_frame)
-        
-        # Update controls state
-        self.update_transparency_controls_state()
+        layout.addWidget(transparency_frame)
     
-    def create_scroll_widget_section(self, main_layout):
-        """Create scroll widget settings section."""
-        # Enable checkbox
-        scroll_enable_frame = QFrame()
-        scroll_enable_layout = QHBoxLayout(scroll_enable_frame)
-        scroll_enable_layout.setContentsMargins(0, 0, 0, 0)
-        scroll_enable_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        
-        self.scroll_check = QCheckBox("Enable scroll widget")
-        self.scroll_check.setChecked(self.settings_manager.get_setting('scroll_enabled', True))
-        self.scroll_check.setFont(QFont("Helvetica Neue", 11))
-        self.scroll_check.setStyleSheet(self.get_checkbox_style())
-        scroll_enable_layout.addWidget(self.scroll_check)
-        
-        main_layout.addWidget(scroll_enable_frame)
-        
-        # Scroll speed label
-        scroll_speed_label = QLabel("Scroll Speed:")
-        scroll_speed_label.setFont(QFont("Helvetica Neue", 11))
-        scroll_speed_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
-        main_layout.addWidget(scroll_speed_label)
-        
-        # Controls frame
-        scroll_speed_frame = QFrame()
-        scroll_speed_layout = QHBoxLayout(scroll_speed_frame)
-        scroll_speed_layout.setContentsMargins(0, 0, 0, 0)
-        scroll_speed_layout.setSpacing(5)
-        
-        # Minus button
-        scroll_speed_minus_btn = self.create_adjustment_button("-")
-        scroll_speed_minus_btn.enterEvent = lambda e: self.on_enter_minus_scroll_speed()
-        scroll_speed_minus_btn.leaveEvent = lambda e: self.on_leave_minus_scroll_speed()
-        scroll_speed_layout.addWidget(scroll_speed_minus_btn)
-        
-        # Slider (1-10, where 1 is slowest, 10 is fastest)
-        self.scroll_speed_slider = QSlider(Qt.Orientation.Horizontal)
-        self.scroll_speed_slider.setRange(1, 10)
-        # Convert interval to speed (lower interval = faster speed)
-        current_interval = self.settings_manager.get_setting('scroll_speed', 100)
-        speed_value = 11 - (current_interval // 20)  # 200ms=1, 180ms=2, ..., 20ms=10
-        self.scroll_speed_slider.setValue(max(1, min(10, speed_value)))
-        scroll_speed_layout.addWidget(self.scroll_speed_slider)
-        
-        # Plus button
-        scroll_speed_plus_btn = self.create_adjustment_button("+")
-        scroll_speed_plus_btn.enterEvent = lambda e: self.on_enter_plus_scroll_speed()
-        scroll_speed_plus_btn.leaveEvent = lambda e: self.on_leave_plus_scroll_speed()
-        scroll_speed_layout.addWidget(scroll_speed_plus_btn)
-        
-        # Value label
-        self.scroll_speed_value = QLabel(str(self.scroll_speed_slider.value()))
-        self.scroll_speed_value.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 12pt;
-            font-weight: bold;
-            color: {Colors.TEXT_COLOR};
-        """)
-        self.scroll_speed_value.setFixedWidth(30)
-        scroll_speed_layout.addWidget(self.scroll_speed_value)
-        
-        main_layout.addWidget(scroll_speed_frame)
-        
-        # Update controls state
-        self.update_scroll_controls_state()
-    
-    def create_visible_clicks_section(self, main_layout):
+    def create_visible_clicks_section(self, layout):
         """Create visible clicks section."""
         # Enable checkbox
         visible_clicks_frame = QFrame()
@@ -461,15 +500,15 @@ class SettingsDialog(QDialog):
         self.visible_clicks_check.setStyleSheet(self.get_checkbox_style())
         visible_clicks_layout.addWidget(self.visible_clicks_check)
         
-        main_layout.addWidget(visible_clicks_frame)
+        layout.addWidget(visible_clicks_frame)
     
-    def create_click_colors_section(self, main_layout):
+    def create_click_colors_section(self, layout):
         """Create click colors customization section."""
         # Section title
         colors_label = QLabel("Click Colors:")
         colors_label.setFont(QFont("Helvetica Neue", 11))
         colors_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
-        main_layout.addWidget(colors_label)
+        layout.addWidget(colors_label)
         
         # Default colors to use if not set in settings
         default_colors = {
@@ -491,32 +530,82 @@ class SettingsDialog(QDialog):
             'middle': "Middle Click"
         }
         
-        # Create color picker buttons in two rows
-        # First row: Left, Right, Double
-        row1_frame = QFrame()
-        row1_layout = QHBoxLayout(row1_frame)
-        row1_layout.setContentsMargins(0, 0, 0, 0)
-        row1_layout.setSpacing(5)
+        # Create color picker buttons in a single row for wider dialog
+        color_row_frame = QFrame()
+        color_row_layout = QHBoxLayout(color_row_frame)
+        color_row_layout.setContentsMargins(0, 0, 0, 0)
+        color_row_layout.setSpacing(8)
         
-        for click_type in ['left', 'right', 'double']:
+        for click_type in ['left', 'right', 'double', 'drag_down', 'drag_up', 'middle']:
             color_btn = self.create_color_button(click_type, color_names[click_type], default_colors[click_type])
-            row1_layout.addWidget(color_btn)
+            color_row_layout.addWidget(color_btn)
         
-        main_layout.addWidget(row1_frame)
-        
-        # Second row: Drag Start, Drag End, Middle
-        row2_frame = QFrame()
-        row2_layout = QHBoxLayout(row2_frame)
-        row2_layout.setContentsMargins(0, 0, 0, 0)
-        row2_layout.setSpacing(5)
-        
-        for click_type in ['drag_down', 'drag_up', 'middle']:
-            color_btn = self.create_color_button(click_type, color_names[click_type], default_colors[click_type])
-            row2_layout.addWidget(color_btn)
-        
-        main_layout.addWidget(row2_frame)
+        layout.addWidget(color_row_frame)
     
-    def create_active_state_section(self, main_layout):
+    def create_scroll_widget_section(self, layout):
+        """Create scroll widget settings section."""
+        # Enable checkbox
+        scroll_enable_frame = QFrame()
+        scroll_enable_layout = QHBoxLayout(scroll_enable_frame)
+        scroll_enable_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_enable_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        self.scroll_check = QCheckBox("Enable scroll widget")
+        self.scroll_check.setChecked(self.settings_manager.get_setting('scroll_enabled', True))
+        self.scroll_check.setFont(QFont("Helvetica Neue", 11))
+        self.scroll_check.setStyleSheet(self.get_checkbox_style())
+        scroll_enable_layout.addWidget(self.scroll_check)
+        
+        layout.addWidget(scroll_enable_frame)
+        
+        # Scroll speed label
+        scroll_speed_label = QLabel("Scroll Speed:")
+        scroll_speed_label.setFont(QFont("Helvetica Neue", 11))
+        scroll_speed_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        layout.addWidget(scroll_speed_label)
+        
+        # Controls frame
+        scroll_speed_frame = QFrame()
+        scroll_speed_layout = QHBoxLayout(scroll_speed_frame)
+        scroll_speed_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_speed_layout.setSpacing(5)
+        
+        # Minus button
+        scroll_speed_minus_btn = self.create_adjustment_button("-")
+        scroll_speed_minus_btn.enterEvent = lambda e: self.on_enter_minus_scroll_speed()
+        scroll_speed_minus_btn.leaveEvent = lambda e: self.on_leave_minus_scroll_speed()
+        scroll_speed_layout.addWidget(scroll_speed_minus_btn)
+        
+        # Slider (1-10, where 1 is slowest, 10 is fastest)
+        self.scroll_speed_slider = QSlider(Qt.Orientation.Horizontal)
+        self.scroll_speed_slider.setRange(1, 10)
+        # Convert interval to speed (lower interval = faster speed)
+        current_interval = self.settings_manager.get_setting('scroll_speed', 100)
+        speed_value = 11 - (current_interval // 20)  # 200ms=1, 180ms=2, ..., 20ms=10
+        self.scroll_speed_slider.setValue(max(1, min(10, speed_value)))
+        self.scroll_speed_slider.setStyleSheet(self.get_slider_style())
+        scroll_speed_layout.addWidget(self.scroll_speed_slider)
+        
+        # Plus button
+        scroll_speed_plus_btn = self.create_adjustment_button("+")
+        scroll_speed_plus_btn.enterEvent = lambda e: self.on_enter_plus_scroll_speed()
+        scroll_speed_plus_btn.leaveEvent = lambda e: self.on_leave_plus_scroll_speed()
+        scroll_speed_layout.addWidget(scroll_speed_plus_btn)
+        
+        # Value label
+        self.scroll_speed_value = QLabel(str(self.scroll_speed_slider.value()))
+        self.scroll_speed_value.setStyleSheet(f"""
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 12pt;
+            font-weight: bold;
+            color: {Colors.TEXT_COLOR};
+        """)
+        self.scroll_speed_value.setFixedWidth(30)
+        scroll_speed_layout.addWidget(self.scroll_speed_value)
+        
+        layout.addWidget(scroll_speed_frame)
+    
+    def create_active_state_section(self, layout):
         """Create default active state section."""
         active_frame = QFrame()
         active_layout = QHBoxLayout(active_frame)
@@ -529,67 +618,97 @@ class SettingsDialog(QDialog):
         self.active_check.setStyleSheet(self.get_checkbox_style())
         active_layout.addWidget(self.active_check)
         
-        main_layout.addWidget(active_frame)
+        layout.addWidget(active_frame)
     
-    def create_ok_button(self, main_layout):
-        """Create OK button."""
-        ok_button = QPushButton("OK")
-        ok_button.setFixedSize(250, 35)
-        ok_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        ok_button.setFont(QFont("Helvetica Neue", 12, QFont.Weight.Bold))
-        ok_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {Colors.BLUE_ACCENT};
-                color: {Colors.TEXT_COLOR};
-                border: none;
-                border-radius: 3px;
-            }}
-            QPushButton:hover {{
-                background-color: #0069c0;
-            }}
-        """)
-        ok_button.clicked.connect(self.accept)
+    def create_ui_contraction_section(self, layout):
+        """Create UI contraction section."""
+        # Enable checkbox
+        contraction_frame = QFrame()
+        contraction_layout = QHBoxLayout(contraction_frame)
+        contraction_layout.setContentsMargins(0, 0, 0, 0)
+        contraction_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
-        main_layout.addWidget(ok_button, 0, Qt.AlignmentFlag.AlignCenter)
-    
-    def create_bottom_section(self, main_layout):
-        """Create bottom section with version info."""
-        bottom_frame = QFrame()
-        bottom_layout = QVBoxLayout(bottom_frame)
-        bottom_layout.setContentsMargins(0, 5, 0, 0)
-        bottom_layout.setSpacing(5)
+        self.contract_ui_check = QCheckBox("Contract UI when cursor is outside")
+        self.contract_ui_check.setChecked(self.settings_manager.get_setting('contract_ui_enabled', False))
+        self.contract_ui_check.setFont(QFont("Helvetica Neue", 11))
+        self.contract_ui_check.setStyleSheet(self.get_checkbox_style())
+        contraction_layout.addWidget(self.contract_ui_check)
         
-        # Separator
-        bottom_separator = QFrame()
-        bottom_separator.setFrameShape(QFrame.Shape.HLine)
-        bottom_separator.setFrameShadow(QFrame.Shadow.Sunken)
-        bottom_separator.setStyleSheet(f"background-color: {Colors.BORDER_COLOR};")
-        bottom_layout.addWidget(bottom_separator)
+        layout.addWidget(contraction_frame)
         
-        # Version info
-        version_label = QLabel(f"Dwellpy v{__version__}")
-        version_label.setStyleSheet("""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 9pt;
-            color: #999999;
-        """)
-        version_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        bottom_layout.addWidget(version_label)
+        # Expansion direction section with radio buttons
+        expansion_direction_frame = QFrame()
+        expansion_direction_layout = QVBoxLayout(expansion_direction_frame)
+        expansion_direction_layout.setContentsMargins(0, 0, 0, 0)
+        expansion_direction_layout.setSpacing(8)
         
-        main_layout.addWidget(bottom_frame)
+        # Label
+        expansion_label = QLabel("Expansion direction:")
+        expansion_label.setFont(QFont("Helvetica Neue", 11))
+        expansion_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        expansion_direction_layout.addWidget(expansion_label)
+        
+        # Create button group for radio buttons
+        self.expansion_button_group = QButtonGroup()
+        
+        # Radio buttons container
+        radio_container = QFrame()
+        radio_layout = QVBoxLayout(radio_container)
+        radio_layout.setContentsMargins(20, 0, 0, 0)
+        radio_layout.setSpacing(4)
+        
+        # Auto radio button
+        self.expansion_auto_radio = QRadioButton("Auto (recommended)")
+        self.expansion_auto_radio.setFont(QFont("Helvetica Neue", 10))
+        self.expansion_auto_radio.setStyleSheet(self.get_radio_style())
+        self.expansion_button_group.addButton(self.expansion_auto_radio, 0)
+        radio_layout.addWidget(self.expansion_auto_radio)
+        
+        # Horizontal radio button
+        self.expansion_horizontal_radio = QRadioButton("Horizontal (left-to-right)")
+        self.expansion_horizontal_radio.setFont(QFont("Helvetica Neue", 10))
+        self.expansion_horizontal_radio.setStyleSheet(self.get_radio_style())
+        self.expansion_button_group.addButton(self.expansion_horizontal_radio, 1)
+        radio_layout.addWidget(self.expansion_horizontal_radio)
+        
+        # Vertical radio button
+        self.expansion_vertical_radio = QRadioButton("Vertical (top-to-bottom)")
+        self.expansion_vertical_radio.setFont(QFont("Helvetica Neue", 10))
+        self.expansion_vertical_radio.setStyleSheet(self.get_radio_style())
+        self.expansion_button_group.addButton(self.expansion_vertical_radio, 2)
+        radio_layout.addWidget(self.expansion_vertical_radio)
+        
+        expansion_direction_layout.addWidget(radio_container)
+        
+        # Set current selection based on settings
+        current_direction = self.settings_manager.get_setting('expansion_direction', 'auto')
+        if current_direction == 'auto':
+            self.expansion_auto_radio.setChecked(True)
+        elif current_direction == 'horizontal':
+            self.expansion_horizontal_radio.setChecked(True)
+        elif current_direction == 'vertical':
+            self.expansion_vertical_radio.setChecked(True)
+        
+        layout.addWidget(expansion_direction_frame)
     
     def create_adjustment_button(self, text):
         """Create a +/- adjustment button."""
         button = QPushButton(text)
-        button.setFixedSize(20, 20)
+        button.setFixedSize(30, 30)  # Larger for dwell clicking
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.DARK_BUTTON_BG};
                 color: {Colors.TEXT_COLOR};
                 border: 1px solid {Colors.BORDER_COLOR};
-                border-radius: 10px;
+                border-radius: 15px;
                 font-weight: bold;
+                font-size: 14pt;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.BLUE_ACCENT};
+                border: 1px solid {Colors.BLUE_ACCENT};
+                color: {Colors.TEXT_COLOR};
             }}
         """)
         return button
@@ -614,7 +733,7 @@ class SettingsDialog(QDialog):
         
         # Color button
         color_btn = QPushButton()
-        color_btn.setFixedSize(80, 25)
+        color_btn.setFixedSize(70, 22)
         color_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         color_btn.setProperty('click_type', click_type)  # Store click type for reference
         
@@ -674,15 +793,6 @@ class SettingsDialog(QDialog):
             # Update button appearance
             self.update_color_button_style(button, color_hex)
     
-    def add_separator(self, layout):
-        """Add a visual separator line."""
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setMaximumHeight(1)
-        separator.setStyleSheet(f"background-color: {Colors.BORDER_COLOR};")
-        layout.addWidget(separator)
-    
     def get_slider_style(self):
         """Get slider stylesheet."""
         return f"""
@@ -725,6 +835,73 @@ class SettingsDialog(QDialog):
             }}
         """
     
+    def get_radio_style(self):
+        """Get radio button stylesheet."""
+        return f"""
+            QRadioButton {{
+                color: {Colors.TEXT_COLOR};
+                spacing: 10px;
+            }}
+            QRadioButton::indicator {{
+                width: 16px;
+                height: 16px;
+                background-color: {Colors.DARK_BG};
+                border: 1px solid {Colors.BORDER_COLOR};
+                border-radius: 8px;
+            }}
+            QRadioButton::indicator:checked {{
+                background-color: {Colors.BLUE_ACCENT};
+                border: 1px solid {Colors.BLUE_ACCENT};
+            }}
+        """
+    
+    def create_ok_button(self, main_layout):
+        """Create OK button."""
+        ok_button = QPushButton("OK")
+        ok_button.setFixedSize(250, 35)
+        ok_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        ok_button.setFont(QFont("Helvetica Neue", 12, QFont.Weight.Bold))
+        ok_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.BLUE_ACCENT};
+                color: {Colors.TEXT_COLOR};
+                border: none;
+                border-radius: 3px;
+            }}
+            QPushButton:hover {{
+                background-color: #0069c0;
+            }}
+        """)
+        ok_button.clicked.connect(self.accept)
+        
+        main_layout.addWidget(ok_button, 0, Qt.AlignmentFlag.AlignCenter)
+    
+    def create_bottom_section(self, main_layout):
+        """Create bottom section with version info."""
+        bottom_frame = QFrame()
+        bottom_layout = QVBoxLayout(bottom_frame)
+        bottom_layout.setContentsMargins(0, 5, 0, 0)
+        bottom_layout.setSpacing(5)
+        
+        # Separator
+        bottom_separator = QFrame()
+        bottom_separator.setFrameShape(QFrame.Shape.HLine)
+        bottom_separator.setFrameShadow(QFrame.Shadow.Sunken)
+        bottom_separator.setStyleSheet(f"background-color: {Colors.BORDER_COLOR};")
+        bottom_layout.addWidget(bottom_separator)
+        
+        # Version info
+        version_label = QLabel(f"Dwellpy v{__version__}")
+        version_label.setStyleSheet("""
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 9pt;
+            color: #999999;
+        """)
+        version_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        bottom_layout.addWidget(version_label)
+        
+        main_layout.addWidget(bottom_frame)
+    
     def connect_signals(self):
         """Connect all widget signals."""
         self.move_limit_slider.valueChanged.connect(self.update_move_limit_value)
@@ -735,134 +912,8 @@ class SettingsDialog(QDialog):
         self.scroll_check.stateChanged.connect(self.on_scroll_toggle)
         self.visible_clicks_check.stateChanged.connect(self.on_visible_clicks_toggle)
         self.active_check.stateChanged.connect(self.on_active_toggle)
-    
-    # Hover timer methods for move limit
-    def on_enter_minus_move(self):
-        self.move_minus_timer.start(500)
-
-    def on_leave_minus_move(self):
-        self.move_minus_timer.stop()
-        self.move_minus_repeat.stop()
-
-    def on_enter_plus_move(self):
-        self.move_plus_timer.start(500)
-
-    def on_leave_plus_move(self):
-        self.move_plus_timer.stop()
-        self.move_plus_repeat.stop()
-
-    def start_minus_move_repeat(self):
-        self.on_hover_minus_move_limit()
-        self.move_minus_repeat.start(500)
-
-    def start_plus_move_repeat(self):
-        self.on_hover_plus_move_limit()
-        self.move_plus_repeat.start(500)
-
-    def on_hover_minus_move_limit(self):
-        if self.move_limit_slider.value() > self.move_limit_slider.minimum():
-            self.move_limit_slider.setValue(self.move_limit_slider.value() - 1)
-
-    def on_hover_plus_move_limit(self):
-        if self.move_limit_slider.value() < self.move_limit_slider.maximum():
-            self.move_limit_slider.setValue(self.move_limit_slider.value() + 1)
-    
-    # Hover timer methods for dwell time
-    def on_enter_minus_time(self):
-        self.time_minus_timer.start(500)
-
-    def on_leave_minus_time(self):
-        self.time_minus_timer.stop()
-        self.time_minus_repeat.stop()
-
-    def on_enter_plus_time(self):
-        self.time_plus_timer.start(500)
-
-    def on_leave_plus_time(self):
-        self.time_plus_timer.stop()
-        self.time_plus_repeat.stop()
-
-    def start_minus_time_repeat(self):
-        self.on_hover_minus_dwell_time()
-        self.time_minus_repeat.start(500)
-
-    def start_plus_time_repeat(self):
-        self.on_hover_plus_dwell_time()
-        self.time_plus_repeat.start(500)
-
-    def on_hover_minus_dwell_time(self):
-        if self.time_slider.value() > self.time_slider.minimum():
-            self.time_slider.setValue(self.time_slider.value() - 1)
-
-    def on_hover_plus_dwell_time(self):
-        if self.time_slider.value() < self.time_slider.maximum():
-            self.time_slider.setValue(self.time_slider.value() + 1)
-    
-    # Hover timer methods for transparency
-    def on_enter_minus_transparency(self):
-        if self.transparency_check.isChecked():
-            self.transparency_minus_timer.start(500)
-
-    def on_leave_minus_transparency(self):
-        self.transparency_minus_timer.stop()
-        self.transparency_minus_repeat.stop()
-
-    def on_enter_plus_transparency(self):
-        if self.transparency_check.isChecked():
-            self.transparency_plus_timer.start(500)
-
-    def on_leave_plus_transparency(self):
-        self.transparency_plus_timer.stop()
-        self.transparency_plus_repeat.stop()
-
-    def start_minus_transparency_repeat(self):
-        self.on_hover_minus_transparency()
-        self.transparency_minus_repeat.start(500)
-
-    def start_plus_transparency_repeat(self):
-        self.on_hover_plus_transparency()
-        self.transparency_plus_repeat.start(500)
-
-    def on_hover_minus_transparency(self):
-        if self.transparency_slider.value() > self.transparency_slider.minimum():
-            self.transparency_slider.setValue(self.transparency_slider.value() - 5)
-
-    def on_hover_plus_transparency(self):
-        if self.transparency_slider.value() < self.transparency_slider.maximum():
-            self.transparency_slider.setValue(self.transparency_slider.value() + 5)
-    
-    # Hover timer methods for scroll speed
-    def on_enter_minus_scroll_speed(self):
-        if self.scroll_check.isChecked():
-            self.scroll_speed_minus_timer.start(500)
-
-    def on_leave_minus_scroll_speed(self):
-        self.scroll_speed_minus_timer.stop()
-        self.scroll_speed_minus_repeat.stop()
-
-    def on_enter_plus_scroll_speed(self):
-        if self.scroll_check.isChecked():
-            self.scroll_speed_plus_timer.start(500)
-
-    def on_leave_plus_scroll_speed(self):
-        self.scroll_speed_plus_timer.stop()
-        self.scroll_speed_plus_repeat.stop()
-
-    def start_minus_scroll_speed_repeat(self):
-        self.on_hover_minus_scroll_speed()
-        self.scroll_speed_minus_repeat.start(500)
-
-    def start_plus_scroll_speed_repeat(self):
-        self.on_hover_plus_scroll_speed()
-        self.scroll_speed_plus_repeat.start(500)
-
-    def on_hover_minus_scroll_speed(self):
-        if self.scroll_speed_slider.value() > self.scroll_speed_slider.minimum():
-            self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() - 1)
-
-    def on_hover_plus_scroll_speed(self):
-        if self.scroll_speed_slider.value() < self.scroll_speed_slider.maximum():
-            self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() + 1)
+        self.contract_ui_check.stateChanged.connect(self.on_contract_ui_toggle)
+        self.expansion_button_group.buttonClicked.connect(self.on_expansion_direction_toggle)
     
     # Value update methods
     def update_move_limit_value(self, value):
@@ -885,7 +936,6 @@ class SettingsDialog(QDialog):
         """Handle transparency checkbox toggle."""
         is_enabled = state == 2  # Qt.CheckState.Checked is 2
         self.settings_manager.update_transparency_enabled(is_enabled)
-        self.update_transparency_controls_state()
 
     def update_scroll_speed_value(self, value):
         """Update scroll speed value and apply setting."""
@@ -898,7 +948,6 @@ class SettingsDialog(QDialog):
         """Handle scroll widget checkbox toggle."""
         is_enabled = state == 2  # Qt.CheckState.Checked is 2
         self.settings_manager.update_scroll_enabled(is_enabled)
-        self.update_scroll_controls_state()
 
     def on_visible_clicks_toggle(self, state):
         """Handle visible clicks checkbox toggle."""
@@ -910,62 +959,157 @@ class SettingsDialog(QDialog):
         is_active = state == 2  # Qt.CheckState.Checked is 2
         self.settings_manager.update_default_active(is_active)
 
-    def update_transparency_controls_state(self):
-        """Enable/disable transparency controls based on checkbox state."""
-        enabled = self.transparency_check.isChecked()
-        self.transparency_slider.setEnabled(enabled)
-        
-        if enabled:
-            self.transparency_slider.setStyleSheet(self.get_slider_style())
-        else:
-            self.transparency_slider.setStyleSheet(f"""
-                QSlider::groove:horizontal {{
-                    background: #333333;
-                    height: 4px;
-                    border-radius: 2px;
-                }}
-                QSlider::handle:horizontal {{
-                    background: #666666;
-                    width: 16px;
-                    height: 16px;
-                    margin: -6px 0;
-                    border-radius: 8px;
-                }}
-                QSlider::sub-page:horizontal {{
-                    background: #666666;
-                    height: 4px;
-                    border-radius: 2px;
-                }}
-            """)
+    def on_contract_ui_toggle(self, state):
+        """Handle contract UI checkbox toggle."""
+        is_enabled = state == 2  # Qt.CheckState.Checked is 2
+        self.settings_manager.update_contract_ui_enabled(is_enabled)
 
-    def update_scroll_controls_state(self):
-        """Enable/disable scroll controls based on checkbox state."""
-        enabled = self.scroll_check.isChecked()
-        self.scroll_speed_slider.setEnabled(enabled)
-        
-        if enabled:
-            self.scroll_speed_slider.setStyleSheet(self.get_slider_style())
+    def on_expansion_direction_toggle(self, button):
+        """Handle expansion direction radio button toggle."""
+        # Map button text to setting value
+        if button == self.expansion_auto_radio:
+            direction = 'auto'
+        elif button == self.expansion_horizontal_radio:
+            direction = 'horizontal'
+        elif button == self.expansion_vertical_radio:
+            direction = 'vertical'
         else:
-            self.scroll_speed_slider.setStyleSheet(f"""
-                QSlider::groove:horizontal {{
-                    background: #333333;
-                    height: 4px;
-                    border-radius: 2px;
-                }}
-                QSlider::handle:horizontal {{
-                    background: #666666;
-                    width: 16px;
-                    height: 16px;
-                    margin: -6px 0;
-                    border-radius: 8px;
-                }}
-                QSlider::sub-page:horizontal {{
-                    background: #666666;
-                    height: 4px;
-                    border-radius: 2px;
-                }}
-            """)
-
+            direction = 'auto'  # fallback
+        
+        # Update settings
+        self.settings_manager.update_expansion_direction(direction)
+    
+    # Hover enter/leave methods for +/- buttons
+    def on_enter_minus_move(self):
+        self.move_minus_timer.start(300)  # 300ms initial delay
+        
+    def on_leave_minus_move(self):
+        self.move_minus_timer.stop()
+        self.move_minus_repeat.stop()
+        
+    def on_enter_plus_move(self):
+        self.move_plus_timer.start(300)
+        
+    def on_leave_plus_move(self):
+        self.move_plus_timer.stop()
+        self.move_plus_repeat.stop()
+        
+    def on_enter_minus_time(self):
+        self.time_minus_timer.start(300)
+        
+    def on_leave_minus_time(self):
+        self.time_minus_timer.stop()
+        self.time_minus_repeat.stop()
+        
+    def on_enter_plus_time(self):
+        self.time_plus_timer.start(300)
+        
+    def on_leave_plus_time(self):
+        self.time_plus_timer.stop()
+        self.time_plus_repeat.stop()
+        
+    def on_enter_minus_transparency(self):
+        self.transparency_minus_timer.start(300)
+        
+    def on_leave_minus_transparency(self):
+        self.transparency_minus_timer.stop()
+        self.transparency_minus_repeat.stop()
+        
+    def on_enter_plus_transparency(self):
+        self.transparency_plus_timer.start(300)
+        
+    def on_leave_plus_transparency(self):
+        self.transparency_plus_timer.stop()
+        self.transparency_plus_repeat.stop()
+        
+    def on_enter_minus_scroll_speed(self):
+        self.scroll_speed_minus_timer.start(300)
+        
+    def on_leave_minus_scroll_speed(self):
+        self.scroll_speed_minus_timer.stop()
+        self.scroll_speed_minus_repeat.stop()
+        
+    def on_enter_plus_scroll_speed(self):
+        self.scroll_speed_plus_timer.start(300)
+        
+    def on_leave_plus_scroll_speed(self):
+        self.scroll_speed_plus_timer.stop()
+        self.scroll_speed_plus_repeat.stop()
+    
+    # Timer start methods that begin the repeat action
+    def start_minus_move_repeat(self):
+        self.on_hover_minus_move_limit()  # First action
+        self.move_minus_repeat.start(500)  # Then repeat every 500ms
+        
+    def start_plus_move_repeat(self):
+        self.on_hover_plus_move_limit()
+        self.move_plus_repeat.start(500)
+        
+    def start_minus_time_repeat(self):
+        self.on_hover_minus_dwell_time()
+        self.time_minus_repeat.start(500)
+        
+    def start_plus_time_repeat(self):
+        self.on_hover_plus_dwell_time()
+        self.time_plus_repeat.start(500)
+        
+    def start_minus_transparency_repeat(self):
+        self.on_hover_minus_transparency()
+        self.transparency_minus_repeat.start(500)
+        
+    def start_plus_transparency_repeat(self):
+        self.on_hover_plus_transparency()
+        self.transparency_plus_repeat.start(500)
+        
+    def start_minus_scroll_speed_repeat(self):
+        self.on_hover_minus_scroll_speed()
+        self.scroll_speed_minus_repeat.start(500)
+        
+    def start_plus_scroll_speed_repeat(self):
+        self.on_hover_plus_scroll_speed()
+        self.scroll_speed_plus_repeat.start(500)
+    
+    # The actual value adjustment methods
+    def on_hover_minus_move_limit(self):
+        current = self.move_limit_slider.value()
+        if current > self.move_limit_slider.minimum():
+            self.move_limit_slider.setValue(current - 1)
+        
+    def on_hover_plus_move_limit(self):
+        current = self.move_limit_slider.value()
+        if current < self.move_limit_slider.maximum():
+            self.move_limit_slider.setValue(current + 1)
+        
+    def on_hover_minus_dwell_time(self):
+        current = self.time_slider.value()
+        if current > self.time_slider.minimum():
+            self.time_slider.setValue(current - 1)
+        
+    def on_hover_plus_dwell_time(self):
+        current = self.time_slider.value()
+        if current < self.time_slider.maximum():
+            self.time_slider.setValue(current + 1)
+        
+    def on_hover_minus_transparency(self):
+        current = self.transparency_slider.value()
+        if current > self.transparency_slider.minimum():
+            self.transparency_slider.setValue(current - 5)  # Move by 5% steps
+        
+    def on_hover_plus_transparency(self):
+        current = self.transparency_slider.value()
+        if current < self.transparency_slider.maximum():
+            self.transparency_slider.setValue(current + 5)
+        
+    def on_hover_minus_scroll_speed(self):
+        current = self.scroll_speed_slider.value()
+        if current > self.scroll_speed_slider.minimum():
+            self.scroll_speed_slider.setValue(current - 1)
+        
+    def on_hover_plus_scroll_speed(self):
+        current = self.scroll_speed_slider.value()
+        if current < self.scroll_speed_slider.maximum():
+            self.scroll_speed_slider.setValue(current + 1)
+    
     def accept(self):
         """Handle dialog acceptance."""
         # Stop all timers
@@ -989,3 +1133,39 @@ class SettingsDialog(QDialog):
         
         # Close dialog
         super().accept()
+
+    def create_section_header(self, title, description):
+        """Create a section header with title and description."""
+        header_frame = QFrame()
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setContentsMargins(0, 10, 0, 10)
+        header_layout.setSpacing(5)
+        
+        # Title label
+        title_label = QLabel(title)
+        title_label.setStyleSheet(f"""
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 12pt;
+            font-weight: bold;
+            color: {Colors.BLUE_ACCENT};
+            margin-bottom: 3px;
+        """)
+        header_layout.addWidget(title_label)
+        
+        # Description label
+        description_label = QLabel(description)
+        description_label.setStyleSheet(f"""
+            color: #aaaaaa; 
+            font-size: 9pt;
+            margin-bottom: 8px;
+        """)
+        description_label.setWordWrap(True)
+        header_layout.addWidget(description_label)
+        
+        # Add subtle separator line
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setStyleSheet(f"background-color: {Colors.BORDER_COLOR}; max-height: 1px; margin: 5px 0px;")
+        header_layout.addWidget(separator)
+        
+        return header_frame
