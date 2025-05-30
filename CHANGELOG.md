@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.1](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.6.0...dwellpy-v0.6.1) (2025-05-30)
+
+
+### Bug Fixes
+
+* correct minimum Python requirement to 3.9+ and clean up documentation ([57c7159](https://github.com/code0nwheels/Dwellpy/commit/57c71592e63f145551efe7587f7916a3b3ca427e))
+
+
+### Documentation
+
+* add community identity statement to README and wiki ([8d119fa](https://github.com/code0nwheels/Dwellpy/commit/8d119fab978a594612fe6179f8384bd4033c19a8))
+* improve placement of community statement in wiki home ([49d7729](https://github.com/code0nwheels/Dwellpy/commit/49d7729b7307883c0ae149160184f46d6d691abe))
+* remove incorrect default click setting references and improve troubleshooting ([22e0be2](https://github.com/code0nwheels/Dwellpy/commit/22e0be2c39517037b86726787b6ae2b43a0207bb))
+
 ## [0.6.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.5.0...dwellpy-v0.6.0) (2025-05-30)
 
 
