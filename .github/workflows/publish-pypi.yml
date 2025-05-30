@@ -3,6 +3,9 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
+  push:
+    tags:
+      - 'dwellpy-v*'  # Also trigger on tag pushes (more reliable)
   workflow_dispatch:
     inputs:
       environment:
@@ -13,6 +16,11 @@ on:
         options:
           - testpypi
           - pypi
+      test_mode:
+        description: 'Test mode (skip actual publishing)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -47,7 +55,9 @@ jobs:
     name: Publish to TestPyPI
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi'
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi' && github.event.inputs.test_mode != 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'testpypi' && github.event.inputs.test_mode == false)
     
     environment:
       name: testpypi
@@ -75,9 +85,11 @@ jobs:
     name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
+    # Auto-publish on releases OR tag pushes, manual publish on workflow_dispatch
     if: |
       github.event_name == 'release' ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi' && github.event.inputs.test_mode != 'true')
     
     environment:
       name: pypi
@@ -93,7 +105,17 @@ jobs:
         name: python-package-distributions
         path: dist/
     
+    - name: Test mode check
+      if: github.event.inputs.test_mode == 'true'
+      run: |
+        echo "🧪 TEST MODE: Would publish to PyPI but skipping due to test mode"
+        echo "Package contents:"
+        ls -la dist/
+        echo "This would be published to PyPI in production"
+        exit 0
+    
     - name: Publish to PyPI
+      if: github.event.inputs.test_mode != 'true'
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         verbose: true
