@@ -32,13 +32,13 @@ Fix common problems:
 
 Dwellpy is an accessibility tool that automatically performs mouse clicks when you hover your cursor over a target area for a brief period. It's designed for people who have difficulty with traditional mouse clicking due to:
 
-**Made by a disabled person for the disabled community.**
-
 - Motor disabilities
 - Hand tremors or cerebral palsy
 - Use of head trackers or eye tracking systems
 - Repetitive strain injuries
 - Other conditions affecting fine motor control
+
+**Made by a disabled person for the disabled community.**
 
 ### Key Features
 
