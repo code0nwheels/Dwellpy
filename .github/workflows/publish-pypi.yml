@@ -2,7 +2,7 @@ name: Publish to PyPI
 
 on:
   release:
-    types: [released]
+    types: [published]
   workflow_dispatch:
     inputs:
       environment:
@@ -76,7 +76,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'release' && github.event.action == 'published') ||
+      github.event_name == 'release' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'pypi')
     
     environment:
