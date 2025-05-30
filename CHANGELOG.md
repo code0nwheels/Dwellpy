@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.6.0...dwellpy-v0.6.1) (2025-05-30)
+
+
+### Documentation
+
+* add community identity statement to README and wiki ([8d119fa](https://github.com/code0nwheels/Dwellpy/commit/8d119fab978a594612fe6179f8384bd4033c19a8))
+
 ## [0.6.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.5.0...dwellpy-v0.6.0) (2025-05-30)
 
 
