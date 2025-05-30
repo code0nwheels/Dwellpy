@@ -298,9 +298,13 @@ class ScrollWidget(QWidget):
             # Fallback to direct conversion
             return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
 
-    def update_position(self, cursor_pos):
-        """Update widget position relative to cursor."""
+    def update_position(self, cursor_pos, coordinated_mode=False):
+        """Update widget position relative to cursor, with optional coordinated mode."""
         if not self.is_active:
+            return
+        
+        # If in coordinated mode, skip normal positioning logic
+        if coordinated_mode:
             return
         
         # Convert pynput coordinates to Qt coordinates for consistency

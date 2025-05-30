@@ -55,6 +55,13 @@ EXPANSION_DIRECTIONS = ['auto', 'horizontal', 'vertical']  # Available expansion
 DEFAULT_EXPANSION_DIRECTION = 'auto'  # Default expansion direction
 SCREEN_EDGE_MARGIN = 50        # Margin from screen edge for expansion decisions
 
+# Menu Widget Constants
+MENU_WIDGET_SIZE = 30
+MENU_WIDGET_OFFSET = 100  # Distance from cursor
+MENU_WIDGET_ANGLE = -45  # Bottom-right position
+MENU_OPACITY_BASE = 80  # Base opacity percentage
+MENU_OPACITY_HOVER = 95
+
 # Color Scheme - Dark Theme
 class Colors:
     # Primary colors
@@ -165,6 +172,11 @@ DEFAULT_SETTINGS = {
     'scroll_amount': SCROLL_AMOUNT,
     'scroll_opacity_base': SCROLL_OPACITY_BASE,
     'scroll_opacity_hover': SCROLL_OPACITY_HOVER,
+    'menu_enabled': True,
+    'menu_offset': MENU_WIDGET_OFFSET,
+    'menu_angle': MENU_WIDGET_ANGLE,
+    'menu_opacity_base': MENU_OPACITY_BASE,
+    'menu_opacity_hover': MENU_OPACITY_HOVER,
     'contract_ui_enabled': False,
     'expansion_direction': DEFAULT_EXPANSION_DIRECTION,
     'click_color_left': '#00e676',
@@ -189,3 +201,10 @@ BUTTON_IDS = {
     'MOVE': 'MOVE',
     'EXIT': 'EXIT'
 }
+
+# Menu Widget Constants
+MENU_WIDGET_SIZE = 30
+MENU_WIDGET_OFFSET = 100  # Distance from cursor
+MENU_WIDGET_ANGLE = -45  # Bottom-right position
+MENU_OPACITY_BASE = 80  # Base opacity percentage
+MENU_OPACITY_HOVER = 95
