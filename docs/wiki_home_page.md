@@ -89,7 +89,6 @@ Found an error in the documentation? Want to improve a guide?
 ### Default Settings
 - **Move Limit**: 5 pixels
 - **Dwell Time**: 1.0 seconds  
-- **Default Click**: Left click
 - **Transparency**: Disabled
 
 ---

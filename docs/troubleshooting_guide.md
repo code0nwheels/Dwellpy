@@ -92,7 +92,7 @@ curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-unin
 
 **Diagnosis**:
 1. Check if the ON/OFF button is green (active)
-2. Watch for the dwell counter - is it resetting too often?
+2. Observe your cursor behavior - does it seem like the dwell detection keeps restarting when you try to hover?
 3. Try hovering over a large target (like desktop)
 
 **Solutions**:
@@ -116,7 +116,7 @@ curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-unin
 **Solutions**:
 1. Try on a single monitor to test
 2. Check Windows display scaling settings
-3. Ensure all monitors have the same scaling factor
+3. If this persists, please open an issue on GitHub with details about your monitor setup
 
 ### Can't click on specific programs
 **Cause**: The program is running with higher privileges than Dwellpy.
@@ -125,35 +125,6 @@ curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-unin
 - **Windows**: Run Command Prompt as administrator before starting Dwellpy
 - **macOS**: Ensure Terminal has accessibility permissions
 - **Linux**: The program might be running as root
-
-## Performance Issues
-
-### Dwellpy is slow or laggy
-**Symptoms**: Delayed response, stuttering cursor
-
-**Solutions**:
-1. Close other accessibility software
-2. Disable window transparency in settings
-3. Check system resources (CPU/memory usage)
-4. Try increasing Dwell Time slightly
-
-### High CPU usage
-**Cause**: Usually conflicts with other software or system issues.
-
-**Solutions**:
-1. Close other accessibility tools
-2. Check for Windows updates
-3. Restart Dwellpy
-4. Reboot your computer
-
-### Cursor jumps or stutters
-**Cause**: Hardware or driver issues with your input device.
-
-**Solutions**:
-1. Check your cursor input device (mouse, head tracker, etc.)
-2. Update device drivers
-3. Try a different USB port
-4. Test with a regular mouse to isolate the issue
 
 ## Platform-Specific Issues
 
@@ -180,31 +151,6 @@ curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-unin
 2. Check Console app for detailed error messages
 3. Reinstall Python if needed
 
-### Linux: "No module named tkinter" or similar
-**Cause**: Missing Python packages.
-
-**Solutions**:
-```
-# Ubuntu/Debian
-sudo apt install python3-tk python3-dev
-
-# Fedora
-sudo dnf install python3-tkinter python3-devel
-
-# Arch
-sudo pacman -S tk python-dev
-```
-
-**Alternative**: Use the automated installer which handles dependencies:
-```
-curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
-```
-
-*If you need to completely remove and reinstall:*
-```
-curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-uninstall.sh | bash
-```
-
 ### Linux: Works in X11 but not Wayland
 **Cause**: Dwellpy requires X11 currently.
 
@@ -212,33 +158,6 @@ curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-unin
 1. Log out
 2. At login screen, select "Ubuntu on Xorg" or similar
 3. Log back in
-
-## Hardware Compatibility
-
-### Head tracker not working with Dwellpy
-**Cause**: Usually a cursor speed or acceleration issue.
-
-**Solutions**:
-1. Adjust head tracker sensitivity settings
-2. Increase Move Limit in Dwellpy settings
-3. Test head tracker with other applications first
-
-### Eye tracker issues
-**Symptoms**: Erratic clicking, unintended activation
-
-**Solutions**:
-1. Increase Dwell Time (try 1.0+ seconds)
-2. Increase Move Limit (try 15-20 pixels)
-3. Check eye tracker calibration
-4. Ensure proper lighting conditions
-
-### Touch screen conflicts
-**Cause**: Touch input interfering with dwell detection.
-
-**Solutions**:
-1. Disable touch input temporarily
-2. Adjust Dwellpy sensitivity settings
-3. Use a different input method for cursor control
 
 ## Diagnostic Steps
 
@@ -268,6 +187,38 @@ If you need to report a bug, collect this information:
 - Your current Move Limit and Dwell Time settings
 - Whether transparency is enabled
 - Any other accessibility software running
+
+### Log Files
+Dwellpy creates log files that can help diagnose issues. Include relevant log entries when reporting bugs.
+
+**Log file locations**:
+
+**Windows**:
+```
+%APPDATA%\Dwellpy\logs\
+```
+Or navigate to: `C:\Users\[YourUsername]\AppData\Roaming\Dwellpy\logs\`
+
+**macOS**:
+```
+~/Library/Application Support/Dwellpy/logs/
+```
+
+**Linux**:
+```
+~/.local/share/Dwellpy/logs/
+```
+
+**What to look for**:
+- Error messages around the time the problem occurred
+- Warning messages that might indicate configuration issues
+- The most recent log file (usually named with current date)
+
+**How to access**:
+1. Navigate to the log directory for your operating system
+2. Open the most recent log file in a text editor
+3. Look for entries around the time you experienced the issue
+4. Copy relevant error messages
 
 ## Getting Help
 
@@ -300,4 +251,3 @@ When reporting issues:
 | Permission errors | Run with admin/sudo, check accessibility settings |
 | High CPU usage | Close other accessibility tools |
 | System dialogs | Use manual clicking, or disable UAC (Windows) |
-| Slow performance | Disable transparency, check system resources |
