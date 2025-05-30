@@ -2,8 +2,7 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "package-name": "dwellpy",
-      "release-as": "minor"
+      "package-name": "dwellpy"
     }
   },
   "include-component-in-tag": false,
