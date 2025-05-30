@@ -10,7 +10,7 @@ This guide will help you install and run Dwellpy on Windows.
 
 ## Step 1: Install Python
 
-Dwellpy requires Python 3.8 or newer. If you already have Python installed, you can skip to Step 2.
+Dwellpy requires Python 3.9 or newer. If you already have Python installed, you can skip to Step 2.
 
 ### Download Python
 1. Go to https://www.python.org/downloads/
@@ -19,15 +19,15 @@ Dwellpy requires Python 3.8 or newer. If you already have Python installed, you 
 
 ### Install Python
 **Important**: During installation, make sure to:
-- ✅ Check "Add Python to PATH" (this is crucial!)
-- ✅ Check "Install for all users" if you have admin rights
+- Check "Add Python to PATH" (this is crucial!)
+- Check "Install for all users" if you have admin rights
 - Click "Install Now"
 
 ### Verify Python Installation
 1. Press `Windows Key + R`
 2. Type `cmd` and press Enter
 3. In the black window that opens, type: `python --version`
-4. You should see something like "Python 3.11.5"
+4. You should see something like "Python 3.x.x"
 
 If you get an error like "python is not recognized", Python wasn't added to your PATH. You'll need to reinstall Python and check the "Add Python to PATH" option.
 

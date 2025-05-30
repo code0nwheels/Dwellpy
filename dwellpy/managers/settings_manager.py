@@ -358,16 +358,6 @@ class SettingsManager:
         else:
             self.logger.warning(f"Invalid expansion direction: {direction}")
     
-    def update_default_mode(self, mode: str) -> None:
-        """
-        Update default click mode setting.
-        
-        Args:
-            mode: Default click mode ('LEFT', 'RIGHT', 'DOUBLE', 'DRAG')
-        """
-        self.settings['default_mode'] = mode
-        self.logger.info(f"Default click mode updated to: {mode}")
-    
     def reset_to_defaults(self) -> None:
         """Reset all settings to their default values."""
         # Keep current window position

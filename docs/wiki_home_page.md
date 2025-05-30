@@ -8,20 +8,20 @@ Welcome to the Dwellpy documentation! This wiki contains setup guides, configura
 
 | Platform | Setup Guide | Notes |
 |----------|-------------|-------|
-| 🪟 **Windows** | [Windows Setup Guide](Windows-Setup) | Requires administrator privileges |
-| 🍎 **macOS** | [macOS Setup Guide](macOS-Setup) | Will prompt for accessibility permissions |
-| 🐧 **Linux** | [Linux Setup Guide](Linux-Setup) | X11 required (Wayland coming soon) |
+| **Windows** | [Windows Setup Guide](Windows-Setup) | Requires administrator privileges |
+| **macOS** | [macOS Setup Guide](macOS-Setup) | Will prompt for accessibility permissions |
+| **Linux** | [Linux Setup Guide](Linux-Setup) | X11 required (Wayland coming soon) |
 
 ## Essential Guides
 
-### 📖 [Configuration Guide](Configuration)
+### [Configuration Guide](Configuration)
 Learn how to adjust Dwellpy's settings for your specific needs:
 - Movement sensitivity and timing
 - Transparency and visual options  
 - Scroll widget settings
 - Recommendations for different conditions (head trackers, tremors, etc.)
 
-### 🔧 [Troubleshooting Guide](Troubleshooting)
+### [Troubleshooting Guide](Troubleshooting)
 Fix common problems:
 - Installation issues
 - Permission and access problems
@@ -32,13 +32,13 @@ Fix common problems:
 
 Dwellpy is an accessibility tool that automatically performs mouse clicks when you hover your cursor over a target area for a brief period. It's designed for people who have difficulty with traditional mouse clicking due to:
 
-**Made by a disabled person for the disabled community.**
-
 - Motor disabilities
 - Hand tremors or cerebral palsy
 - Use of head trackers or eye tracking systems
 - Repetitive strain injuries
 - Other conditions affecting fine motor control
+
+**Made by a disabled person for the disabled community.**
 
 ### Key Features
 
@@ -56,9 +56,9 @@ Dwellpy is an accessibility tool that automatically performs mouse clicks when y
 3. Make sure you followed your platform's setup guide completely
 
 ### Where to Get Help
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/code0nwheels/dwellpy/issues)
-- **💬 Questions**: [GitHub Discussions](https://github.com/code0nwheels/dwellpy/discussions)
-- **📚 Documentation Issues**: Create an issue or pull request to improve these guides
+- **Bug Reports**: [GitHub Issues](https://github.com/code0nwheels/dwellpy/issues)
+- **Questions**: [GitHub Discussions](https://github.com/code0nwheels/dwellpy/discussions)
+- **Documentation Issues**: Create an issue or pull request to improve these guides
 
 ### Reporting Issues
 When asking for help, please include:
@@ -89,7 +89,6 @@ Found an error in the documentation? Want to improve a guide?
 ### Default Settings
 - **Move Limit**: 5 pixels
 - **Dwell Time**: 1.0 seconds  
-- **Default Click**: Left click
 - **Transparency**: Disabled
 
 ---

@@ -32,10 +32,10 @@ This usually means pip installed to a location not in your PATH:
 1. Try: `python3 -m pip show dwellpy` to see where it's installed
 2. If it shows a path like `/Users/yourname/Library/Python/3.x/bin`, add this to your PATH:
    ```
-   echo 'export PATH="$HOME/Library/Python/3.11/bin:$PATH"' >> ~/.zshrc
+   echo 'export PATH="$HOME/Library/Python/3.x/bin:$PATH"' >> ~/.zshrc
    source ~/.zshrc
    ```
-   (Replace 3.11 with your Python version)
+   (Replace 3.x with your Python version)
 
 ### "Permission denied" Errors
 If you get permission errors after granting accessibility access:

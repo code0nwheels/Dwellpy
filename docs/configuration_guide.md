@@ -6,10 +6,10 @@ This guide explains how to adjust Dwellpy's settings for your specific needs.
 
 Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog. The settings are organized into four main tabs for easy navigation:
 
-- **🎯 Dwell**: Movement detection and timing settings
-- **👁️ Visual**: Appearance and click feedback options  
-- **📜 Scroll**: Scroll widget configuration
-- **⚙️ General**: Startup and UI behavior settings
+- **Dwell**: Movement detection and timing settings
+- **Visual**: Appearance and click feedback options  
+- **Scroll**: Scroll widget configuration
+- **General**: Startup and UI behavior settings
 
 ## Dwell Tab
 
@@ -172,7 +172,6 @@ This section controls how the toolbar behaves when you're not using it.
 **When to disable**:
 - Prefer having all controls always visible
 - Frequently switch between click modes
-- Using touch screen or other direct input methods
 
 **Default setting**: Disabled
 
@@ -200,17 +199,29 @@ This section controls how the toolbar behaves when you're not using it.
 ## Click Mode Settings
 
 ### Understanding Click Modes
-Dwellpy has two types of click modes:
+Dwellpy provides different click modes that you can select as needed:
 
-- **Default Mode (Blue button)**: LEFT click - your primary click type, always returns to this
-- **Temporary Mode (Red button)**: Used once, then returns to LEFT click
+- **Default Mode (Blue button)**: Your primary click type that you return to after temporary mode usage
+- **Temporary Mode (Red button)**: Used once, then returns to your default mode
 
 ### How to Use Modes
-1. **Use temporary mode**: Click any mode button other than LEFT (turns red)
-2. **Make temporary permanent**: Click the same red button again (stays red until used)
-3. **Return to LEFT**: All modes return to LEFT click after being used once
+1. **Use temporary mode**: Click any mode button (turns red) - used once then returns to default
+2. **Change default mode**: Click the same mode button again (turns blue and becomes your new default)
+3. **Toggle scroll widget**: SCROLL button works differently - it simply toggles the scroll widget on/off
 
-The default mode is always LEFT click and cannot be changed.
+### Changing Your Default Mode
+You can change which mode serves as your default (the one you return to after temporary usage):
+
+1. Click any mode button (LEFT, DOUBLE, DRAG, RIGHT) twice
+2. The button turns blue, indicating it's now your default mode
+3. All temporary mode usage will now return to this mode instead of LEFT
+
+**Example**: To make RIGHT click your default:
+- Click RIGHT once (turns red, temporary)
+- Click RIGHT again (turns blue, now your default)
+- Future temporary mode usage returns to RIGHT instead of LEFT
+
+**Note**: SCROLL is not a click mode - it's a toggle for the scroll widget and doesn't affect click mode behavior.
 
 ## Settings Navigation Tips
 
@@ -224,59 +235,6 @@ The default mode is always LEFT click and cannot be changed.
 - **Visual tab**: Customize appearance and feedback
 - **Scroll tab**: Configure scrolling helper
 - **General tab**: Set startup and advanced UI behavior
-
-## Condition-Specific Recommendations
-
-### Head Tracker Users
-```
-Move Limit: 10-15 pixels
-Dwell Time: 0.5-0.8 seconds
-Scroll Speed: 3-5
-Transparency: Enabled at 70%
-Visible Clicks: Enabled (helpful for learning)
-Auto Collapse: Enabled
-Expansion Direction: Auto
-```
-
-**Why**: Head trackers have natural small movements, so higher move limit prevents constant resets. Medium dwell time balances speed with accuracy. Auto collapse reduces visual clutter while maintaining quick access.
-
-### Hand Tremors/Cerebral Palsy
-```
-Move Limit: 12-20 pixels
-Dwell Time: 0.3-0.6 seconds (adjust based on tremor frequency)
-Scroll Speed: 2-4
-Transparency: Enabled at 60-80%
-Visible Clicks: Enabled (confirms successful clicks)
-Auto Collapse: Disabled (keeps controls always visible)
-```
-
-**Why**: Higher move limit accommodates tremor movement. Dwell time may need to be shorter if maintaining position is difficult. Keep UI expanded for easier target acquisition.
-
-### Fatigue/Weakness Conditions
-```
-Move Limit: 8-12 pixels
-Dwell Time: 0.1-0.5 seconds
-Scroll Speed: 6-8
-Start Active: Enabled
-Visible Clicks: Enabled
-Auto Collapse: Enabled
-Expansion Direction: Auto
-```
-
-**Why**: Shorter dwell time reduces sustained effort needed. Faster scroll speed for efficiency. Auto-start eliminates need to manually activate. Auto collapse reduces cognitive load.
-
-### Eye Tracking Integration
-```
-Move Limit: 15-20 pixels
-Dwell Time: 0.8-1.2 seconds
-Scroll Speed: 2-3
-Visible Clicks: Disabled (reduces eye strain)
-Click Colors: Muted/darker colors if visible clicks enabled
-Auto Collapse: Enabled
-Expansion Direction: Horizontal (easier eye movement patterns)
-```
-
-**Why**: Eye trackers can be less precise than other input methods. Longer dwell time prevents accidental activation from brief glances. Horizontal layout supports natural left-right eye scanning. If using visible clicks, consider softer colors to reduce visual fatigue.
 
 ## Troubleshooting Settings
 
@@ -330,26 +288,6 @@ After changing settings:
 Your settings are saved automatically, but if you find settings that work well, note them down in case you need to reinstall.
 
 **Future Enhancement**: Multiple user profiles for different activities (reading vs. productivity) would be a useful addition.
-
-## Quick Reference
-
-| Task | Tab | Move Limit | Dwell Time | Visible Clicks | Click Colors | Auto Collapse | Notes |
-|------|-----|------------|------------|----------------|--------------|---------------|-------|
-| General use | Dwell/Visual | 8-12px | 0.6-0.8s | Enabled | Default/bright | Enabled | Balanced settings |
-| Reading/browsing | All tabs | 10-15px | 0.4-0.6s | Enabled | Default/bright | Enabled | Enable scroll widget |
-| Precision work | Dwell/Visual | 5-8px | 0.8-1.0s | Enabled | High-contrast | Disabled | Temporary mode helpful |
-| Gaming | Dwell/Visual | 6-10px | 0.3-0.5s | Disabled | N/A | Disabled | Fast response needed |
-| Drawing/design | Dwell/Visual | 3-6px | 1.0-1.5s | Enabled | Muted/subtle | Disabled | Maximum precision |
-| Learning/training | All tabs | 8-12px | 0.8-1.2s | Enabled | Bright/distinct | Disabled | Visual feedback helpful |
-
-**Settings Location Guide**:
-- **Move Limit & Dwell Time**: Dwell tab
-- **Visible Clicks & Click Colors**: Visual tab  
-- **Auto Collapse & Expansion Direction**: General tab
-- **Scroll Widget**: Scroll tab
-- **Transparency**: Visual tab
-
-Remember: These are starting points. Everyone's needs are different, so experiment to find what works best for you.
 
 ## UI Behavior Settings
 

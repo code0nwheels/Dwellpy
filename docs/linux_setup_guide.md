@@ -5,7 +5,7 @@ This guide will help you install and run Dwellpy on Linux.
 ## System Requirements
 
 - Linux distribution with X11 (Wayland support coming soon)
-- Python 3.8 or newer (usually pre-installed)
+- Python 3.9 or newer (usually pre-installed)
 - Internet connection for installation
 
 ## Quick Install (Recommended)
@@ -17,17 +17,17 @@ curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-inst
 ```
 
 This script will:
-- ✅ Detect your Linux distribution automatically
-- ✅ Install Python 3 and git if needed
-- ✅ Download and install Dwellpy from source
-- ✅ Create a launcher script in `~/.local/bin/dwellpy`
-- ✅ Add the launcher to your PATH
-- ✅ Create a desktop menu entry (appears in Applications menu)
-- ✅ Optionally set up autostart (asks for your preference)
-- ✅ Check for X11/Wayland compatibility
-- ✅ Detect desktop environment and optimize setup
+- Detect your Linux distribution automatically
+- Install Python 3 and git if needed
+- Download and install Dwellpy from source
+- Create a launcher script in `~/.local/bin/dwellpy`
+- Add the launcher to your PATH
+- Create a desktop menu entry (appears in Applications menu)
+- Optionally set up autostart (asks for your preference)
+- Check for X11/Wayland compatibility
+- Detect desktop environment and optimize setup
 
-### Supported Distributions
+### Supported Distributions (X11 ONLY)
 - Ubuntu/Debian/Pop!_OS/Linux Mint
 - Fedora
 - CentOS/RHEL/Rocky Linux/AlmaLinux
@@ -190,12 +190,12 @@ curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-unin
 ```
 
 This will safely remove:
-- ✅ All Dwellpy source code and files
-- ✅ Desktop menu entry
-- ✅ Auto-start configuration
-- ✅ Launcher script
-- ✅ Running Dwellpy processes
-- ✅ Empty directories (if no other apps use them)
+- All Dwellpy source code and files
+- Desktop menu entry
+- Auto-start configuration
+- Launcher script
+- Running Dwellpy processes
+- Empty directories (if no other apps use them)
 
 **Optional removal**: The uninstaller will ask if you want to remove the PATH modification from `~/.bashrc` (it backs up the file first).
 
