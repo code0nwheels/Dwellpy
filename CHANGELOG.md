@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.5.0...dwellpy-v0.6.0) (2025-05-30)
+
+
+### Features
+
+* add CODEOWNERS file for maintainer-only approval on critical files ([3470b5e](https://github.com/code0nwheels/Dwellpy/commit/3470b5eb01cfe62dca6a8c5e111f4bd13452148f))
+
 ## [0.5.0](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.4.0...dwellpy-v0.5.0) (2025-05-29)
 
 
