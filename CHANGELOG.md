@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/code0nwheels/Dwellpy/compare/v0.7.1...v0.7.2) (2025-05-30)
+
+
+### Bug Fixes
+
+* add tag-based triggering and test mode to PyPI workflow ([ffd30a5](https://github.com/code0nwheels/Dwellpy/commit/ffd30a576094787d303c56cfaff16f2ae06e5ff9))
+
 ## [0.7.1](https://github.com/code0nwheels/Dwellpy/compare/v0.7.0...v0.7.1) (2025-05-30)
 
 
