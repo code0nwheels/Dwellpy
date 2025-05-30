@@ -1,0 +1,28 @@
+# Global rule - you own everything by default
+* @code0nwheels
+
+# Core application code
+/dwellpy/ @code0nwheels
+
+# Build and configuration files
+/pyproject.toml @code0nwheels
+/build_exe.py @code0nwheels
+/Dwellpy.spec @code0nwheels
+/requirements.txt @code0nwheels
+
+# Release and CI/CD configuration
+/.github/ @code0nwheels
+/release-please-config.json @code0nwheels
+/.release-please-manifest.json @code0nwheels
+/CHANGELOG.md @code0nwheels
+
+# Documentation
+/docs/ @code0nwheels
+/README.md @code0nwheels
+
+# License and legal
+/LICENSE @code0nwheels
+
+# Git configuration
+/.gitignore @code0nwheels
+/.gitattributes @code0nwheels 
