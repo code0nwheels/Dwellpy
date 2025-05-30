@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.7.0](https://github.com/code0nwheels/Dwellpy/compare/v0.6.1...v0.7.0) (2025-05-30)
+
+
+### Features
+
+* add CODEOWNERS file for maintainer-only approval on critical files ([3470b5e](https://github.com/code0nwheels/Dwellpy/commit/3470b5eb01cfe62dca6a8c5e111f4bd13452148f))
+* add floating scroll widget ([a600016](https://github.com/code0nwheels/Dwellpy/commit/a6000163323be44e163ccfac5d1e3dd3daff87fe))
+* add visible clicks feature with customizable feedback ([d774d5f](https://github.com/code0nwheels/Dwellpy/commit/d774d5f2a969fdd62d63434edb2cada82146e073))
+* add visual click feedback with animated circles ([2d44b19](https://github.com/code0nwheels/Dwellpy/commit/2d44b19924229c172498665d03691d91eac303e6))
+* integrate PyPI workflow with Release Please automation ([dbf1c72](https://github.com/code0nwheels/Dwellpy/commit/dbf1c72a88e88c29233e0b34f87a95f9d738204c))
+* Reorganize project into professional package structure with PyInstaller support ([ac8e426](https://github.com/code0nwheels/Dwellpy/commit/ac8e42686d6cd128e8fa054d5b3a74f74327161c))
+* **ui:** add scroll widget settings to configuration dialog ([015edb5](https://github.com/code0nwheels/Dwellpy/commit/015edb5422f9cef7730bc631f588802561b35066))
+
+
+### Bug Fixes
+
+* configure Release Please to create GitHub releases for PyPI automation ([633198b](https://github.com/code0nwheels/Dwellpy/commit/633198b67fe2dd80c11a53bf67ba23db289de83b))
+* correct minimum Python requirement to 3.9+ and clean up documentation ([57c7159](https://github.com/code0nwheels/Dwellpy/commit/57c71592e63f145551efe7587f7916a3b3ca427e))
+* ignore clicks on default mode (blue) buttons ([#11](https://github.com/code0nwheels/Dwellpy/issues/11)) ([28c2f55](https://github.com/code0nwheels/Dwellpy/commit/28c2f55b4f6c8b10bcf40d1d6060da098fff4e2d))
+* improve UI state feedback when dwell clicker is disabled ([03fe4dc](https://github.com/code0nwheels/Dwellpy/commit/03fe4dc613dc363d66a0f2efc9c0a613dcc188b5))
+* Remove conflicting click prevention in ClickManager ([64f568a](https://github.com/code0nwheels/Dwellpy/commit/64f568a158f201be2be10c3b4c02a03d53a5c62c))
+* remove invalid release-as field causing parsing error ([537e31c](https://github.com/code0nwheels/Dwellpy/commit/537e31c0c9a468c705bbde67b1108da84369190d))
+* **scroll:** stop scrolling when switching between directions ([015edb5](https://github.com/code0nwheels/Dwellpy/commit/015edb5422f9cef7730bc631f588802561b35066))
+
 ## [0.6.1](https://github.com/code0nwheels/Dwellpy/compare/dwellpy-v0.6.0...dwellpy-v0.6.1) (2025-05-30)
 
 
