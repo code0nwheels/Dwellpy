@@ -2,34 +2,34 @@
 
 Thank you for your interest in contributing to Dwellpy! This project was created by and for the disability community, and we welcome contributions that make accessibility technology better for everyone.
 
-## Ways to Contribute
+## How to Contribute
 
-### 🐛 Report Bugs
-- Use [GitHub Issues](https://github.com/code0nwheels/dwellpy/issues)
-- Include your OS, Python version, and steps to reproduce
-- Check existing issues first to avoid duplicates
+### Report Bugs
 
-### 💡 Suggest Features
+Found a bug? Please search existing issues first, then create a new one with:
+- Clear description of the problem
+- Steps to reproduce
+- Your system information (OS, Python version, etc.)
+- Expected vs. actual behavior
+
+[Create a bug report](https://github.com/code0nwheels/dwellpy/issues/new)
+
+### Improve Documentation
+
+Help make our guides clearer:
+- Fix typos or unclear instructions
+- Add missing information
+- Improve setup guides for your platform
+
+### Suggest Features
 - Open a [GitHub Issue](https://github.com/code0nwheels/dwellpy/issues) with the "enhancement" label
 - Describe the accessibility need the feature would address
 - Explain how it would help users with disabilities
 
-### 📚 Improve Documentation
-- Documentation lives in the `docs/` directory
-- Submit pull requests for fixes or improvements
-- Help translate setup guides for other languages
-
-### 🔧 Submit Code Changes
-- Fork the repository
-- Create a feature branch
-- Make your changes
-- Test thoroughly
-- Submit a pull request
-
 ## Development Setup
 
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.9 or higher
 - Git
 
 ### Setup Steps

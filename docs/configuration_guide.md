@@ -6,10 +6,10 @@ This guide explains how to adjust Dwellpy's settings for your specific needs.
 
 Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog. The settings are organized into four main tabs for easy navigation:
 
-- **🎯 Dwell**: Movement detection and timing settings
-- **👁️ Visual**: Appearance and click feedback options  
-- **📜 Scroll**: Scroll widget configuration
-- **⚙️ General**: Startup and UI behavior settings
+- **Dwell**: Movement detection and timing settings
+- **Visual**: Appearance and click feedback options  
+- **Scroll**: Scroll widget configuration
+- **General**: Startup and UI behavior settings
 
 ## Dwell Tab
 

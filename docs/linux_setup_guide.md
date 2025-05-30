@@ -5,7 +5,7 @@ This guide will help you install and run Dwellpy on Linux.
 ## System Requirements
 
 - Linux distribution with X11 (Wayland support coming soon)
-- Python 3.8 or newer (usually pre-installed)
+- Python 3.9 or newer (usually pre-installed)
 - Internet connection for installation
 
 ## Quick Install (Recommended)

@@ -19,10 +19,10 @@ This guide helps you diagnose and fix common issues with Dwellpy.
 1. Try: `python3 -m dwellpy`
 2. If that works, add to PATH:
    ```
-   echo 'export PATH="$HOME/Library/Python/3.11/bin:$PATH"' >> ~/.zshrc
+   echo 'export PATH="$HOME/Library/Python/3.x/bin:$PATH"' >> ~/.zshrc
    source ~/.zshrc
    ```
-   (Replace 3.11 with your Python version)
+   (Replace 3.x with your Python version)
 
 **Linux**:
 1. Try: `python3 -m dwellpy`
