@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/code0nwheels/Dwellpy/compare/v0.7.0...v0.7.1) (2025-05-30)
+
+
+### Bug Fixes
+
+* improve Release Please configuration to create GitHub releases ([93ccb69](https://github.com/code0nwheels/Dwellpy/commit/93ccb6917b40d287133e2cd00fbcdb46bf42c318))
+
 ## [0.7.0](https://github.com/code0nwheels/Dwellpy/compare/v0.6.1...v0.7.0) (2025-05-30)
 
 
