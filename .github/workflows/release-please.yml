@@ -20,3 +20,10 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Debug: Show what outputs we got
+      - name: Debug Release Please outputs
+        run: |
+          echo "Release created: ${{ steps.release.outputs.release_created }}"
+          echo "Tag name: ${{ steps.release.outputs.tag_name }}"
+          echo "Upload URL: ${{ steps.release.outputs.upload_url }}"
