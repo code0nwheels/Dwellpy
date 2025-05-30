@@ -8,6 +8,8 @@ Click by hovering instead of pressing mouse buttons. Dwellpy automatically perfo
 
 Built for users with motor disabilities who use head trackers, eye-tracking systems, or have difficulty with traditional mouse clicking due to conditions like cerebral palsy, hand tremors, or muscular dystrophy.
 
+**Made by a disabled person for the disabled community.**
+
 ## Quick Start
 
 ### For End Users
