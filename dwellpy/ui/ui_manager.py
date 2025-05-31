@@ -43,6 +43,81 @@ except ImportError:
     DEFAULT_EXPANSION_DIRECTION = 'auto'
     SCREEN_EDGE_MARGIN = 50
 
+
+class CursorMovementDetector:
+    """Detects cursor movement vs dwelling to control widget visibility."""
+    
+    def __init__(self):
+        self.last_position = None
+        self.last_movement_time = 0
+        self.movement_threshold = 5  # pixels - reduced for more sensitivity
+        self.dwell_delay = 0.2  # seconds - reduced for quicker response
+        self.hide_delay = 0.05  # seconds - very quick hiding
+        self.movement_velocity_history = []
+        self.velocity_window = 2  # reduced window for faster response
+        self.movement_velocity_threshold = 30  # pixels per second - reduced threshold
+        self.last_update_time = 0
+        
+    def update_position(self, position):
+        """Update cursor position and return movement state."""
+        current_time = time.time()
+        
+        if self.last_position is None:
+            self.last_position = position
+            self.last_update_time = current_time
+            return 'dwelling'  # Start in dwelling state
+        
+        # Calculate movement distance
+        dx = abs(position[0] - self.last_position[0])
+        dy = abs(position[1] - self.last_position[1])
+        distance = max(dx, dy)  # Use max distance for consistency with dwell detection
+        
+        # Calculate velocity
+        time_delta = current_time - self.last_update_time
+        if time_delta > 0:
+            velocity = distance / time_delta
+            self.movement_velocity_history.append(velocity)
+            if len(self.movement_velocity_history) > self.velocity_window:
+                self.movement_velocity_history.pop(0)
+        
+        # Determine if cursor is moving based on distance and velocity
+        is_moving = False
+        
+        # Check immediate movement
+        if distance >= self.movement_threshold:
+            is_moving = True
+            self.last_movement_time = current_time
+        
+        # Also check average velocity over recent history
+        if len(self.movement_velocity_history) > 0:
+            avg_velocity = sum(self.movement_velocity_history) / len(self.movement_velocity_history)
+            if avg_velocity > self.movement_velocity_threshold:
+                is_moving = True
+                self.last_movement_time = current_time
+        
+        # Update position tracking
+        self.last_position = position
+        self.last_update_time = current_time
+        
+        # Determine state based on movement and timing
+        time_since_movement = current_time - self.last_movement_time
+        
+        if is_moving:
+            return 'moving'
+        elif time_since_movement < self.dwell_delay:
+            return 'settling'  # Just stopped moving, waiting to show widgets
+        else:
+            return 'dwelling'  # Settled and dwelling
+            
+    def should_show_widgets(self, movement_state):
+        """Determine if widgets should be shown based on movement state."""
+        return movement_state == 'dwelling'
+        
+    def should_hide_widgets(self, movement_state):
+        """Determine if widgets should be hidden based on movement state."""
+        return movement_state in ['moving', 'settling']
+
+
 class DwellClickerUI:
     """UI Manager for the Dwell Clicker application with temporary/default modes."""
     
@@ -110,6 +185,10 @@ class DwellClickerUI:
         self.menu_hover = None
         self.menu_dwell_start_time = None
         self.menu_dwell_triggered = False
+        
+        # Movement state tracking for widget visibility
+        self.cursor_movement_detector = CursorMovementDetector()
+        self.widgets_hidden_for_movement = False
         
         # UI setup
         self.setup_ui()
@@ -1214,6 +1293,9 @@ class DwellClickerUI:
         self.is_active = not self.is_active
         self.update_button_states()
         
+        # Reset movement state when toggling
+        self.widgets_hidden_for_movement = False
+        
         # Update contracted button text if UI is contracted
         self.update_contracted_button_state()
         
@@ -1382,7 +1464,8 @@ class DwellClickerUI:
         if not self.settings_manager.get_setting('scroll_enabled', True):
             return
         
-        if self.is_active:
+        # Continue with position updates only if widgets should be visible
+        if self.is_active and not self.widgets_hidden_for_movement:
             # Check if both widgets are enabled for coordinated positioning
             menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
             
@@ -1428,7 +1511,8 @@ class DwellClickerUI:
         if not self.settings_manager.get_setting('menu_enabled', True):
             return
         
-        if self.is_active:
+        # Only continue if widgets are not hidden for movement
+        if self.is_active and not self.widgets_hidden_for_movement:
             # Check if both widgets are enabled for coordinated positioning
             scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
             
@@ -1544,6 +1628,77 @@ class DwellClickerUI:
         # Update menu widget with coordinated position
         self.menu_widget.update_position(cursor_pos, coordinated_mode=True)
         self.menu_widget.set_coordinated_position((menu_widget_x, menu_widget_y))
+
+    def update_movement_detection(self, cursor_pos):
+        """Update movement detection and control widget visibility."""
+        # Update movement detector and get current movement state
+        movement_state = self.cursor_movement_detector.update_position(cursor_pos)
+        
+        # Check if cursor is near any widget (override hiding if close to widgets)
+        cursor_near_widget = self._is_cursor_near_widgets(cursor_pos)
+        
+        # Handle widget visibility based on movement state and proximity
+        should_hide = self.cursor_movement_detector.should_hide_widgets(movement_state) and not cursor_near_widget
+        should_show = self.cursor_movement_detector.should_show_widgets(movement_state) or cursor_near_widget
+        
+        # Only hide/show if active
+        if self.is_active:
+            if should_hide and not self.widgets_hidden_for_movement:
+                # Hide both widgets when movement detected and not near widgets
+                self._hide_widgets_for_movement()
+            elif should_show and self.widgets_hidden_for_movement:
+                # Show both widgets when dwelling detected or near widgets
+                self._show_widgets_for_movement()
+
+    def _hide_widgets_for_movement(self):
+        """Hide widgets when cursor movement is detected."""
+        if not self.widgets_hidden_for_movement:
+            self.widgets_hidden_for_movement = True
+            
+            # Completely hide widgets when moving for cleaner experience
+            if self.scroll_widget.isVisible():
+                self.scroll_widget.hide()
+            if self.menu_widget.isVisible():
+                self.menu_widget.hide()
+                
+            # Reset any active hover states
+            self.scroll_hover = None
+            self.scroll_dwell_start_time = None
+            self.scroll_dwell_triggered = False
+            self.menu_hover = None
+            self.menu_dwell_start_time = None
+            self.menu_dwell_triggered = False
+            
+            # Stop any active scrolling
+            if self.scroll_widget.is_scrolling:
+                self.scroll_widget.stop_scrolling()
+                
+            # Clear hover states in widgets
+            if hasattr(self.scroll_widget, '_set_hover'):
+                self.scroll_widget._set_hover(None)
+            if hasattr(self.menu_widget, '_set_hover'):
+                self.menu_widget._set_hover(None)
+            if hasattr(self.menu_widget, '_set_expanded'):
+                self.menu_widget._set_expanded(False)
+    
+    def _show_widgets_for_movement(self):
+        """Show widgets when cursor dwelling is detected."""
+        if self.widgets_hidden_for_movement:
+            self.widgets_hidden_for_movement = False
+            
+            # Show widgets and restore their normal state
+            scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+            menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
+            
+            if scroll_enabled and self.is_active:
+                self.scroll_widget.show()
+                self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
+                self.scroll_widget.raise_()
+                
+            if menu_enabled and self.is_active:
+                self.menu_widget.show()
+                self.menu_widget.setWindowOpacity(self.menu_widget.base_opacity)
+                self.menu_widget.raise_()
 
     def handle_menu_item_selection(self, item_id):
         """Handle selection of a menu item."""
@@ -1721,3 +1876,87 @@ class DwellClickerUI:
         
         # Update button states to reflect menu setting changes
         self.update_button_states()
+
+    def _is_cursor_near_widgets(self, cursor_pos):
+        """Check if cursor is close enough to any widget to keep them visible."""
+        if not self.is_active:
+            return False
+            
+        # Convert cursor position
+        if hasattr(cursor_pos, '__iter__'):
+            cursor_x, cursor_y = cursor_pos
+        else:
+            cursor_x, cursor_y = cursor_pos.x(), cursor_pos.y()
+        
+        # Only check proximity to widgets that are currently visible
+        # Don't use predicted positions - that creates the always-near problem
+        
+        # Check scroll widget if enabled and currently visible
+        scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+        if scroll_enabled and self.scroll_widget.isVisible() and not self.widgets_hidden_for_movement:
+            # First check if cursor is actually hovering over the scroll widget UI
+            scroll_hover = self.scroll_widget.check_hover(cursor_pos)
+            if scroll_hover is not None:
+                return True  # Definitely keep visible if hovering over UI
+            
+            # Otherwise check proximity and movement direction
+            scroll_rect = self.scroll_widget.geometry()
+            scroll_center_x = scroll_rect.x() + scroll_rect.width() // 2
+            scroll_center_y = scroll_rect.y() + scroll_rect.height() // 2
+            
+            # Use a larger proximity threshold for staying visible (more forgiving)
+            stay_visible_threshold = 140  # pixels - increased for easier interaction
+            scroll_distance = ((cursor_x - scroll_center_x) ** 2 + 
+                             (cursor_y - scroll_center_y) ** 2) ** 0.5
+            
+            # Be more forgiving with movement detection - only hide if clearly moving away
+            if scroll_distance <= stay_visible_threshold:
+                if not self._is_cursor_clearly_moving_away_from_point(cursor_pos, (scroll_center_x, scroll_center_y)):
+                    return True
+        
+        # Check menu widget if enabled and currently visible
+        menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
+        if menu_enabled and self.menu_widget.isVisible() and not self.widgets_hidden_for_movement:
+            # First check if cursor is actually hovering over the menu widget UI
+            menu_hover = self.menu_widget.check_hover(cursor_pos)
+            if menu_hover is not None:
+                return True  # Definitely keep visible if hovering over UI
+            
+            # Otherwise check proximity and movement direction
+            menu_rect = self.menu_widget.geometry()
+            menu_center_x = menu_rect.x() + menu_rect.width() // 2
+            menu_center_y = menu_rect.y() + menu_rect.height() // 2
+            
+            stay_visible_threshold = 140  # pixels - increased for easier interaction
+            menu_distance = ((cursor_x - menu_center_x) ** 2 + 
+                           (cursor_y - menu_center_y) ** 2) ** 0.5
+            
+            # Be more forgiving with movement detection - only hide if clearly moving away
+            if menu_distance <= stay_visible_threshold:
+                if not self._is_cursor_clearly_moving_away_from_point(cursor_pos, (menu_center_x, menu_center_y)):
+                    return True
+        
+        return False
+    
+    def _is_cursor_clearly_moving_away_from_point(self, current_pos, target_point):
+        """Check if cursor is clearly moving away from a specific point (more forgiving than before)."""
+        if not hasattr(self.cursor_movement_detector, 'last_position') or self.cursor_movement_detector.last_position is None:
+            return False
+            
+        # Convert positions
+        if hasattr(current_pos, '__iter__'):
+            curr_x, curr_y = current_pos
+        else:
+            curr_x, curr_y = current_pos.x(), current_pos.y()
+            
+        last_x, last_y = self.cursor_movement_detector.last_position
+        target_x, target_y = target_point
+        
+        # Calculate distances
+        last_distance = ((last_x - target_x) ** 2 + (last_y - target_y) ** 2) ** 0.5
+        current_distance = ((curr_x - target_x) ** 2 + (curr_y - target_y) ** 2) ** 0.5
+        
+        # Only consider it "clearly moving away" if distance increased significantly
+        # This is more forgiving for small movements during interaction
+        movement_threshold = 8  # pixels - increased threshold for more forgiveness
+        return current_distance > last_distance + movement_threshold

@@ -72,6 +72,9 @@ class InputManager:
             # Also update widget positions if we have reference to UI
             # This would be set by the main application
             if hasattr(self, 'ui_manager') and self.ui_manager:
+                # Update movement detection first (this controls widget visibility)
+                self.ui_manager.update_movement_detection(pos)
+                # Then update widget positions (only if they should be visible)
                 self.ui_manager.update_scroll_widget_position(pos)
                 self.ui_manager.update_menu_widget_position(pos)
                 
