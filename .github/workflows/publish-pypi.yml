@@ -62,7 +62,6 @@ jobs:
         path: dist/
     
     - name: Publish to PyPI
-      if: github.event.inputs.test_mode != 'true'
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         verbose: true
