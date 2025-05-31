@@ -1,0 +1,43 @@
+name: CodeQL Analysis
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'The branch or tag to analyze'
+        required: true
+        default: 'main'
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please')
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['python']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+          upload: true

@@ -3,16 +3,19 @@ on:
   push:
     branches:
       - main
+
 permissions:
   issues: write
   contents: write
   pull-requests: write
+
 jobs:
   release-please:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      upload_url: ${{ steps.release.outputs.upload_url }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -27,3 +30,16 @@ jobs:
           echo "Release created: ${{ steps.release.outputs.release_created }}"
           echo "Tag name: ${{ steps.release.outputs.tag_name }}"
           echo "Upload URL: ${{ steps.release.outputs.upload_url }}"
+
+  build-executables:
+    name: Build Executables
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    strategy:
+      matrix:
+        target: [windows-x64, windows-arm64, linux-x64, linux-arm64, macos-x64, macos-arm64]
+    uses: ./.github/workflows/build-executables.yml
+    with:
+      target: ${{ matrix.target }}
+      tag_name: ${{ needs.release-please.outputs.tag_name }}
+      upload_url: ${{ needs.release-please.outputs.upload_url }}
