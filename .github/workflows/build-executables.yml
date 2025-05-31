@@ -43,7 +43,7 @@ jobs:
           pip install -r dwellpy/requirements.txt
           pip install pyinstaller
 
-      - name: Build Windows executable
+      - name: Build executable
         run: |
           python build_executable.py
 
@@ -85,16 +85,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: ${{ 
-            (inputs.target == 'windows-x64' || inputs.target == 'windows-arm64') 
-              && format('./dist/dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, inputs.target) 
-              || format('./dist/dwellpy-{0}-{1}', steps.get-version.outputs.version, inputs.target) 
-          }}
-          asset_name: ${{ 
-            (inputs.target == 'windows-x64' || inputs.target == 'windows-arm64') 
-              && format('dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, inputs.target) 
-              || format('dwellpy-{0}-{1}', steps.get-version.outputs.version, inputs.target) 
-          }}
+          asset_path: ${{ (inputs.target == 'windows-x64' || inputs.target == 'windows-arm64') && format('./dist/dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, inputs.target) || format('./dist/dwellpy-{0}-{1}', steps.get-version.outputs.version, inputs.target) }}
+          asset_name: ${{ (inputs.target == 'windows-x64' || inputs.target == 'windows-arm64') && format('dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, inputs.target) || format('dwellpy-{0}-{1}', steps.get-version.outputs.version, inputs.target) }}
           asset_content_type: application/octet-stream
 
       - name: Upload build info
