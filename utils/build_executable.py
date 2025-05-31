@@ -260,9 +260,9 @@ def test_executable():
     # Check different possible locations
     exe_paths = [
         Path('dist/Dwellpy.exe'),      # Windows one-file
-        Path('dist/Dwellpy'),          # Linux/Mac one-file
+        Path('dist/Dwellpy'),          # Linux/macOS one-file
         Path('dist/Dwellpy/Dwellpy.exe'),  # Windows one-dir
-        Path('dist/Dwellpy/Dwellpy'),      # Linux/Mac one-dir
+        Path('dist/Dwellpy/Dwellpy'),      # Linux/macOS one-dir
     ]
     
     exe_path = None
