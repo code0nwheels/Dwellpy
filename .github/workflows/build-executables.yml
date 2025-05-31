@@ -19,14 +19,22 @@ on:
 jobs:
   build:
     name: Build Executable
-    runs-on: ${{ 
-      inputs.target == 'windows-x64' && 'windows-2025' || 
-      inputs.target == 'windows-arm64' && 'windows-11-arm' || 
-      inputs.target == 'linux-x64' && 'ubuntu-24.04' || 
-      inputs.target == 'linux-arm64' && 'ubuntu-24.04-arm' || 
-      inputs.target == 'macos-x64' && 'macos-13' || 
-      inputs.target == 'macos-arm64' && 'macos-15' 
-    }}
+    strategy:
+      matrix:
+        include:
+          - target: windows-x64
+            runner: windows-2025
+          - target: windows-arm64
+            runner: windows-11-arm
+          - target: linux-x64
+            runner: ubuntu-24.04
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+          - target: macos-x64
+            runner: macos-13
+          - target: macos-arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
     
     steps:
       - name: Checkout repository
