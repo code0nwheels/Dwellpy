@@ -2,7 +2,8 @@
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QPushButton, 
                            QHBoxLayout, QVBoxLayout, QFrame)
-from PyQt6.QtCore import Qt, QSize, QTimer
+from PyQt6.QtCore import Qt, QSize, QTimer, QCoreApplication
+from PyQt6.QtGui import QCursor
 from .scroll_widget import ScrollWidget
 from .menu_widget import MenuWidget
 import time
@@ -61,6 +62,10 @@ class CursorMovementDetector:
     def set_dwell_delay(self, delay):
         """Update the dwell delay setting."""
         self.dwell_delay = delay
+    
+    def set_movement_threshold(self, threshold):
+        """Update the movement threshold to match dwell detection."""
+        self.movement_threshold = threshold
     
     def update_position(self, position):
         """Update cursor position and return movement state."""
@@ -189,6 +194,9 @@ class DwellClickerUI:
         self.menu_hover = None
         self.menu_dwell_start_time = None
         self.menu_dwell_triggered = False
+        
+        # Track widget initial orientation for consistent positioning
+        self.widgets_initial_orientation = None
         
         # Movement state tracking for widget visibility
         initial_delay = 0.2  # Default delay, will be updated when settings manager connects
@@ -1299,6 +1307,11 @@ class DwellClickerUI:
     def toggle_active(self):
         """Modified toggle_active to also control scroll and menu widgets."""
         self.is_active = not self.is_active
+        
+        # Clear button hover state when turning off to prevent stuck hover states
+        if not self.is_active:
+            self.button_manager.clear_hover()
+        
         self.update_button_states()
         
         # Reset movement state when toggling
@@ -1708,6 +1721,37 @@ class DwellClickerUI:
                 self.menu_widget.setWindowOpacity(self.menu_widget.base_opacity)
                 self.menu_widget.raise_()
 
+    def _refresh_button_hover_states(self):
+        """Force a refresh of button hover states by simulating mouse movement."""
+        try:
+            from PyQt6.QtCore import QCoreApplication
+            from PyQt6.QtGui import QCursor
+            
+            # Get current cursor position
+            cursor_pos = QCursor.pos()
+            
+            # Clear all button hover states first
+            self.button_manager.clear_hover()
+            
+            # Check which button (if any) should be hovered based on current cursor position
+            for button_id, button in self.buttons.items():
+                if button.isVisible():
+                    # Convert global cursor position to button coordinates
+                    button_pos = button.mapFromGlobal(cursor_pos)
+                    
+                    # Check if cursor is within button bounds
+                    if button.rect().contains(button_pos):
+                        # Manually trigger the hover state
+                        self.button_manager.set_hover(button_id)
+                        break
+            
+            # Process any pending Qt events to ensure proper state updates
+            QCoreApplication.processEvents()
+            
+        except Exception as e:
+            # If there's any error, just clear the hover state
+            self.button_manager.clear_hover()
+    
     def handle_menu_item_selection(self, item_id):
         """Handle selection of a menu item."""
         if item_id == 'LEFT':
@@ -1719,9 +1763,18 @@ class DwellClickerUI:
         elif item_id == 'DRAG':
             self.set_mode('DRAG')
         elif item_id == 'OFF':
-            # Turn off the application
+            # Turn off the application with special handling for menu widget interaction
             if self.is_active:
+                # First hide the menu widget to prevent event conflicts
+                self.menu_widget.set_active(False)
+                # Clear any menu widget hover states
+                self.menu_hover = None
+                self.menu_dwell_start_time = None
+                self.menu_dwell_triggered = False
+                # Now toggle the application off
                 self.toggle_active()
+                # Force a refresh of mouse hover state for main UI
+                self._refresh_button_hover_states()
         elif item_id == 'SETUP':
             # Execute the setup command if available
             if self.settings_manager:
@@ -1895,6 +1948,10 @@ class DwellClickerUI:
         
         # Update the movement detector with the new delay
         self.cursor_movement_detector.set_dwell_delay(appearance_delay)
+        
+        # Sync movement threshold with dwell detection move_limit
+        if hasattr(self, 'dwell_detector') and self.dwell_detector:
+            self.cursor_movement_detector.set_movement_threshold(self.dwell_detector.move_limit)
 
     def _is_cursor_near_widgets(self, cursor_pos):
         """Check if cursor is close enough to any widget to keep them visible."""

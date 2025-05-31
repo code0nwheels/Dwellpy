@@ -192,6 +192,11 @@ class SettingsManager:
         clamped_value = clamp_value(value, MIN_MOVE_LIMIT, MAX_MOVE_LIMIT)
         self.settings['move_limit'] = clamped_value
         self.dwell_detector.move_limit = clamped_value
+        
+        # Sync widget appearance movement threshold with dwell detection
+        if self.ui_manager and hasattr(self.ui_manager, 'cursor_movement_detector'):
+            self.ui_manager.cursor_movement_detector.set_movement_threshold(clamped_value)
+        
         self.logger.info(f"Move limit updated to: {clamped_value}px")
     
     def update_dwell_time(self, value: float) -> None:
