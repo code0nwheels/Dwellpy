@@ -43,5 +43,3 @@ jobs:
       target: ${{ matrix.target }}
       tag_name: ${{ needs.release-please.outputs.tag_name }}
       upload_url: ${{ needs.release-please.outputs.upload_url }}
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
