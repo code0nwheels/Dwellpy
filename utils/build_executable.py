@@ -95,8 +95,8 @@ def create_spec_file():
         # UAC flags only for Windows
         uac_flags = ""
         if is_windows():
-            uac_flags = """    uac_admin=True,   # Request admin privileges (for mouse control)
-    uac_uiaccess=True,"""
+            uac_flags = '' #"""    ,uac_admin=True,   # Request admin privileges (for mouse control)
+    #uac_uiaccess=True,"""
             print("   ✓ Adding Windows UAC flags for mouse control")
         else:
             print("   ✓ Skipping UAC flags (not Windows)")
@@ -203,7 +203,7 @@ exe = EXE(
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
-    entitlements_file=None,{uac_flags}
+    entitlements_file=None{uac_flags}
 )
 '''
         
