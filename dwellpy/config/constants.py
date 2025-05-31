@@ -62,6 +62,11 @@ MENU_WIDGET_ANGLE = -45  # Bottom-right position
 MENU_OPACITY_BASE = 80  # Base opacity percentage
 MENU_OPACITY_HOVER = 95
 
+# Widget Appearance Constants
+WIDGET_APPEARANCE_DELAY_MIN = 0.1      # Minimum widget appearance delay (seconds)
+WIDGET_APPEARANCE_DELAY_MAX = 1.0      # Maximum widget appearance delay (seconds)  
+WIDGET_APPEARANCE_DELAY_DEFAULT = 0.2  # Default widget appearance delay
+
 # Color Scheme - Dark Theme
 class Colors:
     # Primary colors
@@ -177,6 +182,7 @@ DEFAULT_SETTINGS = {
     'menu_angle': MENU_WIDGET_ANGLE,
     'menu_opacity_base': MENU_OPACITY_BASE,
     'menu_opacity_hover': MENU_OPACITY_HOVER,
+    'widget_appearance_delay': WIDGET_APPEARANCE_DELAY_DEFAULT,
     'contract_ui_enabled': False,
     'expansion_direction': DEFAULT_EXPANSION_DIRECTION,
     'click_color_left': '#00e676',

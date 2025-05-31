@@ -114,6 +114,21 @@ class SettingsDialog(QDialog):
         
         self.scroll_speed_plus_repeat = QTimer()
         self.scroll_speed_plus_repeat.timeout.connect(self.on_hover_plus_scroll_speed)
+        
+        # Widget appearance delay timers
+        self.widget_delay_minus_timer = QTimer()
+        self.widget_delay_minus_timer.setSingleShot(True)
+        self.widget_delay_minus_timer.timeout.connect(self.start_minus_widget_delay_repeat)
+        
+        self.widget_delay_plus_timer = QTimer()
+        self.widget_delay_plus_timer.setSingleShot(True)
+        self.widget_delay_plus_timer.timeout.connect(self.start_plus_widget_delay_repeat)
+        
+        self.widget_delay_minus_repeat = QTimer()
+        self.widget_delay_minus_repeat.timeout.connect(self.on_hover_minus_widget_delay)
+        
+        self.widget_delay_plus_repeat = QTimer()
+        self.widget_delay_plus_repeat.timeout.connect(self.on_hover_plus_widget_delay)
     
     def setup_ui(self):
         """Setup the dialog UI with left-side wide tabs for dwell-friendly navigation."""
@@ -604,6 +619,61 @@ class SettingsDialog(QDialog):
         scroll_speed_layout.addWidget(self.scroll_speed_value)
         
         layout.addWidget(scroll_speed_frame)
+        
+        # Widget Appearance Delay
+        appearance_delay_label = QLabel("Widget Appearance Delay:")
+        appearance_delay_label.setFont(QFont("Helvetica Neue", 11))
+        appearance_delay_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        layout.addWidget(appearance_delay_label)
+        
+        # Description
+        delay_desc = QLabel("How long to wait after cursor stops moving before widgets appear")
+        delay_desc.setFont(QFont("Helvetica Neue", 9))
+        delay_desc.setStyleSheet(f"color: #999999; margin-bottom: 8px;")
+        delay_desc.setWordWrap(True)
+        layout.addWidget(delay_desc)
+        
+        # Controls frame
+        widget_delay_frame = QFrame()
+        widget_delay_layout = QHBoxLayout(widget_delay_frame)
+        widget_delay_layout.setContentsMargins(0, 0, 0, 0)
+        widget_delay_layout.setSpacing(5)
+        
+        # Minus button
+        widget_delay_minus_btn = self.create_adjustment_button("-")
+        widget_delay_minus_btn.enterEvent = lambda e: self.on_enter_minus_widget_delay()
+        widget_delay_minus_btn.leaveEvent = lambda e: self.on_leave_minus_widget_delay()
+        widget_delay_layout.addWidget(widget_delay_minus_btn)
+        
+        # Slider (1-10, representing 0.1s to 1.0s)
+        self.widget_delay_slider = QSlider(Qt.Orientation.Horizontal)
+        self.widget_delay_slider.setRange(1, 10)
+        # Convert current delay (0.1-1.0) to slider value (1-10)
+        current_delay = self.settings_manager.get_setting('widget_appearance_delay', 0.2)
+        slider_value = int(current_delay * 10)
+        self.widget_delay_slider.setValue(max(1, min(10, slider_value)))
+        self.widget_delay_slider.setStyleSheet(self.get_slider_style())
+        widget_delay_layout.addWidget(self.widget_delay_slider)
+        
+        # Plus button
+        widget_delay_plus_btn = self.create_adjustment_button("+")
+        widget_delay_plus_btn.enterEvent = lambda e: self.on_enter_plus_widget_delay()
+        widget_delay_plus_btn.leaveEvent = lambda e: self.on_leave_plus_widget_delay()
+        widget_delay_layout.addWidget(widget_delay_plus_btn)
+        
+        # Value label
+        delay_seconds = self.widget_delay_slider.value() / 10.0
+        self.widget_delay_value = QLabel(f"{delay_seconds:.1f}s")
+        self.widget_delay_value.setStyleSheet(f"""
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 12pt;
+            font-weight: bold;
+            color: {Colors.TEXT_COLOR};
+        """)
+        self.widget_delay_value.setFixedWidth(40)
+        widget_delay_layout.addWidget(self.widget_delay_value)
+        
+        layout.addWidget(widget_delay_frame)
     
     def create_active_state_section(self, layout):
         """Create default active state section."""
@@ -914,6 +984,7 @@ class SettingsDialog(QDialog):
         self.active_check.stateChanged.connect(self.on_active_toggle)
         self.contract_ui_check.stateChanged.connect(self.on_contract_ui_toggle)
         self.expansion_button_group.buttonClicked.connect(self.on_expansion_direction_toggle)
+        self.widget_delay_slider.valueChanged.connect(self.update_widget_delay_value)
     
     # Value update methods
     def update_move_limit_value(self, value):
@@ -943,6 +1014,12 @@ class SettingsDialog(QDialog):
         # Convert speed value to interval (1=200ms, 10=20ms)
         interval = 220 - (value * 20)
         self.settings_manager.update_scroll_speed(interval)
+
+    def update_widget_delay_value(self, value):
+        """Update widget appearance delay value and apply setting."""
+        delay_seconds = value / 10.0
+        self.widget_delay_value.setText(f"{delay_seconds:.1f}s")
+        self.settings_manager.update_widget_appearance_delay(delay_seconds)
 
     def on_scroll_toggle(self, state):
         """Handle scroll widget checkbox toggle."""
@@ -1036,6 +1113,20 @@ class SettingsDialog(QDialog):
         self.scroll_speed_plus_timer.stop()
         self.scroll_speed_plus_repeat.stop()
     
+    def on_enter_minus_widget_delay(self):
+        self.widget_delay_minus_timer.start(300)
+        
+    def on_leave_minus_widget_delay(self):
+        self.widget_delay_minus_timer.stop()
+        self.widget_delay_minus_repeat.stop()
+        
+    def on_enter_plus_widget_delay(self):
+        self.widget_delay_plus_timer.start(300)
+        
+    def on_leave_plus_widget_delay(self):
+        self.widget_delay_plus_timer.stop()
+        self.widget_delay_plus_repeat.stop()
+    
     # Timer start methods that begin the repeat action
     def start_minus_move_repeat(self):
         self.on_hover_minus_move_limit()  # First action
@@ -1068,6 +1159,14 @@ class SettingsDialog(QDialog):
     def start_plus_scroll_speed_repeat(self):
         self.on_hover_plus_scroll_speed()
         self.scroll_speed_plus_repeat.start(500)
+    
+    def start_minus_widget_delay_repeat(self):
+        self.on_hover_minus_widget_delay()
+        self.widget_delay_minus_repeat.start(500)
+        
+    def start_plus_widget_delay_repeat(self):
+        self.on_hover_plus_widget_delay()
+        self.widget_delay_plus_repeat.start(500)
     
     # The actual value adjustment methods
     def on_hover_minus_move_limit(self):
@@ -1110,6 +1209,16 @@ class SettingsDialog(QDialog):
         if current < self.scroll_speed_slider.maximum():
             self.scroll_speed_slider.setValue(current + 1)
     
+    def on_hover_minus_widget_delay(self):
+        current = self.widget_delay_slider.value()
+        if current > self.widget_delay_slider.minimum():
+            self.widget_delay_slider.setValue(current - 1)
+        
+    def on_hover_plus_widget_delay(self):
+        current = self.widget_delay_slider.value()
+        if current < self.widget_delay_slider.maximum():
+            self.widget_delay_slider.setValue(current + 1)
+    
     def accept(self):
         """Handle dialog acceptance."""
         # Stop all timers
@@ -1118,10 +1227,12 @@ class SettingsDialog(QDialog):
             self.time_minus_timer, self.time_plus_timer,
             self.transparency_minus_timer, self.transparency_plus_timer,
             self.scroll_speed_minus_timer, self.scroll_speed_plus_timer,
+            self.widget_delay_minus_timer, self.widget_delay_plus_timer,
             self.move_minus_repeat, self.move_plus_repeat, 
             self.time_minus_repeat, self.time_plus_repeat,
             self.transparency_minus_repeat, self.transparency_plus_repeat,
-            self.scroll_speed_minus_repeat, self.scroll_speed_plus_repeat
+            self.scroll_speed_minus_repeat, self.scroll_speed_plus_repeat,
+            self.widget_delay_minus_repeat, self.widget_delay_plus_repeat
         ]
         
         for timer in timers_to_stop:

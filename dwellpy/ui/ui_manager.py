@@ -47,17 +47,21 @@ except ImportError:
 class CursorMovementDetector:
     """Detects cursor movement vs dwelling to control widget visibility."""
     
-    def __init__(self):
+    def __init__(self, dwell_delay=0.2):
         self.last_position = None
         self.last_movement_time = 0
         self.movement_threshold = 5  # pixels - reduced for more sensitivity
-        self.dwell_delay = 0.2  # seconds - reduced for quicker response
+        self.dwell_delay = dwell_delay  # seconds - configurable time to wait before showing widgets
         self.hide_delay = 0.05  # seconds - very quick hiding
         self.movement_velocity_history = []
         self.velocity_window = 2  # reduced window for faster response
         self.movement_velocity_threshold = 30  # pixels per second - reduced threshold
         self.last_update_time = 0
         
+    def set_dwell_delay(self, delay):
+        """Update the dwell delay setting."""
+        self.dwell_delay = delay
+    
     def update_position(self, position):
         """Update cursor position and return movement state."""
         current_time = time.time()
@@ -187,7 +191,8 @@ class DwellClickerUI:
         self.menu_dwell_triggered = False
         
         # Movement state tracking for widget visibility
-        self.cursor_movement_detector = CursorMovementDetector()
+        initial_delay = 0.2  # Default delay, will be updated when settings manager connects
+        self.cursor_movement_detector = CursorMovementDetector(dwell_delay=initial_delay)
         self.widgets_hidden_for_movement = False
         
         # UI setup
@@ -226,6 +231,9 @@ class DwellClickerUI:
         
         # Apply menu widget settings AFTER setting the active state
         self.apply_menu_settings()
+        
+        # Apply widget appearance settings
+        self.apply_widget_appearance_settings()
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
@@ -1876,6 +1884,17 @@ class DwellClickerUI:
         
         # Update button states to reflect menu setting changes
         self.update_button_states()
+
+    def apply_widget_appearance_settings(self):
+        """Apply widget appearance settings from the settings manager."""
+        if not self.settings_manager:
+            return
+        
+        # Get widget appearance delay setting
+        appearance_delay = self.settings_manager.get_setting('widget_appearance_delay', 0.2)
+        
+        # Update the movement detector with the new delay
+        self.cursor_movement_detector.set_dwell_delay(appearance_delay)
 
     def _is_cursor_near_widgets(self, cursor_pos):
         """Check if cursor is close enough to any widget to keep them visible."""

@@ -138,6 +138,21 @@ This section controls a floating scroll widget that appears near your cursor for
 - **4-6**: Medium speed for general use
 - **7-10**: Fast scrolling for quickly moving through content
 
+#### Widget Appearance Delay (0.1s - 1.0s)
+**What it does**: Controls how long the cursor needs to remain still before the menu and scroll widgets appear.
+
+**Scale**: 0.1s = widgets appear very quickly, 1.0s = widgets wait longer before appearing
+
+**Recommended values**:
+- **0.1s - 0.3s**: Quick appearance for frequent widget use
+- **0.4s - 0.6s**: Medium delay for balanced usage (default: 0.2s)
+- **0.7s - 1.0s**: Longer delay to avoid widgets appearing during normal cursor movement
+
+**When to adjust**:
+- **Increase delay**: If widgets appear too often during normal computer use
+- **Decrease delay**: If you want widgets to be more responsive when you stop moving the cursor
+- **Default (0.2s)**: Good balance for most users
+
 ## General Tab
 
 The General tab contains startup and UI behavior settings.
