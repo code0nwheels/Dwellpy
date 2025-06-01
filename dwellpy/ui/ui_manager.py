@@ -1744,14 +1744,13 @@ class DwellClickerUI:
                         # Manually trigger the hover state
                         self.button_manager.set_hover(button_id)
                         break
-            
-            # Process any pending Qt events to ensure proper state updates
+              # Process any pending Qt events to ensure proper state updates
             QCoreApplication.processEvents()
             
         except Exception as e:
             # If there's any error, just clear the hover state
             self.button_manager.clear_hover()
-    
+
     def handle_menu_item_selection(self, item_id):
         """Handle selection of a menu item."""
         if item_id == 'LEFT':
@@ -1779,6 +1778,10 @@ class DwellClickerUI:
             # Execute the setup command if available
             if self.settings_manager:
                 self.button_manager.execute_command('SETUP')
+        
+        # Force menu widget to repaint to show updated blue/red states
+        if item_id in ['LEFT', 'DOUBLE', 'RIGHT', 'DRAG']:
+            self.menu_widget.update()
 
     def toggle_menu_widget(self):
         """Toggle the menu widget on/off."""
