@@ -1626,10 +1626,6 @@ class DwellClickerUI:
             elif self._coordinated_locked:
                 return  # Stay locked in place
         
-        # Get scroll widget settings for base positioning
-        scroll_offset = self.settings_manager.get_setting('scroll_offset', 50)
-        scroll_angle = self.settings_manager.get_setting('scroll_angle', 45)
-        
         # Calculate initial side-by-side positioning
         widget_distance = 80  # Distance from cursor to each widget
         
@@ -1640,7 +1636,7 @@ class DwellClickerUI:
         menu_widget_x = int(cursor_x - widget_distance - self.menu_widget.width() // 2)
         menu_widget_y = int(cursor_y - self.menu_widget.height() // 2)
         
-        # Check for off-screen positioning and implement stacking if needed
+        # Check for off-screen positioning and implement intelligent positioning
         scroll_pos = QPoint(scroll_widget_x, scroll_widget_y)
         menu_pos = QPoint(menu_widget_x, menu_widget_y)
         
@@ -1651,51 +1647,115 @@ class DwellClickerUI:
         scroll_off_screen = self.scroll_widget._detect_off_screen_position(scroll_pos, scroll_size)
         menu_off_screen = self.menu_widget._detect_off_screen_position(menu_pos, menu_size)
         
-        # If either widget would be off-screen, switch to stacking mode
-        if scroll_off_screen['off_screen'] or menu_off_screen['off_screen']:
-            # Stacking mode: scroll widget on top, menu widget below
-            stack_distance = 60  # Vertical distance between stacked widgets
+        # Check specifically for horizontal off-screen issues
+        scroll_horizontal_issue = scroll_off_screen['off_screen'] and (scroll_off_screen['off_left'] or scroll_off_screen['off_right'])
+        menu_horizontal_issue = menu_off_screen['off_screen'] and (menu_off_screen['off_left'] or menu_off_screen['off_right'])
+        
+        # Implement intelligent positioning preferences
+        if scroll_horizontal_issue and menu_horizontal_issue:
+            # Both widgets would go off-screen horizontally - use full stacking mode
+            stack_distance = 25  # Distance from cursor to widgets
             
-            # Position scroll widget above cursor (always on top when stacking)
-            scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
-            scroll_widget_y = int(cursor_y - stack_distance - self.scroll_widget.height())
-            
-            # Position menu widget below cursor
-            menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
-            menu_widget_y = int(cursor_y + stack_distance)
-            
-            # Adjust positions to ensure they stay on screen
-            scroll_pos = QPoint(scroll_widget_x, scroll_widget_y)
-            menu_pos = QPoint(menu_widget_x, menu_widget_y)
-            
-            scroll_pos = self.scroll_widget._adjust_position_for_screen_bounds(scroll_pos, scroll_size)
-            menu_pos = self.menu_widget._adjust_position_for_screen_bounds(menu_pos, menu_size)
-            
-            # If both widgets would still overlap the cursor after adjustment, 
-            # move them to the side of the cursor that has more space
+            # Get screen geometry to check available space
             screen_geometry = self.scroll_widget._get_screen_geometry()
             if screen_geometry:
-                cursor_from_left = cursor_x - screen_geometry.left()
-                cursor_from_right = screen_geometry.right() - cursor_x
+                # Calculate available space above and below cursor
+                space_above = cursor_y - screen_geometry.top()
+                space_below = screen_geometry.bottom() - cursor_y
+                # Calculate total space needed for stacked widgets
+                total_stack_height = (self.scroll_widget.height() + self.menu_widget.height() + 
+                                    stack_distance * 2)  # stack_distance on each side of cursor
                 
-                if cursor_from_right > cursor_from_left:
-                    # More space on the right, stack on the right
-                    scroll_pos.setX(cursor_x + 20)
-                    menu_pos.setX(cursor_x + 20)
+                # Determine stacking arrangement based on available space
+                if space_above >= total_stack_height // 2 and space_below >= total_stack_height // 2:
+                    # Enough space on both sides - use preferred arrangement (scroll on top)
+                    scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
+                    scroll_widget_y = int(cursor_y - stack_distance - self.scroll_widget.height())
+                    
+                    menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+                    menu_widget_y = int(cursor_y + stack_distance)
+                    
+                elif space_below > space_above:
+                    # More space below - stack both widgets below cursor (scroll still on top)
+                    scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
+                    scroll_widget_y = int(cursor_y + stack_distance)
+                    
+                    menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+                    menu_widget_y = int(cursor_y + stack_distance + self.scroll_widget.height() + 5)
+                    
                 else:
-                    # More space on the left, stack on the left
-                    scroll_pos.setX(cursor_x - max(scroll_size.width(), menu_size.width()) - 20)
-                    menu_pos.setX(cursor_x - max(scroll_size.width(), menu_size.width()) - 20)
+                    # More space above - stack both widgets above cursor (scroll still on top)                    menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+                    menu_widget_y = int(cursor_y - stack_distance - self.menu_widget.height())
+                    
+                    scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
+                    scroll_widget_y = int(cursor_y - stack_distance - self.menu_widget.height() - 
+                                        self.scroll_widget.height() - 5)
+            else:
+                # Fallback to default positioning if screen geometry unavailable
+                scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
+                scroll_widget_y = int(cursor_y - stack_distance - self.scroll_widget.height())
+                
+                menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+                menu_widget_y = int(cursor_y + stack_distance)
+        elif scroll_horizontal_issue or menu_horizontal_issue:
+            # Only one widget would go off-screen horizontally - selective vertical offset
+            vertical_offset = 40  # Distance to offset the problematic widget vertically
             
-            scroll_widget_x, scroll_widget_y = scroll_pos.x(), scroll_pos.y()
-            menu_widget_x, menu_widget_y = menu_pos.x(), menu_pos.y()
+            if scroll_horizontal_issue:
+                # Scroll widget goes off-screen horizontally - bump it down while keeping menu in normal position
+                scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)  # Center horizontally
+                scroll_widget_y = int(cursor_y + vertical_offset)  # Offset down from cursor
+                
+                # Keep menu widget in normal side position
+                menu_widget_x = int(cursor_x - widget_distance - self.menu_widget.width() // 2)
+                menu_widget_y = int(cursor_y - self.menu_widget.height() // 2)
+            else:  # menu_horizontal_issue
+                # Menu widget goes off-screen horizontally - bump it down while keeping scroll in normal position
+                menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)  # Center horizontally
+                menu_widget_y = int(cursor_y + vertical_offset)  # Offset down from cursor
+                  # Keep scroll widget in normal side position
+                scroll_widget_x = int(cursor_x + widget_distance - self.scroll_widget.width() // 2)
+                scroll_widget_y = int(cursor_y - self.scroll_widget.height() // 2)
+                
         else:
-            # Normal side-by-side positioning with screen bounds adjustment
+            # No horizontal off-screen issues - use normal side-by-side positioning
+            # Keep the original calculated positions (they will be adjusted for screen bounds later)
+            pass
+        
+        # Apply final position adjustments to ensure both widgets stay on screen
+        scroll_pos = QPoint(scroll_widget_x, scroll_widget_y)
+        menu_pos = QPoint(menu_widget_x, menu_widget_y)
+        
+        # For selective vertical offset cases, only adjust the widget that's NOT vertically offset
+        if (scroll_horizontal_issue and not menu_horizontal_issue) or (menu_horizontal_issue and not scroll_horizontal_issue):
+            # One widget was selectively offset - only adjust positions minimally to stay in bounds
+            if scroll_horizontal_issue and not menu_horizontal_issue:
+                # Scroll was offset vertically, only adjust menu horizontally if needed
+                menu_pos = self.menu_widget._adjust_position_for_screen_bounds(menu_pos, menu_size)
+                # For scroll widget, just ensure it stays within vertical bounds
+                screen_geometry = self.scroll_widget._get_screen_geometry()
+                if screen_geometry:
+                    if scroll_pos.y() < screen_geometry.top():
+                        scroll_pos.setY(screen_geometry.top())
+                    elif scroll_pos.y() + scroll_size.height() > screen_geometry.bottom():
+                        scroll_pos.setY(screen_geometry.bottom() - scroll_size.height())
+            else:
+                # Menu was offset vertically, only adjust scroll horizontally if needed  
+                scroll_pos = self.scroll_widget._adjust_position_for_screen_bounds(scroll_pos, scroll_size)
+                # For menu widget, just ensure it stays within vertical bounds
+                screen_geometry = self.menu_widget._get_screen_geometry()
+                if screen_geometry:
+                    if menu_pos.y() < screen_geometry.top():
+                        menu_pos.setY(screen_geometry.top())
+                    elif menu_pos.y() + menu_size.height() > screen_geometry.bottom():
+                        menu_pos.setY(screen_geometry.bottom() - menu_size.height())
+        else:
+            # Normal adjustment for both widgets (full stacking mode or normal side-by-side)
             scroll_pos = self.scroll_widget._adjust_position_for_screen_bounds(scroll_pos, scroll_size)
             menu_pos = self.menu_widget._adjust_position_for_screen_bounds(menu_pos, menu_size)
-            
-            scroll_widget_x, scroll_widget_y = scroll_pos.x(), scroll_pos.y()
-            menu_widget_x, menu_widget_y = menu_pos.x(), menu_pos.y()
+        
+        scroll_widget_x, scroll_widget_y = scroll_pos.x(), scroll_pos.y()
+        menu_widget_x, menu_widget_y = menu_pos.x(), menu_pos.y()
         
         # Update scroll widget position with coordinated mode
         self.scroll_widget.update_position(cursor_pos, coordinated_mode=True)
