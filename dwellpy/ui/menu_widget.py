@@ -1,7 +1,7 @@
 """Floating menu widget for Dwellpy."""
 
 from PyQt6.QtWidgets import QWidget, QApplication
-from PyQt6.QtCore import Qt, QPoint, QPointF, QTimer, pyqtSignal, QRect
+from PyQt6.QtCore import Qt, QPoint, QPointF, QTimer, pyqtSignal, QRect, QSize
 from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPolygonF, QCursor, QFont
 from pynput.mouse import Controller as MouseController
 import math
@@ -422,10 +422,20 @@ class MenuWidget(QWidget):
                 if widget_movement < 5:
                     return
             
-            self.last_move_time = time.time()
-            self.last_widget_pos = (new_x, new_y)
-            
-            self.move(new_x, new_y)
+            # Check for screen bounds and adjust position if necessary
+            off_screen_info = self._detect_off_screen_position(QPoint(new_x, new_y), self.size())
+            if off_screen_info['off_screen']:
+                # Off-screen - adjust position to be within bounds
+                adjusted_pos = self._adjust_position_for_screen_bounds(QPoint(new_x, new_y), self.size())
+                self.last_move_time = time.time()
+                self.last_widget_pos = (adjusted_pos.x(), adjusted_pos.y())
+                
+                self.move(adjusted_pos.x(), adjusted_pos.y())
+            else:
+                self.last_move_time = time.time()
+                self.last_widget_pos = (new_x, new_y)
+                
+                self.move(new_x, new_y)
         else:
             # Widget is locked - check if cursor moved far enough to unlock
             if distance_to_widget > self.unlock_threshold:
@@ -449,10 +459,20 @@ class MenuWidget(QWidget):
                     new_x = int(cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2)
                     new_y = int(cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2)
                 
-                self.last_move_time = time.time()
-                self.last_widget_pos = (new_x, new_y)
-                
-                self.move(new_x, new_y)
+                # Check for screen bounds and adjust position if necessary
+                off_screen_info = self._detect_off_screen_position(QPoint(new_x, new_y), self.size())
+                if off_screen_info['off_screen']:
+                    # Off-screen - adjust position to be within bounds
+                    adjusted_pos = self._adjust_position_for_screen_bounds(QPoint(new_x, new_y), self.size())
+                    self.last_move_time = time.time()
+                    self.last_widget_pos = (adjusted_pos.x(), adjusted_pos.y())
+                    
+                    self.move(adjusted_pos.x(), adjusted_pos.y())
+                else:
+                    self.last_move_time = time.time()
+                    self.last_widget_pos = (new_x, new_y)
+                    
+                    self.move(new_x, new_y)
 
     def check_hover(self, cursor_pos):
         """Check if cursor is hovering over the widget or menu items."""
@@ -601,4 +621,103 @@ class MenuWidget(QWidget):
         
         # Update current opacity if not hovering
         if self.current_hover is None:
-            self.setWindowOpacity(self.base_opacity) 
+            self.setWindowOpacity(self.base_opacity)
+    
+    def _get_screen_geometry(self):
+        """Get the screen geometry that contains the current cursor position."""
+        try:
+            app = QApplication.instance()
+            if not app:
+                return None
+            
+            # Get all screens
+            screens = app.screens()
+            if not screens:
+                return None
+            
+            # Get current cursor position
+            cursor_pos = QCursor.pos()
+            
+            # Find which screen contains the cursor
+            for screen in screens:
+                geometry = screen.geometry()
+                if geometry.contains(cursor_pos):
+                    return geometry
+            
+            # If no screen contains cursor, return primary screen
+            return app.primaryScreen().geometry()
+            
+        except Exception:
+            return None
+    
+    def _detect_off_screen_position(self, proposed_pos, widget_size):
+        """
+        Detect if a proposed widget position would place it off-screen.
+        
+        Args:
+            proposed_pos: QPoint representing the proposed widget position
+            widget_size: QSize representing the widget dimensions
+            
+        Returns:
+            dict: Information about off-screen positioning
+        """
+        screen_geometry = self._get_screen_geometry()
+        if not screen_geometry:
+            return {'off_screen': False}
+        
+        # Calculate widget bounds at proposed position
+        widget_right = proposed_pos.x() + widget_size.width()
+        widget_bottom = proposed_pos.y() + widget_size.height()
+        widget_left = proposed_pos.x()
+        widget_top = proposed_pos.y()
+        
+        # Check each edge
+        off_screen_info = {
+            'off_screen': False,
+            'off_left': widget_left < screen_geometry.left(),
+            'off_right': widget_right > screen_geometry.right(),
+            'off_top': widget_top < screen_geometry.top(),
+            'off_bottom': widget_bottom > screen_geometry.bottom()
+        }
+        
+        # Set overall off_screen flag
+        off_screen_info['off_screen'] = any([
+            off_screen_info['off_left'],
+            off_screen_info['off_right'], 
+            off_screen_info['off_top'],
+            off_screen_info['off_bottom']
+        ])
+        
+        return off_screen_info
+    
+    def _adjust_position_for_screen_bounds(self, proposed_pos, widget_size):
+        """
+        Adjust a proposed position to keep the widget within screen bounds.
+        
+        Args:
+            proposed_pos: QPoint representing the proposed widget position
+            widget_size: QSize representing the widget dimensions
+            
+        Returns:
+            QPoint: Adjusted position that stays within screen bounds
+        """
+        screen_geometry = self._get_screen_geometry()
+        if not screen_geometry:
+            return proposed_pos
+        
+        adjusted_x = proposed_pos.x()
+        adjusted_y = proposed_pos.y()
+        
+        # Adjust horizontal position
+        if adjusted_x < screen_geometry.left():
+            adjusted_x = screen_geometry.left()
+        elif adjusted_x + widget_size.width() > screen_geometry.right():
+            adjusted_x = screen_geometry.right() - widget_size.width()
+        
+        # Adjust vertical position  
+        if adjusted_y < screen_geometry.top():
+            adjusted_y = screen_geometry.top()
+        elif adjusted_y + widget_size.height() > screen_geometry.bottom():
+            adjusted_y = screen_geometry.bottom() - widget_size.height()
+        
+        return QPoint(adjusted_x, adjusted_y)

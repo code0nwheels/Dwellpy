@@ -1565,15 +1565,15 @@ class DwellClickerUI:
             if (hover and hover not in ['hamburger', 'expanded'] and 
                 self.menu_dwell_start_time and not self.menu_dwell_triggered):
                 hover_duration = time.time() - self.menu_dwell_start_time
-                
-                # Check if dwell complete
+                  # Check if dwell complete
                 if hover_duration >= self.dwell_detector.dwell_time:
                     self.menu_widget.trigger_menu_item(hover)
                     self.menu_dwell_triggered = True
 
     def _update_coordinated_widget_positions(self, cursor_pos):
-        """Update both widgets with coordinated positioning to avoid chaotic movement."""
+        """Update both widgets with coordinated positioning and off-screen stacking detection."""
         import math
+        from PyQt6.QtCore import QPoint, QSize
         
         # Convert pynput coordinates to Qt coordinates
         if hasattr(cursor_pos, '__iter__'):
@@ -1630,21 +1630,79 @@ class DwellClickerUI:
         scroll_offset = self.settings_manager.get_setting('scroll_offset', 50)
         scroll_angle = self.settings_manager.get_setting('scroll_angle', 45)
         
-        # Calculate side-by-side positioning instead of stacked
-        # Place scroll widget to the right, menu widget to the left
+        # Calculate initial side-by-side positioning
         widget_distance = 80  # Distance from cursor to each widget
         
-        # Scroll widget position (right side of cursor)
+        # Initial positions (side-by-side)
         scroll_widget_x = int(cursor_x + widget_distance - self.scroll_widget.width() // 2)
         scroll_widget_y = int(cursor_y - self.scroll_widget.height() // 2)
         
-        # Menu widget position (left side of cursor)
         menu_widget_x = int(cursor_x - widget_distance - self.menu_widget.width() // 2)
         menu_widget_y = int(cursor_y - self.menu_widget.height() // 2)
+        
+        # Check for off-screen positioning and implement stacking if needed
+        scroll_pos = QPoint(scroll_widget_x, scroll_widget_y)
+        menu_pos = QPoint(menu_widget_x, menu_widget_y)
+        
+        scroll_size = QSize(self.scroll_widget.width(), self.scroll_widget.height())
+        menu_size = QSize(self.menu_widget.width(), self.menu_widget.height())
+        
+        # Detect off-screen positioning
+        scroll_off_screen = self.scroll_widget._detect_off_screen_position(scroll_pos, scroll_size)
+        menu_off_screen = self.menu_widget._detect_off_screen_position(menu_pos, menu_size)
+        
+        # If either widget would be off-screen, switch to stacking mode
+        if scroll_off_screen['off_screen'] or menu_off_screen['off_screen']:
+            # Stacking mode: scroll widget on top, menu widget below
+            stack_distance = 60  # Vertical distance between stacked widgets
+            
+            # Position scroll widget above cursor (always on top when stacking)
+            scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
+            scroll_widget_y = int(cursor_y - stack_distance - self.scroll_widget.height())
+            
+            # Position menu widget below cursor
+            menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+            menu_widget_y = int(cursor_y + stack_distance)
+            
+            # Adjust positions to ensure they stay on screen
+            scroll_pos = QPoint(scroll_widget_x, scroll_widget_y)
+            menu_pos = QPoint(menu_widget_x, menu_widget_y)
+            
+            scroll_pos = self.scroll_widget._adjust_position_for_screen_bounds(scroll_pos, scroll_size)
+            menu_pos = self.menu_widget._adjust_position_for_screen_bounds(menu_pos, menu_size)
+            
+            # If both widgets would still overlap the cursor after adjustment, 
+            # move them to the side of the cursor that has more space
+            screen_geometry = self.scroll_widget._get_screen_geometry()
+            if screen_geometry:
+                cursor_from_left = cursor_x - screen_geometry.left()
+                cursor_from_right = screen_geometry.right() - cursor_x
+                
+                if cursor_from_right > cursor_from_left:
+                    # More space on the right, stack on the right
+                    scroll_pos.setX(cursor_x + 20)
+                    menu_pos.setX(cursor_x + 20)
+                else:
+                    # More space on the left, stack on the left
+                    scroll_pos.setX(cursor_x - max(scroll_size.width(), menu_size.width()) - 20)
+                    menu_pos.setX(cursor_x - max(scroll_size.width(), menu_size.width()) - 20)
+            
+            scroll_widget_x, scroll_widget_y = scroll_pos.x(), scroll_pos.y()
+            menu_widget_x, menu_widget_y = menu_pos.x(), menu_pos.y()
+        else:
+            # Normal side-by-side positioning with screen bounds adjustment
+            scroll_pos = self.scroll_widget._adjust_position_for_screen_bounds(scroll_pos, scroll_size)
+            menu_pos = self.menu_widget._adjust_position_for_screen_bounds(menu_pos, menu_size)
+            
+            scroll_widget_x, scroll_widget_y = scroll_pos.x(), scroll_pos.y()
+            menu_widget_x, menu_widget_y = menu_pos.x(), menu_pos.y()
         
         # Update scroll widget position with coordinated mode
         self.scroll_widget.update_position(cursor_pos, coordinated_mode=True)
         self.scroll_widget.move(scroll_widget_x, scroll_widget_y)
+        
+        # Ensure scroll widget appears on top when stacking
+        self.scroll_widget.raise_()
         
         # Update menu widget with coordinated position
         self.menu_widget.update_position(cursor_pos, coordinated_mode=True)
