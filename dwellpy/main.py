@@ -34,6 +34,7 @@ if sys.platform == "win32":
 # Now import PyQt and other modules
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QIcon
 import logging
 
 # Import application components
@@ -54,6 +55,7 @@ from .utils.logging_config import (
     log_application_start,
     log_application_shutdown
 )
+from .utils.helpers import get_asset_path
 
 
 class DwellpyApplication:
@@ -72,6 +74,18 @@ class DwellpyApplication:
         self.app = QApplication(sys.argv)
         self.app.setApplicationName(APP_NAME)
         self.app.setApplicationVersion(__version__)
+        
+        # Set application icon for taskbar (works across all OS)
+        try:
+            icon_path = get_asset_path("Dwellpy.ico")
+            if os.path.exists(icon_path):
+                app_icon = QIcon(icon_path)
+                self.app.setWindowIcon(app_icon)
+                self.logger.info(f"Application icon set from: {icon_path}")
+            else:
+                self.logger.warning(f"Icon file not found at: {icon_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to set application icon: {e}")
         
         # Setup signal handlers for clean exit
         self._setup_signal_handlers()

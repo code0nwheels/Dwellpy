@@ -2,11 +2,12 @@
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QPushButton, 
                            QHBoxLayout, QVBoxLayout, QFrame)
-from PyQt6.QtCore import Qt, QSize, QTimer, QCoreApplication
-from PyQt6.QtGui import QCursor
+from PyQt6.QtCore import Qt, QSize, QTimer
+from PyQt6.QtGui import QIcon
 from .scroll_widget import ScrollWidget
 from .menu_widget import MenuWidget
 import time
+import os
 
 # Updated imports for new structure
 try:
@@ -15,6 +16,7 @@ try:
         CONTRACT_DELAY, EXPAND_DELAY, CONTRACT_BUTTON_SIZE, CONTRACT_BUTTON_TEXT,
         EXPANSION_DIRECTIONS, DEFAULT_EXPANSION_DIRECTION, SCREEN_EDGE_MARGIN
     )
+    from ..utils.helpers import get_asset_path
 except ImportError:
     # Fallback constants for testing
     class Colors:
@@ -43,6 +45,16 @@ except ImportError:
     EXPANSION_DIRECTIONS = ['auto', 'horizontal', 'vertical']
     DEFAULT_EXPANSION_DIRECTION = 'auto'
     SCREEN_EDGE_MARGIN = 50
+    
+    def get_asset_path(asset_name):
+        """Fallback get_asset_path function"""
+        import sys
+        import os
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        return os.path.join(base_path, 'assets', 'icons', asset_name)
 
 
 class CursorMovementDetector:
@@ -263,6 +275,14 @@ class DwellClickerUI:
         self.window.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.window.setFixedHeight(60)  # Set fixed height for the toolbar
         self.window.setStyleSheet(f"background-color: {Colors.DARK_BG};")
+        
+        # Set window icon for taskbar display
+        try:
+            icon_path = get_asset_path("Dwellpy.ico")
+            if os.path.exists(icon_path):
+                self.window.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass  # Silently fail if icon can't be loaded
         
         # Set up window transparency events
         self.setup_transparency_events()

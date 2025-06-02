@@ -3,10 +3,12 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                            QPushButton, QFrame)
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
+import os
 
 try:
     from ...config.constants import Colors, Fonts
-    from ...utils.helpers import center_window
+    from ...utils.helpers import center_window, get_asset_path
     # Use constants from config
     DARK_BG = Colors.DARK_BG
     TEXT_COLOR = Colors.TEXT_COLOR
@@ -26,6 +28,16 @@ except ImportError:
         x = (screen.width() - window_size.width()) // 2
         y = (screen.height() - window_size.height()) // 2
         window.move(x, y)
+    
+    def get_asset_path(asset_name):
+        """Fallback get_asset_path function"""
+        import sys
+        import os
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        return os.path.join(base_path, 'assets', 'icons', asset_name)
 
 
 class ExitDialog(QDialog):
@@ -48,6 +60,14 @@ class ExitDialog(QDialog):
         
         # Make dialog non-modal to allow dwell clicking to continue
         self.setModal(False)
+        
+        # Set window icon for taskbar display
+        try:
+            icon_path = get_asset_path("Dwellpy.ico")
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass  # Silently fail if icon can't be loaded
         
         # Apply dark theme with red border
         self.setStyleSheet(f"""

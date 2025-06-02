@@ -3,11 +3,12 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                            QPushButton, QSlider, QCheckBox, QFrame, QComboBox, QColorDialog, QTabWidget, QWidget, QRadioButton, QButtonGroup)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont, QColor, QIcon
+import os
 
 try:
     from ...config.constants import Colors, BORDER_RADIUS, Fonts
-    from ...utils.helpers import center_window, format_time_display, format_percentage_display
+    from ...utils.helpers import center_window, format_time_display, format_percentage_display, get_asset_path
     from ...__init__ import __version__
 except ImportError:
     # Fallback constants
@@ -36,6 +37,16 @@ except ImportError:
     
     def format_percentage_display(percent):
         return f"{percent}%"
+
+    def get_asset_path(asset_name):
+        """Fallback get_asset_path function"""
+        import sys
+        import os
+        if getattr(sys, 'frozen', False):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        return os.path.join(base_path, 'assets', 'icons', asset_name)
 
 
 class SettingsDialog(QDialog):
@@ -143,6 +154,14 @@ class SettingsDialog(QDialog):
         
         # Make dialog non-modal
         self.setModal(False)
+        
+        # Set window icon for taskbar display
+        try:
+            icon_path = get_asset_path("Dwellpy.ico")
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass  # Silently fail if icon can't be loaded
         
         # Apply dark theme with left-side tab styling
         self.setStyleSheet(f"""

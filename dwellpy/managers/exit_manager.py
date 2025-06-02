@@ -7,7 +7,9 @@ import psutil
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                            QPushButton, QFrame, QApplication)
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
 from ..utils import center_window
+from ..utils.helpers import get_asset_path
 
 # Dark theme color constants
 DARK_BG = "#222222"         # Dark background
@@ -88,6 +90,14 @@ class ExitManager:
         
         # Make dialog non-modal to allow dwell clicking to continue
         self.confirm_dialog.setModal(False)
+        
+        # Set window icon for taskbar display
+        try:
+            icon_path = get_asset_path("Dwellpy.ico")
+            if os.path.exists(icon_path):
+                self.confirm_dialog.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass  # Silently fail if icon can't be loaded
         
         # Apply dark theme with red border
         self.confirm_dialog.setStyleSheet(f"""
