@@ -13,7 +13,7 @@ This guide will help you install and run Dwellpy on Linux.
 The easiest way to install Dwellpy is using our automated install script:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-install.sh | bash
 ```
 
 This script will:
@@ -173,7 +173,7 @@ EOF
 ### If installed with automated script:
 Re-run the install script to get the latest version:
 ```bash
-curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-install.sh | bash
 ```
 
 ### If installed with pip:
@@ -186,7 +186,7 @@ pip3 install --upgrade dwellpy
 ### If installed with automated script:
 Use the automated uninstall script:
 ```bash
-curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-uninstall.sh | bash
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-uninstall.sh | bash
 ```
 
 This will safely remove:
