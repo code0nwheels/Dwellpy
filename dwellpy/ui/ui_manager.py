@@ -1629,12 +1629,13 @@ class DwellClickerUI:
         # Calculate initial side-by-side positioning
         widget_distance = 80  # Distance from cursor to each widget
         
-        # Initial positions (side-by-side)
+        # Initial positions - place menu widget below cursor for accessibility
         scroll_widget_x = int(cursor_x + widget_distance - self.scroll_widget.width() // 2)
         scroll_widget_y = int(cursor_y - self.scroll_widget.height() // 2)
         
-        menu_widget_x = int(cursor_x - widget_distance - self.menu_widget.width() // 2)
-        menu_widget_y = int(cursor_y - self.menu_widget.height() // 2)
+        # Place menu widget below cursor for easy access (hamburger appears beneath cursor)
+        menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+        menu_widget_y = int(cursor_y + 20)  # 20 pixels below cursor
         
         # Check for off-screen positioning and implement intelligent positioning
         scroll_pos = QPoint(scroll_widget_x, scroll_widget_y)

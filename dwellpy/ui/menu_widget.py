@@ -440,23 +440,10 @@ class MenuWidget(QWidget):
                 self.is_locked = True
                 return
             
-            # Always use offset positioning - don't reposition when expanded
-            angle_rad = math.radians(self.offset_angle)
-            offset_x = int(self.offset_distance * math.cos(angle_rad))
-            offset_y = int(self.offset_distance * math.sin(angle_rad))
-            
-            new_x = int(cursor_x + offset_x)
-            new_y = int(cursor_y + offset_y)
-            
-            # Safety check for minimum distance
-            widget_center_x = new_x + self.width() // 2
-            widget_center_y = new_y + self.height() // 2
-            distance_to_cursor = math.sqrt((widget_center_x - cursor_x) ** 2 + (widget_center_y - cursor_y) ** 2)
-            
-            if distance_to_cursor < self.min_safe_distance:
-                angle_to_cursor = math.atan2(widget_center_y - cursor_y, widget_center_x - cursor_x)
-                new_x = int(cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2)
-                new_y = int(cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2)
+            # Position widget so hamburger icon is centered under cursor
+            widget_size = self.expanded_size if self.is_expanded else self.hamburger_size
+            new_x = int(cursor_x - widget_size // 2)
+            new_y = int(cursor_y - widget_size // 2)
             
             # Check if widget actually needs to move
             if self.last_widget_pos is not None:
@@ -486,23 +473,10 @@ class MenuWidget(QWidget):
             if distance_to_widget > self.unlock_threshold:
                 self.is_locked = False
                 
-                # Immediately update to new position
-                angle_rad = math.radians(self.offset_angle)
-                offset_x = int(self.offset_distance * math.cos(angle_rad))
-                offset_y = int(self.offset_distance * math.sin(angle_rad))
-                
-                new_x = int(cursor_x + offset_x)
-                new_y = int(cursor_y + offset_y)
-                
-                # Safety check
-                widget_center_x = new_x + self.width() // 2
-                widget_center_y = new_y + self.height() // 2
-                distance_to_cursor = math.sqrt((widget_center_x - cursor_x) ** 2 + (widget_center_y - cursor_y) ** 2)
-                
-                if distance_to_cursor < self.min_safe_distance:
-                    angle_to_cursor = math.atan2(widget_center_y - cursor_y, widget_center_x - cursor_x)
-                    new_x = int(cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2)
-                    new_y = int(cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2)
+                # Immediately update to new position centered under cursor
+                widget_size = self.expanded_size if self.is_expanded else self.hamburger_size
+                new_x = int(cursor_x - widget_size // 2)
+                new_y = int(cursor_y - widget_size // 2)
                 
                 # Check for screen bounds and adjust position if necessary
                 off_screen_info = self._detect_off_screen_position(QPoint(new_x, new_y), self.size())
@@ -610,19 +584,25 @@ class MenuWidget(QWidget):
             self.target_expanded = expanded
             self.current_animation_step = 0
             
-            # When expanding, immediately resize and reposition to full size
+            # When expanding, immediately resize and reposition centered under cursor
             if expanded and not self.is_expanded:
-                # Moving from small to large - immediately set to expanded size
-                size_diff = self.expanded_size - self.hamburger_size
-                offset = size_diff // 2
-                current_pos = self.pos()
-                
-                # Immediately resize to full size and reposition
-                self.setFixedSize(self.expanded_size, self.expanded_size)
-                self.move(current_pos.x() - offset, current_pos.y() - offset)
-                
-                # Start with radius 0 for animation
-                self.current_radius = 0
+                # Get current cursor position
+                try:
+                    cursor_global = self._get_qt_cursor_position()
+                    cursor_x, cursor_y = cursor_global.x(), cursor_global.y()
+                    
+                    # Immediately resize to full size and center under cursor
+                    self.setFixedSize(self.expanded_size, self.expanded_size)
+                    new_x = int(cursor_x - self.expanded_size // 2)
+                    new_y = int(cursor_y - self.expanded_size // 2)
+                    self.move(new_x, new_y)
+                    
+                    # Start with radius 0 for animation
+                    self.current_radius = 0
+                except:
+                    # Fallback to current positioning if cursor position unavailable
+                    self.setFixedSize(self.expanded_size, self.expanded_size)
+                    self.current_radius = 0
                 
             elif not expanded and self.is_expanded:
                 # When contracting, start with full radius and animate to 0
