@@ -56,6 +56,7 @@ jobs:
     steps:
       - name: Check if target should run
         id: should-run
+        shell: bash
         run: |
           if [[ "${{ inputs.target }}" == "" || "${{ inputs.target }}" == "${{ matrix.target }}" ]]; then
             echo "should_run=true" >> $GITHUB_OUTPUT
