@@ -110,9 +110,12 @@ class MenuWidget(QWidget):
             {'id': 'OFF', 'label': 'Turn Off', 'color': Colors.RED_ACCENT}
         ]
         
-        # Layout configuration - circular layout around cursor
+        # Layout configuration - circular layout around hamburger icon
         self.item_size = 35  # Size of each circular menu item
         self.cursor_in_widget = QPoint(0, 0)  # Cursor position relative to widget
+        
+        # Animation state for radial expansion
+        self.current_radius = 0  # Current animated radius for menu items
         
         # Reference to UI manager for state checking
         self.ui_manager = None
@@ -123,7 +126,7 @@ class MenuWidget(QWidget):
         # Set up expansion/contraction animation timer
         self.animation_timer = QTimer()
         self.animation_timer.timeout.connect(self._animate_expansion)
-        self.animation_steps = 10  # Number of animation steps
+        self.animation_steps = 8  # Reduced from 15 for faster animation
         self.current_animation_step = 0
         self.target_expanded = False
         
@@ -236,20 +239,25 @@ class MenuWidget(QWidget):
                 hamburger_center_x + line_width // 2, y
             )
         
-        # Draw menu items in a circle around hamburger icon
+        # Draw menu items in a circle around hamburger icon using animated radius
         for i, item in enumerate(self.menu_items):
             self._draw_circular_menu_item(painter, item, i, hamburger_center)
     
     def _draw_circular_menu_item(self, painter, item, index, center_pos):
         """Draw a single menu item in circular layout around the hamburger center."""
-        # Calculate position on circle around hamburger icon
+        # Calculate position on circle around hamburger icon using animated radius
         angle = (index * 360 / len(self.menu_items)) - 90  # Start from top (-90 degrees)
         angle_rad = math.radians(angle)
         
-        item_x = center_pos.x() + int(self.circle_radius * math.cos(angle_rad)) - self.item_size // 2
-        item_y = center_pos.y() + int(self.circle_radius * math.sin(angle_rad)) - self.item_size // 2
+        # Use animated radius instead of fixed radius
+        item_x = center_pos.x() + int(self.current_radius * math.cos(angle_rad)) - self.item_size // 2
+        item_y = center_pos.y() + int(self.current_radius * math.sin(angle_rad)) - self.item_size // 2
         
         item_rect = QRect(item_x, item_y, self.item_size, self.item_size)
+        
+        # Calculate opacity based on animation progress for fade-in effect
+        animation_progress = self.current_radius / self.circle_radius if self.circle_radius > 0 else 0
+        base_alpha = int(200 * animation_progress)
         
         # Determine if this item is hovered
         is_hovered = (self.current_hover == item['id'])
@@ -257,9 +265,9 @@ class MenuWidget(QWidget):
         # Determine the item's state color based on UI manager state
         item_color = self._get_item_state_color(item)
         
-        # Draw item background circle
+        # Draw item background circle with animated alpha
         if is_hovered:
-            hover_color = QColor(70, 70, 70, 220)
+            hover_color = QColor(70, 70, 70, min(220, base_alpha + 50))
             painter.setBrush(QBrush(hover_color))
             painter.setPen(QPen(QColor(item_color), 2))
         else:
@@ -267,20 +275,22 @@ class MenuWidget(QWidget):
             if self._is_item_active_state(item):
                 # Active state (blue or red) - show colored background
                 bg_color = QColor(item_color)
-                bg_color.setAlpha(140)  # Semi-transparent
+                bg_color.setAlpha(min(140, base_alpha))  # Animated alpha
                 painter.setBrush(QBrush(bg_color))
                 painter.setPen(QPen(QColor(item_color), 1))
             else:
                 # Inactive state - show dark background
-                painter.setBrush(QBrush(QColor(50, 50, 50, 200)))
+                inactive_color = QColor(50, 50, 50, base_alpha)
+                painter.setBrush(QBrush(inactive_color))
                 painter.setPen(QPen(QColor(80, 80, 80), 1))
         
         painter.drawEllipse(item_rect)
         
-        # Draw item text - adjusted for circular layout
+        # Draw item text with animated alpha
         text_color = QColor(item_color) if is_hovered or self._is_item_active_state(item) else QColor(255, 255, 255)
+        text_color.setAlpha(min(255, base_alpha + 55))  # Ensure text is visible
         painter.setPen(QPen(text_color))
-        painter.setFont(QFont("Helvetica Neue", 8, QFont.Weight.Bold))  # Smaller font for circular items
+        painter.setFont(QFont("Helvetica Neue", 8, QFont.Weight.Bold))
         painter.drawText(item_rect, Qt.AlignmentFlag.AlignCenter, item['label'])
     
     def _get_item_state_color(self, item):
@@ -561,14 +571,14 @@ class MenuWidget(QWidget):
                 self._set_hover(None)
                 return 'hamburger'
             
-            # Check which circular menu item is being hovered
+            # Check which circular menu item is being hovered using current animated radius
             for i, item in enumerate(self.menu_items):
-                # Calculate position on circle around hamburger center
+                # Calculate position on circle around hamburger center using current radius
                 angle = (i * 360 / len(self.menu_items)) - 90  # Start from top
                 angle_rad = math.radians(angle)
                 
-                item_x = hamburger_center.x() + int(self.circle_radius * math.cos(angle_rad)) - self.item_size // 2
-                item_y = hamburger_center.y() + int(self.circle_radius * math.sin(angle_rad)) - self.item_size // 2
+                item_x = hamburger_center.x() + int(self.current_radius * math.cos(angle_rad)) - self.item_size // 2
+                item_y = hamburger_center.y() + int(self.current_radius * math.sin(angle_rad)) - self.item_size // 2
                 
                 item_rect = QRect(item_x, item_y, self.item_size, self.item_size)
                 
@@ -600,36 +610,39 @@ class MenuWidget(QWidget):
             self.target_expanded = expanded
             self.current_animation_step = 0
             
-            # When expanding, adjust position to keep hamburger centered
+            # When expanding, immediately resize and reposition to full size
             if expanded and not self.is_expanded:
-                # Moving from small to large - offset by half the size difference
+                # Moving from small to large - immediately set to expanded size
                 size_diff = self.expanded_size - self.hamburger_size
                 offset = size_diff // 2
                 current_pos = self.pos()
+                
+                # Immediately resize to full size and reposition
+                self.setFixedSize(self.expanded_size, self.expanded_size)
                 self.move(current_pos.x() - offset, current_pos.y() - offset)
+                
+                # Start with radius 0 for animation
+                self.current_radius = 0
+                
             elif not expanded and self.is_expanded:
-                # Moving from large to small - offset back
-                size_diff = self.expanded_size - self.hamburger_size
-                offset = size_diff // 2
-                current_pos = self.pos()
-                self.move(current_pos.x() + offset, current_pos.y() + offset)
+                # When contracting, start with full radius and animate to 0
+                self.current_radius = self.circle_radius
             
             if not self.animation_timer.isActive():
-                self.animation_timer.start(20)  # 20ms intervals for smooth animation
+                self.animation_timer.start(12)  # Reduced from 20ms for faster animation
     
     def _animate_expansion(self):
-        """Animate the expansion/contraction of the menu."""
+        """Animate the expansion/contraction of the menu with radial item animation."""
         self.current_animation_step += 1
         progress = self.current_animation_step / self.animation_steps
         
         if self.target_expanded:
-            # Expanding to circular layout
-            current_size = int(self.hamburger_size + (self.expanded_size - self.hamburger_size) * progress)
+            # Expanding - widget is already full size, just animate radius
+            self.current_radius = self.circle_radius * progress
         else:
-            # Contracting to hamburger icon
-            current_size = int(self.expanded_size - (self.expanded_size - self.hamburger_size) * progress)
+            # Contracting - animate radius to 0, then resize widget at end
+            self.current_radius = self.circle_radius * (1 - progress)
         
-        self.setFixedSize(current_size, current_size)
         self.update()
         
         if self.current_animation_step >= self.animation_steps:
@@ -637,10 +650,20 @@ class MenuWidget(QWidget):
             self.is_expanded = self.target_expanded
             
             if self.is_expanded:
-                self.setFixedSize(self.expanded_size, self.expanded_size)
+                # Already at full size, just ensure final radius
+                self.current_radius = self.circle_radius
             else:
+                # Contraction finished - now resize back to hamburger size
+                self.current_radius = 0
+                
+                # Move back to original position and resize
+                size_diff = self.expanded_size - self.hamburger_size
+                offset = size_diff // 2
+                current_pos = self.pos()
+                
                 self.setFixedSize(self.hamburger_size, self.hamburger_size)
-    
+                self.move(current_pos.x() + offset, current_pos.y() + offset)
+
     def trigger_menu_item(self, item_id):
         """Trigger a menu item action."""
         if item_id and item_id != 'hamburger' and item_id != 'expanded':
