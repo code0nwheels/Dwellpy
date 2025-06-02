@@ -58,6 +58,76 @@ from .utils.logging_config import (
 from .utils.helpers import get_asset_path
 
 
+def create_linux_desktop_file():
+    """Create a .desktop file for Linux desktop integration."""
+    # Only create on Linux
+    if sys.platform != "linux":
+        return
+    
+    try:
+        import os
+        import shutil
+        from pathlib import Path
+        
+        # Get paths
+        desktop_dir = Path.home() / ".local" / "share" / "applications"
+        desktop_file = desktop_dir / "dwellpy.desktop"
+        
+        # Icon directory and file
+        icon_dir = Path.home() / ".local" / "share" / "icons"
+        permanent_icon_path = icon_dir / "dwellpy.png"
+        
+        # Create directories if they don't exist
+        desktop_dir.mkdir(parents=True, exist_ok=True)
+        icon_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Get executable path and copy icon to permanent location
+        if getattr(sys, 'frozen', False):
+            # PyInstaller executable - icon is bundled, extract it
+            exec_path = os.path.abspath(sys.executable)
+            
+            # Get icon from bundled assets
+            bundled_icon_path = get_asset_path("Dwellpy.png")
+            if os.path.exists(bundled_icon_path):
+                # Copy icon to permanent location
+                shutil.copy2(bundled_icon_path, permanent_icon_path)
+            
+            icon_path = str(permanent_icon_path)
+        else:
+            # Development mode
+            exec_path = f"python {os.path.abspath(__file__)}"
+            icon_path = os.path.abspath(get_asset_path("Dwellpy.png"))
+        
+        # Desktop file content
+        desktop_content = f"""[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Dwellpy
+Comment=Mouse dwell clicking application for accessibility
+Exec={exec_path}
+Icon={icon_path}
+Terminal=false
+Categories=Utility;Accessibility;
+Keywords=mouse;dwell;accessibility;click;assistive;
+StartupNotify=true
+"""
+        
+        # Write the desktop file
+        with open(desktop_file, 'w') as f:
+            f.write(desktop_content)
+        
+        # Make it executable
+        os.chmod(desktop_file, 0o755)
+        
+        print(f"Created desktop file: {desktop_file}")
+        if getattr(sys, 'frozen', False):
+            print(f"Extracted icon to: {permanent_icon_path}")
+        
+    except Exception as e:
+        # Don't let desktop file creation errors prevent app startup
+        print(f"Warning: Could not create desktop file: {e}")
+
+
 class DwellpyApplication:
     """Main application class that coordinates all components."""
     
@@ -70,6 +140,9 @@ class DwellpyApplication:
         
         self.logger.info("Initializing Dwellpy application...")
         
+        # Create Linux desktop file for system integration
+        create_linux_desktop_file()
+        
         # Create Qt application
         self.app = QApplication(sys.argv)
         self.app.setApplicationName(APP_NAME)
@@ -77,7 +150,13 @@ class DwellpyApplication:
         
         # Set application icon for taskbar (works across all OS)
         try:
-            icon_path = get_asset_path("Dwellpy.ico")
+            # Use platform-appropriate icon format
+            if sys.platform == "win32":
+                icon_path = get_asset_path("Dwellpy.ico")
+            else:
+                # Linux/macOS: use PNG format
+                icon_path = get_asset_path("Dwellpy.png")
+                
             if os.path.exists(icon_path):
                 app_icon = QIcon(icon_path)
                 self.app.setWindowIcon(app_icon)

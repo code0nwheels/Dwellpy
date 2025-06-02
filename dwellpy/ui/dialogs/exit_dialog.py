@@ -63,7 +63,12 @@ class ExitDialog(QDialog):
         
         # Set window icon for taskbar display
         try:
-            icon_path = get_asset_path("Dwellpy.ico")
+            # Use platform-appropriate icon format
+            if os.name == 'nt':  # Windows
+                icon_path = get_asset_path("Dwellpy.ico")
+            else:  # Linux/macOS
+                icon_path = get_asset_path("Dwellpy.png")
+                
             if os.path.exists(icon_path):
                 self.setWindowIcon(QIcon(icon_path))
         except Exception:
