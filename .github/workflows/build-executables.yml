@@ -50,7 +50,7 @@ jobs:
 
       - name: Build executable
         run: |
-          python build_executable.py
+          python utils/build_executable.py
 
       - name: Get version from tag
         id: get-version
