@@ -13,7 +13,7 @@ from pathlib import Path
 
 def clean_build():
     """Clean previous build artifacts."""
-    print("🧹 Cleaning previous build artifacts...")
+    print("Cleaning previous build artifacts...")
     
     # Directories to clean
     clean_dirs = ['build', 'dist', '__pycache__']
@@ -34,7 +34,7 @@ def clean_build():
 
 def check_pyinstaller():
     """Check if PyInstaller is installed and accessible."""
-    print("🔍 Checking PyInstaller...")
+    print("Checking PyInstaller...")
     
     # Method 1: Try to run pyinstaller --version directly
     try:
@@ -42,26 +42,26 @@ def check_pyinstaller():
                               capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
             version = result.stdout.strip()
-            print(f"   ✓ PyInstaller {version}")
+            print(f"    PyInstaller {version}")
             return True
         else:
-            print("   ❌ PyInstaller command failed")
+            print("   ERROR: PyInstaller command failed")
             print(f"   Error: {result.stderr}")
             return False
     except FileNotFoundError:
-        print("   ❌ PyInstaller command not found")
+        print("   ERROR: PyInstaller command not found")
         print("   Install with: pip install pyinstaller")
         return False
     except subprocess.TimeoutExpired:
-        print("   ❌ PyInstaller command timed out")
+        print("   ERROR: PyInstaller command timed out")
         return False
     except Exception as e:
-        print(f"   ❌ Error checking PyInstaller: {e}")
+        print(f"   ERROR: Error checking PyInstaller: {e}")
         return False
 
 def check_dependencies():
     """Check if required dependencies are installed."""
-    print("🔍 Checking Python dependencies...")
+    print("Checking Python dependencies...")
     
     required = ['PyQt6', 'pynput']
     missing = []
@@ -69,13 +69,13 @@ def check_dependencies():
     for package in required:
         try:
             __import__(package)
-            print(f"   ✓ {package}")
+            print(f"   OK: {package}")
         except ImportError:
             missing.append(package)
-            print(f"   ✗ {package}")
+            print(f"   MISSING: {package}")
     
     if missing:
-        print(f"\n❌ Missing dependencies: {', '.join(missing)}")
+        print(f"\nERROR: Missing dependencies: {', '.join(missing)}")
         print("Install with: pip install " + " ".join(missing))
         return False
     
@@ -90,7 +90,7 @@ def create_spec_file():
     spec_file = Path('dwellpy.spec')
     
     if not spec_file.exists():
-        print("📝 Creating dwellpy.spec file...")
+        print("Creating dwellpy.spec file...")
         
         # Platform-specific settings
         if is_windows():
@@ -99,8 +99,8 @@ def create_spec_file():
     #uac_uiaccess=True,"""
             icon_line = "    icon='dwellpy/assets/icons/Dwellpy.ico',"
             macos_app_bundle = ""
-            print("   ✓ Adding Windows UAC flags for mouse control")
-            print("   ✓ Using Windows .ico icon")
+            print("   Adding Windows UAC flags for mouse control")
+            print("   Using Windows .ico icon")
         elif platform.system().lower() == 'darwin':  # macOS
             # macOS - no UAC, different icon handling, create app bundle
             platform_settings = ""
@@ -113,17 +113,17 @@ def create_spec_file():
                 icon_line = "    icon='dwellpy/assets/icons/Dwellpy.icns',"
                 bundle_icon = 'dwellpy/assets/icons/Dwellpy.icns'
                 icon_file = 'Dwellpy.icns'
-                print("   ✓ Using .icns icon for macOS")
+                print("   Using .icns icon for macOS")
             elif png_path.exists():
                 icon_line = "    icon='dwellpy/assets/icons/Dwellpy.png',"
                 bundle_icon = 'dwellpy/assets/icons/Dwellpy.png'
                 icon_file = 'Dwellpy.png'
-                print("   ⚠️ ICNS not found, using PNG (Pillow will convert)")
+                print("    ICNS not found, using PNG (Pillow will convert)")
             else:
                 icon_line = ""
                 bundle_icon = None
                 icon_file = None
-                print("   ⚠️ No icon found, building without icon")
+                print("    No icon found, building without icon")
             
             if bundle_icon:
                 macos_app_bundle = f"""
@@ -161,15 +161,15 @@ app = BUNDLE(
     },
 )"""
             
-            print("   ✓ Configured for macOS (no UAC flags)")
-            print("   ✓ Creating macOS app bundle")
+            print("   Configured for macOS (no UAC flags)")
+            print("   Creating macOS app bundle")
         else:  # Linux
             # Linux - no UAC, PNG icon
             platform_settings = ""
             icon_line = "    icon='dwellpy/assets/icons/Dwellpy.png',"
             macos_app_bundle = ""
-            print("   ✓ Configured for Linux (no UAC flags)")
-            print("   ✓ Using PNG icon for Linux")
+            print("   Configured for Linux (no UAC flags)")
+            print("   Using PNG icon for Linux")
         
         spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
 """
@@ -284,32 +284,32 @@ exe = EXE(
         
         print("   Created dwellpy.spec")
     else:
-        print("📝 Using existing dwellpy.spec file...")
+        print("Using existing dwellpy.spec file...")
 
 def check_launcher():
     """Check if launcher.py exists."""
-    print("📄 Checking launcher.py...")
+    print("Checking launcher.py...")
     
     launcher_file = Path('launcher.py')
     if launcher_file.exists():
-        print("   ✓ launcher.py found")
+        print("   OK: launcher.py found")
         return True
     else:
-        print("   ❌ launcher.py not found!")
+        print("   ERROR: launcher.py not found!")
         print("   Create launcher.py in the project root directory")
         return False
 
 def check_icon():
     """Check if the icon file exists."""
-    print("🎨 Checking icon file...")
+    print("Checking icon file...")
     
     if is_windows():
         icon_file = Path('dwellpy/assets/icons/Dwellpy.ico')
         if icon_file.exists():
-            print("   ✓ Dwellpy.ico found (Windows)")
+            print("   OK: Dwellpy.ico found (Windows)")
             return True
         else:
-            print("   ❌ Dwellpy.ico not found!")
+            print("   ERROR: Dwellpy.ico not found!")
             print("   Expected location: dwellpy/assets/icons/Dwellpy.ico")
             return False
     elif platform.system().lower() == 'darwin':  # macOS
@@ -318,14 +318,14 @@ def check_icon():
         png_file = Path('dwellpy/assets/icons/Dwellpy.png')
         
         if icns_file.exists():
-            print("   ✓ Dwellpy.icns found (macOS)")
+            print("   OK: Dwellpy.icns found (macOS)")
             return True
         elif png_file.exists():
-            print("   ⚠️ Dwellpy.icns not found, but Dwellpy.png found")
-            print("   ℹ️ PNG will be used with Pillow conversion")
+            print("   WARNING: Dwellpy.icns not found, but Dwellpy.png found")
+            print("   INFO: PNG will be used with Pillow conversion")
             return True
         else:
-            print("   ❌ Neither Dwellpy.icns nor Dwellpy.png found!")
+            print("   ERROR: Neither Dwellpy.icns nor Dwellpy.png found!")
             print("   Expected locations:")
             print("      dwellpy/assets/icons/Dwellpy.icns (preferred)")
             print("      dwellpy/assets/icons/Dwellpy.png (fallback)")
@@ -334,18 +334,18 @@ def check_icon():
         # On Linux, check if PNG exists
         png_file = Path('dwellpy/assets/icons/Dwellpy.png')
         if png_file.exists():
-            print("   ✓ Dwellpy.png found (Linux)")
-            print("   ℹ️ Icon will be used for PyInstaller (may work for window icon)")
+            print("   OK: Dwellpy.png found (Linux)")
+            print("   INFO: Icon will be used for PyInstaller (may work for window icon)")
             return True
         else:
-            print("   ❌ Dwellpy.png not found!")
+            print("   ERROR: Dwellpy.png not found!")
             print("   Expected location: dwellpy/assets/icons/Dwellpy.png")
             return False
             return False
 
 def build_executable():
     """Build the executable using PyInstaller."""
-    print("🔨 Building executable...")
+    print("Building executable...")
     
     try:
         # Run PyInstaller
@@ -355,23 +355,23 @@ def build_executable():
         result = subprocess.run(cmd, capture_output=True, text=True)
         
         if result.returncode == 0:
-            print("   ✓ Build completed successfully!")
+            print("   Build completed successfully!")
             return True
         else:
-            print("   ❌ Build failed!")
+            print("   ERROR: Build failed!")
             print(f"   Error: {result.stderr}")
             return False
             
     except subprocess.CalledProcessError as e:
-        print(f"   ❌ Build failed: {e}")
+        print(f"   ERROR: Build failed: {e}")
         return False
     except FileNotFoundError:
-        print("   ❌ PyInstaller command not found")
+        print("   ERROR: PyInstaller command not found")
         return False
 
 def test_executable():
     """Test if the built executable works."""
-    print("🧪 Testing executable...")
+    print("Testing executable...")
     
     # Check different possible locations
     exe_paths = [
@@ -389,28 +389,28 @@ def test_executable():
             break
     
     if exe_path:
-        print(f"   ✓ Executable found: {exe_path}")
+        print(f"   OK: Executable found: {exe_path}")
         
         # For macOS app bundle, show the actual executable inside
         if str(exe_path).endswith('.app') and platform.system().lower() == 'darwin':
             actual_exe = exe_path / 'Contents' / 'MacOS' / 'Dwellpy'
             if actual_exe.exists():
-                print(f"   📁 App bundle size: {sum(f.stat().st_size for f in exe_path.rglob('*') if f.is_file()) / 1024 / 1024:.1f} MB")
-                print(f"   🚀 You can test it by running:")
+                print(f"   App bundle size: {sum(f.stat().st_size for f in exe_path.rglob('*') if f.is_file()) / 1024 / 1024:.1f} MB")
+                print(f"   You can test it by running:")
                 print(f"      open {exe_path.absolute()}")
                 print(f"   or directly:")
                 print(f"      {actual_exe.absolute()}")
             else:
-                print(f"   ❌ App bundle structure incomplete!")
+                print(f"   ERROR: App bundle structure incomplete!")
                 return False
         else:
-            print(f"   📁 Size: {exe_path.stat().st_size / 1024 / 1024:.1f} MB")
-            print("   🚀 You can test it by running:")
+            print(f"   Size: {exe_path.stat().st_size / 1024 / 1024:.1f} MB")
+            print("   You can test it by running:")
             print(f"      {exe_path.absolute()}")
         
         return True
     else:
-        print("   ❌ Executable not found!")
+        print("   ERROR: Executable not found!")
         print("   Expected locations:")
         for path in exe_paths:
             print(f"      {path}")
@@ -418,7 +418,7 @@ def test_executable():
 
 def create_installer_info():
     """Create information about the build."""
-    print("📋 Creating build information...")
+    print("Creating build information...")
     
     system_info = f"- System: {platform.system()} {platform.release()}"
     python_info = f"- Python: {platform.python_version()}"
@@ -475,7 +475,7 @@ def create_installer_info():
 
 def main():
     """Main build process."""
-    print("🚀 Building Dwellpy Executable")
+    print("Building Dwellpy Executable")
     print("=" * 40)
     
     # Show system info
@@ -485,7 +485,7 @@ def main():
     
     # Check we're in the right directory
     if not Path('dwellpy').exists():
-        print("❌ Error: Run this script from the project root directory")
+        print("ERROR: Run this script from the project root directory")
         print("   (where the 'dwellpy' folder is located)")
         sys.exit(1)
     
@@ -503,25 +503,25 @@ def main():
     ]
     
     for step_name, step_func in steps:
-        print(f"\n📍 {step_name}")
+        print(f"\nStep: {step_name}")
         try:
             result = step_func()
             if result is False:  # Explicit False check
-                print(f"❌ Step failed: {step_name}")
+                print(f"ERROR: Step failed: {step_name}")
                 sys.exit(1)
         except Exception as e:
-            print(f"❌ Error in {step_name}: {e}")
+            print(f"ERROR in {step_name}: {e}")
             import traceback
             traceback.print_exc()
             sys.exit(1)
     
     print("\n" + "=" * 40)
-    print("🎉 Build completed successfully!")
-    print(f"\n📦 Your executable is in: dist/")
-    print("📋 See BUILD_INFO.md for distribution instructions")
+    print("SUCCESS: Build completed successfully!")
+    print(f"\nYour executable is in: dist/")
+    print("See BUILD_INFO.md for distribution instructions")
     
     if is_windows():
-        print("🔐 Windows UAC flags included for mouse control access")
+        print("Windows UAC flags included for mouse control access")
 
 if __name__ == "__main__":
     main()
