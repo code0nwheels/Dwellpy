@@ -92,23 +92,84 @@ def create_spec_file():
     if not spec_file.exists():
         print("📝 Creating dwellpy.spec file...")
         
-        # UAC flags only for Windows
-        uac_flags = ""
+        # Platform-specific settings
         if is_windows():
-            uac_flags = '' #"""    ,uac_admin=True,   # Request admin privileges (for mouse control)
+            # Windows UAC flags for mouse control
+            platform_settings = '' #"""    uac_admin=True,   # Request admin privileges (for mouse control)
     #uac_uiaccess=True,"""
-            print("   ✓ Adding Windows UAC flags for mouse control")
-        else:
-            print("   ✓ Skipping UAC flags (not Windows)")
-        
-        # Icon handling - platform specific
-        if is_windows():
             icon_line = "    icon='dwellpy/assets/icons/Dwellpy.ico',"
+            macos_app_bundle = ""
+            print("   ✓ Adding Windows UAC flags for mouse control")
             print("   ✓ Using Windows .ico icon")
-        else:
-            # On Linux/macOS, try PNG icon - it might work for window icon
+        elif platform.system().lower() == 'darwin':  # macOS
+            # macOS - no UAC, different icon handling, create app bundle
+            platform_settings = ""
+            
+            # Try ICNS first, fall back to PNG if ICNS has issues
+            icns_path = Path('dwellpy/assets/icons/Dwellpy.icns')
+            png_path = Path('dwellpy/assets/icons/Dwellpy.png')
+            
+            if icns_path.exists():
+                icon_line = "    icon='dwellpy/assets/icons/Dwellpy.icns',"
+                bundle_icon = 'dwellpy/assets/icons/Dwellpy.icns'
+                icon_file = 'Dwellpy.icns'
+                print("   ✓ Using .icns icon for macOS")
+            elif png_path.exists():
+                icon_line = "    icon='dwellpy/assets/icons/Dwellpy.png',"
+                bundle_icon = 'dwellpy/assets/icons/Dwellpy.png'
+                icon_file = 'Dwellpy.png'
+                print("   ⚠️ ICNS not found, using PNG (Pillow will convert)")
+            else:
+                icon_line = ""
+                bundle_icon = None
+                icon_file = None
+                print("   ⚠️ No icon found, building without icon")
+            
+            if bundle_icon:
+                macos_app_bundle = f"""
+
+# Create macOS app bundle for proper GUI application behavior
+app = BUNDLE(
+    exe,
+    name='Dwellpy.app',
+    icon='{bundle_icon}',
+    bundle_identifier='com.dwellpy.dwellpy',
+    info_plist={{
+        'NSPrincipalClass': 'NSApplication',
+        'NSAppleScriptEnabled': False,
+        'CFBundleDocumentTypes': [
+            {{
+                'CFBundleTypeName': 'Dwellpy Settings',
+                'CFBundleTypeIconFile': '{icon_file}',
+                'LSItemContentTypes': ['public.json'],
+                'LSHandlerRank': 'Owner'
+            }}
+        ]
+    }},
+)"""
+            else:
+                macos_app_bundle = """
+
+# Create macOS app bundle for proper GUI application behavior
+app = BUNDLE(
+    exe,
+    name='Dwellpy.app',
+    bundle_identifier='com.dwellpy.dwellpy',
+    info_plist={
+        'NSPrincipalClass': 'NSApplication',
+        'NSAppleScriptEnabled': False,
+    },
+)"""
+            
+            print("   ✓ Configured for macOS (no UAC flags)")
+            print("   ✓ Creating macOS app bundle")
+        else:  # Linux
+            # Linux - no UAC, PNG icon
+            platform_settings = ""
             icon_line = "    icon='dwellpy/assets/icons/Dwellpy.png',"
-            print("   ✓ Using PNG icon (Linux/macOS)")
+            macos_app_bundle = ""
+            print("   ✓ Configured for Linux (no UAC flags)")
+            print("   ✓ Using PNG icon for Linux")
         
         spec_content = f'''# -*- mode: python ; coding: utf-8 -*-
 """
@@ -213,8 +274,9 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-{icon_line}{uac_flags}
-)
+{icon_line}
+{platform_settings}
+){macos_app_bundle}
 '''
         
         with open(spec_file, 'w') as f:
@@ -250,16 +312,35 @@ def check_icon():
             print("   ❌ Dwellpy.ico not found!")
             print("   Expected location: dwellpy/assets/icons/Dwellpy.ico")
             return False
-    else:
-        # On Linux/macOS, check if PNG exists
+    elif platform.system().lower() == 'darwin':  # macOS
+        # On macOS, check for .icns file first, then PNG
+        icns_file = Path('dwellpy/assets/icons/Dwellpy.icns')
+        png_file = Path('dwellpy/assets/icons/Dwellpy.png')
+        
+        if icns_file.exists():
+            print("   ✓ Dwellpy.icns found (macOS)")
+            return True
+        elif png_file.exists():
+            print("   ⚠️ Dwellpy.icns not found, but Dwellpy.png found")
+            print("   ℹ️ PNG will be used with Pillow conversion")
+            return True
+        else:
+            print("   ❌ Neither Dwellpy.icns nor Dwellpy.png found!")
+            print("   Expected locations:")
+            print("      dwellpy/assets/icons/Dwellpy.icns (preferred)")
+            print("      dwellpy/assets/icons/Dwellpy.png (fallback)")
+            return False
+    else:  # Linux
+        # On Linux, check if PNG exists
         png_file = Path('dwellpy/assets/icons/Dwellpy.png')
         if png_file.exists():
-            print("   ✓ Dwellpy.png found (Linux/macOS)")
+            print("   ✓ Dwellpy.png found (Linux)")
             print("   ℹ️ Icon will be used for PyInstaller (may work for window icon)")
             return True
         else:
             print("   ❌ Dwellpy.png not found!")
             print("   Expected location: dwellpy/assets/icons/Dwellpy.png")
+            return False
             return False
 
 def build_executable():
@@ -294,8 +375,9 @@ def test_executable():
     
     # Check different possible locations
     exe_paths = [
-        Path('dist/Dwellpy.exe'),      # Windows one-file
-        Path('dist/Dwellpy'),          # Linux/macOS one-file
+        Path('dist/Dwellpy.exe'),          # Windows one-file
+        Path('dist/Dwellpy'),              # Linux one-file
+        Path('dist/Dwellpy.app'),          # macOS app bundle
         Path('dist/Dwellpy/Dwellpy.exe'),  # Windows one-dir
         Path('dist/Dwellpy/Dwellpy'),      # Linux/macOS one-dir
     ]
@@ -308,10 +390,23 @@ def test_executable():
     
     if exe_path:
         print(f"   ✓ Executable found: {exe_path}")
-        print(f"   📁 Size: {exe_path.stat().st_size / 1024 / 1024:.1f} MB")
         
-        print("   🚀 You can test it by running:")
-        print(f"      {exe_path.absolute()}")
+        # For macOS app bundle, show the actual executable inside
+        if str(exe_path).endswith('.app') and platform.system().lower() == 'darwin':
+            actual_exe = exe_path / 'Contents' / 'MacOS' / 'Dwellpy'
+            if actual_exe.exists():
+                print(f"   📁 App bundle size: {sum(f.stat().st_size for f in exe_path.rglob('*') if f.is_file()) / 1024 / 1024:.1f} MB")
+                print(f"   🚀 You can test it by running:")
+                print(f"      open {exe_path.absolute()}")
+                print(f"   or directly:")
+                print(f"      {actual_exe.absolute()}")
+            else:
+                print(f"   ❌ App bundle structure incomplete!")
+                return False
+        else:
+            print(f"   📁 Size: {exe_path.stat().st_size / 1024 / 1024:.1f} MB")
+            print("   🚀 You can test it by running:")
+            print(f"      {exe_path.absolute()}")
         
         return True
     else:

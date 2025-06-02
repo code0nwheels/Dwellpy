@@ -125,10 +125,10 @@ class SettingsDialog(QDialog):
         
         self.scroll_speed_plus_repeat = QTimer()
         self.scroll_speed_plus_repeat.timeout.connect(self.on_hover_plus_scroll_speed)
-    
+
     def setup_ui(self):
         """Setup the dialog UI with left-side wide tabs for dwell-friendly navigation."""
-        self.setFixedSize(550, 550)  # Much taller to accommodate all content
+        self.setFixedSize(550, 580)  # Increased height to accommodate auto-start setting
         
         # Set window flags for frameless window
         self.setWindowFlags(
@@ -643,6 +643,20 @@ class SettingsDialog(QDialog):
         active_layout.addWidget(self.active_check)
         
         layout.addWidget(active_frame)
+        
+        # Auto-start section
+        auto_start_frame = QFrame()
+        auto_start_layout = QHBoxLayout(auto_start_frame)
+        auto_start_layout.setContentsMargins(0, 0, 0, 0)
+        auto_start_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        self.auto_start_check = QCheckBox("Auto-start on system login")
+        self.auto_start_check.setChecked(self.settings_manager.get_setting('auto_start_enabled', False))
+        self.auto_start_check.setFont(QFont("Helvetica Neue", 11))
+        self.auto_start_check.setStyleSheet(self.get_checkbox_style())
+        auto_start_layout.addWidget(self.auto_start_check)
+        
+        layout.addWidget(auto_start_frame)
     
     def create_ui_contraction_section(self, layout):
         """Create UI contraction section."""
@@ -936,6 +950,7 @@ class SettingsDialog(QDialog):
         self.scroll_check.stateChanged.connect(self.on_scroll_toggle)
         self.visible_clicks_check.stateChanged.connect(self.on_visible_clicks_toggle)
         self.active_check.stateChanged.connect(self.on_active_toggle)
+        self.auto_start_check.stateChanged.connect(self.on_auto_start_toggle)
         self.contract_ui_check.stateChanged.connect(self.on_contract_ui_toggle)
         self.expansion_button_group.buttonClicked.connect(self.on_expansion_direction_toggle)
     
@@ -983,6 +998,11 @@ class SettingsDialog(QDialog):
         is_active = state == 2  # Qt.CheckState.Checked is 2
         self.settings_manager.update_default_active(is_active)
 
+    def on_auto_start_toggle(self, state):
+        """Handle auto-start checkbox toggle."""
+        is_enabled = state == 2  # Qt.CheckState.Checked is 2
+        self.settings_manager.update_auto_start_enabled(is_enabled)
+
     def on_contract_ui_toggle(self, state):
         """Handle contract UI checkbox toggle."""
         is_enabled = state == 2  # Qt.CheckState.Checked is 2
@@ -1002,6 +1022,11 @@ class SettingsDialog(QDialog):
         
         # Update settings
         self.settings_manager.update_expansion_direction(direction)
+    
+    def on_auto_start_toggle(self, state):
+        """Handle auto-start checkbox toggle."""
+        is_enabled = state == 2  # Qt.CheckState.Checked is 2
+        self.settings_manager.update_auto_start_enabled(is_enabled)
     
     # Hover enter/leave methods for +/- buttons
     def on_enter_minus_move(self):
