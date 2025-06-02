@@ -155,6 +155,7 @@ DEFAULT_SETTINGS = {
     'move_limit': DEFAULT_MOVE_LIMIT,
     'dwell_time': DEFAULT_DWELL_TIME,
     'default_active': False,
+    'auto_start_enabled': False,
     'transparency_enabled': False,
     'transparency_level': DEFAULT_TRANSPARENCY,
     'visible_clicks_enabled': True,

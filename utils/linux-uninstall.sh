@@ -39,10 +39,14 @@ check_installation() {
     if [ -f ~/.config/autostart/dwellpy.desktop ]; then
         FOUND_FILES+=("Auto-start entry: ~/.config/autostart/dwellpy.desktop")
     fi
-    
     # Check desktop menu entry
     if [ -f ~/.local/share/applications/dwellpy.desktop ]; then
         FOUND_FILES+=("Desktop menu entry: ~/.local/share/applications/dwellpy.desktop")
+    fi
+    
+    # Check icon file
+    if [ -f ~/.local/share/icons/dwellpy.png ]; then
+        FOUND_FILES+=("Icon file: ~/.local/share/icons/dwellpy.png")
     fi
     
     # Check launcher script
@@ -104,7 +108,7 @@ remove_autostart() {
     fi
 }
 
-# Remove desktop menu entry
+# Remove desktop menu entry and icon
 remove_desktop_entry() {
     if [ -f ~/.local/share/applications/dwellpy.desktop ]; then
         log_info "Removing desktop menu entry..."
@@ -116,6 +120,13 @@ remove_desktop_entry() {
         fi
         
         log_success "Desktop menu entry removed"
+    fi
+    
+    # Remove icon file
+    if [ -f ~/.local/share/icons/dwellpy.png ]; then
+        log_info "Removing icon file..."
+        rm ~/.local/share/icons/dwellpy.png
+        log_success "Icon file removed"
     fi
 }
 
@@ -178,17 +189,22 @@ cleanup_empty_dirs() {
         rmdir ~/.config/autostart
         log_info "Removed empty ~/.config/autostart directory"
     fi
-    
-    # Remove ~/.local/share/applications if empty
+      # Remove ~/.local/share/applications if empty
     if [ -d ~/.local/share/applications ] && [ -z "$(ls -A ~/.local/share/applications)" ]; then
         rmdir ~/.local/share/applications
         log_info "Removed empty ~/.local/share/applications directory"
-        
-        # Remove ~/.local/share if empty
-        if [ -d ~/.local/share ] && [ -z "$(ls -A ~/.local/share)" ]; then
-            rmdir ~/.local/share
-            log_info "Removed empty ~/.local/share directory"
-        fi
+    fi
+    
+    # Remove ~/.local/share/icons if empty
+    if [ -d ~/.local/share/icons ] && [ -z "$(ls -A ~/.local/share/icons)" ]; then
+        rmdir ~/.local/share/icons
+        log_info "Removed empty ~/.local/share/icons directory"
+    fi
+    
+    # Remove ~/.local/share if empty
+    if [ -d ~/.local/share ] && [ -z "$(ls -A ~/.local/share)" ]; then
+        rmdir ~/.local/share
+        log_info "Removed empty ~/.local/share directory"
     fi
 }
 
@@ -198,10 +214,10 @@ show_completion_info() {
     echo "========================================="
     log_success "Uninstallation completed!"
     echo "========================================="
-    echo
-    log_info "All Dwellpy components have been removed:"
+    echo    log_info "All Dwellpy components have been removed:"
     log_info "✅ Auto-start configuration removed"
-    log_info "✅ Desktop menu entry removed"  
+    log_info "✅ Desktop menu entry removed"
+    log_info "✅ Icon file removed"
     log_info "✅ Launcher script removed"
     log_info "✅ Source code removed"
     log_info "✅ Running processes stopped"
@@ -212,7 +228,7 @@ show_completion_info() {
     log_info "• System Python packages"
     echo
     log_info "If you want to reinstall Dwellpy later:"
-    log_info "  curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/install.sh | bash"
+    log_info "  curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/install.sh | bash"
     echo
     log_info "You may need to restart your terminal for PATH changes to take effect"
     echo

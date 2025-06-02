@@ -16,12 +16,12 @@ Built for users with motor disabilities who use head trackers, eye-tracking syst
 
 **Linux (Automated Install):**
 ```bash
-curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-install.sh | bash
 ```
 
 *To uninstall:*
 ```bash
-curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-uninstall.sh | bash
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-uninstall.sh | bash
 ```
 
 **All Platforms (pip):**
