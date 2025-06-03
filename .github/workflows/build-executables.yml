@@ -123,21 +123,31 @@ jobs:
               fi
             done
             ls -la dist/
-          else
-            echo "Error: No Dwellpy executable found in dist/"
+          else            echo "Error: No Dwellpy executable found in dist/"
             ls -la dist/
             exit 1
           fi
 
-      - name: Upload executable to release
-        if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != ''
+      - name: Upload executable to release (Windows)
+        if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != '' && (matrix.target == 'windows-x64' || matrix.target == 'windows-arm64')
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: ${{ (matrix.target == 'windows-x64' || matrix.target == 'windows-arm64') && format('./dist/dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, matrix.target) || format('./dist/dwellpy-{0}-{1}', steps.get-version.outputs.version, matrix.target) }}
-          asset_name: ${{ (matrix.target == 'windows-x64' || matrix.target == 'windows-arm64') && format('dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, matrix.target) || format('dwellpy-{0}-{1}', steps.get-version.outputs.version, matrix.target) }}
+          asset_path: ./dist/dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}.exe
+          asset_name: dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload executable to release (Non-Windows)
+        if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != '' && matrix.target != 'windows-x64' && matrix.target != 'windows-arm64'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ inputs.upload_url }}
+          asset_path: ./dist/dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}
+          asset_name: dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}
           asset_content_type: application/octet-stream
 
       - name: Upload build info
