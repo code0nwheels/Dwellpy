@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/code0nwheels/Dwellpy/compare/v0.8.0...v0.9.0) (2025-06-03)
+
+
+### Features
+
+* trigger release for menu widget and recent improvements ([505da13](https://github.com/code0nwheels/Dwellpy/commit/505da13b515cbe7cf9292a46e5f91b9893a2004b))
+
 ## [0.8.0](https://github.com/code0nwheels/Dwellpy/compare/v0.7.1...v0.8.0) (2025-06-02)
 
 
