@@ -140,10 +140,11 @@ class SettingsDialog(QDialog):
         
         self.widget_delay_plus_repeat = QTimer()
         self.widget_delay_plus_repeat.timeout.connect(self.on_hover_plus_widget_delay)
-    
+        
     def setup_ui(self):
         """Setup the dialog UI with left-side wide tabs for dwell-friendly navigation."""
-        self.setFixedSize(550, 550)  # Much taller to accommodate all content
+        # Use dynamic sizing instead of fixed size for cross-platform compatibility
+        self._setup_dynamic_sizing()
         
         # Set window flags for frameless window
         self.setWindowFlags(
@@ -243,13 +244,10 @@ class SettingsDialog(QDialog):
         title_frame = QFrame()
         title_layout = QHBoxLayout(title_frame)
         title_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Title label
+          # Title label
         title_label = QLabel("Dwellpy Settings")
         title_label.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 16pt;
-            font-weight: bold;
+            {self._get_scaled_font_style(18, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         title_layout.addWidget(title_label)
@@ -374,10 +372,9 @@ class SettingsDialog(QDialog):
         self.tab_widget.addTab(tab, "General")
     
     def create_move_limit_section(self, layout):
-        """Create move limit adjustment section."""
-        # Label
+        """Create move limit adjustment section."""        # Label
         move_label = QLabel("Move Limit (px):")
-        move_label.setFont(QFont("Helvetica Neue", 11))
+        move_label.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(12)))
         move_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
         layout.addWidget(move_label)
         
@@ -405,13 +402,10 @@ class SettingsDialog(QDialog):
         move_plus_btn.enterEvent = lambda e: self.on_enter_plus_move()
         move_plus_btn.leaveEvent = lambda e: self.on_leave_plus_move()
         move_layout.addWidget(move_plus_btn)
-        
-        # Value label
+          # Value label
         self.move_limit_value = QLabel(str(self.settings_manager.get_setting('move_limit', 5)))
         self.move_limit_value.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 12pt;
-            font-weight: bold;
+            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.move_limit_value.setFixedWidth(30)
@@ -420,10 +414,9 @@ class SettingsDialog(QDialog):
         layout.addWidget(move_frame)
     
     def create_dwell_time_section(self, layout):
-        """Create dwell time adjustment section."""
-        # Label
+        """Create dwell time adjustment section."""        # Label
         time_label = QLabel("Dwell Time (s):")
-        time_label.setFont(QFont("Helvetica Neue", 11))
+        time_label.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(12)))
         time_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
         layout.addWidget(time_label)
         
@@ -451,13 +444,10 @@ class SettingsDialog(QDialog):
         time_plus_btn.enterEvent = lambda e: self.on_enter_plus_time()
         time_plus_btn.leaveEvent = lambda e: self.on_leave_plus_time()
         time_layout.addWidget(time_plus_btn)
-        
-        # Value label
+          # Value label
         self.time_value = QLabel(format_time_display(self.settings_manager.get_setting('dwell_time', 1.0)))
         self.time_value.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 12pt;
-            font-weight: bold;
+            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.time_value.setFixedWidth(30)
@@ -472,18 +462,16 @@ class SettingsDialog(QDialog):
         transparency_enable_layout = QHBoxLayout(transparency_enable_frame)
         transparency_enable_layout.setContentsMargins(0, 0, 0, 0)
         transparency_enable_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        
         self.transparency_check = QCheckBox("Enable window transparency")
         self.transparency_check.setChecked(self.settings_manager.get_setting('transparency_enabled', False))
-        self.transparency_check.setFont(QFont("Helvetica Neue", 11))
+        self.transparency_check.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(12)))
         self.transparency_check.setStyleSheet(self.get_checkbox_style())
         transparency_enable_layout.addWidget(self.transparency_check)
         
         layout.addWidget(transparency_enable_frame)
-        
-        # Transparency level label
+          # Transparency level label
         transparency_label = QLabel("Transparency (%):")
-        transparency_label.setFont(QFont("Helvetica Neue", 11))
+        transparency_label.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(12)))
         transparency_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
         layout.addWidget(transparency_label)
         
@@ -511,13 +499,10 @@ class SettingsDialog(QDialog):
         transparency_plus_btn.enterEvent = lambda e: self.on_enter_plus_transparency()
         transparency_plus_btn.leaveEvent = lambda e: self.on_leave_plus_transparency()
         transparency_layout.addWidget(transparency_plus_btn)
-        
-        # Value label
+          # Value label
         self.transparency_value = QLabel(format_percentage_display(self.settings_manager.get_setting('transparency_level', 70)))
         self.transparency_value.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 12pt;
-            font-weight: bold;
+            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.transparency_value.setFixedWidth(40)
@@ -630,13 +615,10 @@ class SettingsDialog(QDialog):
         scroll_speed_plus_btn.enterEvent = lambda e: self.on_enter_plus_scroll_speed()
         scroll_speed_plus_btn.leaveEvent = lambda e: self.on_leave_plus_scroll_speed()
         scroll_speed_layout.addWidget(scroll_speed_plus_btn)
-        
-        # Value label
+          # Value label
         self.scroll_speed_value = QLabel(str(self.scroll_speed_slider.value()))
         self.scroll_speed_value.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 12pt;
-            font-weight: bold;
+            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.scroll_speed_value.setFixedWidth(30)
@@ -684,14 +666,11 @@ class SettingsDialog(QDialog):
         widget_delay_plus_btn.enterEvent = lambda e: self.on_enter_plus_widget_delay()
         widget_delay_plus_btn.leaveEvent = lambda e: self.on_leave_plus_widget_delay()
         widget_delay_layout.addWidget(widget_delay_plus_btn)
-        
-        # Value label
+          # Value label
         delay_seconds = self.widget_delay_slider.value() / 10.0
         self.widget_delay_value = QLabel(f"{delay_seconds:.1f}s")
         self.widget_delay_value.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 12pt;
-            font-weight: bold;
+            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.widget_delay_value.setFixedWidth(40)
@@ -954,7 +933,7 @@ class SettingsDialog(QDialog):
         ok_button = QPushButton("OK")
         ok_button.setFixedSize(250, 35)
         ok_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        ok_button.setFont(QFont("Helvetica Neue", 12, QFont.Weight.Bold))
+        ok_button.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(13), QFont.Weight.Bold))
         ok_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.BLUE_ACCENT};
@@ -983,12 +962,10 @@ class SettingsDialog(QDialog):
         bottom_separator.setFrameShadow(QFrame.Shadow.Sunken)
         bottom_separator.setStyleSheet(f"background-color: {Colors.BORDER_COLOR};")
         bottom_layout.addWidget(bottom_separator)
-        
-        # Version info
+          # Version info
         version_label = QLabel(f"Dwellpy v{__version__}")
-        version_label.setStyleSheet("""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 9pt;
+        version_label.setStyleSheet(f"""
+            {self._get_scaled_font_style(10)}
             color: #999999;
         """)
         version_label.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -1264,9 +1241,7 @@ class SettingsDialog(QDialog):
                 timer.stop()
         
         # Save settings
-        self.settings_manager.save_settings()
-        
-        # Close dialog
+        self.settings_manager.save_settings()        # Close dialog
         super().accept()
 
     def create_section_header(self, title, description):
@@ -1276,25 +1251,26 @@ class SettingsDialog(QDialog):
         header_layout.setContentsMargins(0, 10, 0, 10)
         header_layout.setSpacing(5)
         
-        # Title label
+        # Title label with DPI-aware font scaling
         title_label = QLabel(title)
         title_label.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 12pt;
-            font-weight: bold;
+            {self._get_scaled_font_style(14, "bold")}
             color: {Colors.BLUE_ACCENT};
             margin-bottom: 3px;
         """)
         header_layout.addWidget(title_label)
         
-        # Description label
+        # Description label with better height management and DPI-aware font
         description_label = QLabel(description)
         description_label.setStyleSheet(f"""
             color: #aaaaaa; 
-            font-size: 9pt;
+            {self._get_scaled_font_style(10)}
             margin-bottom: 8px;
+            line-height: 1.4;
         """)
         description_label.setWordWrap(True)
+        # Ensure the label can expand to show all text
+        description_label.setMinimumHeight(30)  # Increased minimum height for wrapped text
         header_layout.addWidget(description_label)
         
         # Add subtle separator line
@@ -1304,3 +1280,79 @@ class SettingsDialog(QDialog):
         header_layout.addWidget(separator)
         
         return header_frame
+
+    def _setup_dynamic_sizing(self):
+        """Setup platform-agnostic dynamic sizing using Qt's DPI awareness."""
+        from PyQt6.QtGui import QGuiApplication
+        from PyQt6.QtCore import QSize
+        
+        try:
+            app = QGuiApplication.instance()
+            if app:
+                primary_screen = app.primaryScreen()
+                screen_geometry = primary_screen.availableGeometry()
+                
+                # Use Qt's logical DPI for platform-agnostic scaling
+                logical_dpi = primary_screen.logicalDotsPerInch()
+                dpi_scale_factor = logical_dpi / 96.0  # 96 DPI is the standard baseline
+                
+                # Base size in logical pixels (designed for 96 DPI)
+                base_width = 580
+                base_height = 650
+                
+                # Apply DPI-aware scaling
+                scaled_width = int(base_width * dpi_scale_factor)
+                scaled_height = int(base_height * dpi_scale_factor)
+                
+                # Ensure dialog fits within screen bounds (leave 10% margin)
+                max_width = int(screen_geometry.width() * 0.9)
+                max_height = int(screen_geometry.height() * 0.9)
+                
+                final_width = min(scaled_width, max_width)
+                final_height = min(scaled_height, max_height)
+                
+                # Set reasonable minimum sizes to prevent UI cramping
+                min_width = int(520 * max(1.0, dpi_scale_factor * 0.8))
+                min_height = int(580 * max(1.0, dpi_scale_factor * 0.8))
+                
+                final_width = max(final_width, min_width)
+                final_height = max(final_height, min_height)
+                
+                # Use setFixedSize for consistent layout
+                self.setFixedSize(QSize(final_width, final_height))
+            else:
+                # Fallback if no app instance
+                self.setFixedSize(QSize(580, 650))
+        except Exception:
+            # Fallback sizing if anything fails
+            self.setFixedSize(QSize(580, 650))
+    
+    def _get_scaled_font_size(self, base_size):
+        """Get DPI-scaled font size for better cross-platform text display."""
+        try:
+            from PyQt6.QtGui import QGuiApplication
+            app = QGuiApplication.instance()
+            if app:
+                primary_screen = app.primaryScreen()
+                logical_dpi = primary_screen.logicalDotsPerInch()
+                dpi_scale_factor = logical_dpi / 96.0  # 96 DPI is standard
+                
+                # Apply font scaling with minimum and maximum bounds
+                scaled_size = max(8, min(24, int(base_size * dpi_scale_factor)))
+                return scaled_size
+            else:
+                return base_size
+        except Exception:
+            return base_size
+
+    def _get_scaled_font_style(self, size, weight="normal", family=None):
+        """Get complete font style string with DPI-aware scaling."""
+        if family is None:
+            family = "'Helvetica Neue', Helvetica, Arial, sans-serif"
+        
+        scaled_size = self._get_scaled_font_size(size)
+        return f"""
+            font-family: {family};
+            font-size: {scaled_size}pt;
+            font-weight: {weight};
+        """
