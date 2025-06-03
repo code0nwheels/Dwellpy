@@ -7,7 +7,7 @@ This guide explains how to adjust Dwellpy's settings for your specific needs.
 Dwellpy includes two floating widgets that appear when you pause your cursor:
 
 ### Menu Widget (Hamburger Menu)
-A circular hamburger menu (☰) that appears when you dwell (pause cursor) for the configured delay. It expands into a circular menu with all click modes, settings, and power options. The widget follows your cursor and locks in place when hovered for easy interaction.
+A small circular hamburger menu (☰) that appears when you dwell (pause cursor) for the configured delay. Expands into a circular menu with all click modes, settings, and power options when hovered.
 
 ### Scroll Widget  
 A floating scroll helper with up/down arrows that appears alongside the menu widget when you dwell. Allows easy scrolling without precise targeting of scroll bars.
