@@ -15,7 +15,8 @@ try:
     from ..config.constants import (
         Colors, BUTTON_SIZE, LAYOUT_MARGIN, LAYOUT_SPACING, BORDER_RADIUS, Fonts,
         CONTRACT_DELAY, EXPAND_DELAY, CONTRACT_BUTTON_SIZE, CONTRACT_BUTTON_TEXT,
-        EXPANSION_DIRECTIONS, DEFAULT_EXPANSION_DIRECTION, SCREEN_EDGE_MARGIN
+        EXPANSION_DIRECTIONS, DEFAULT_EXPANSION_DIRECTION, SCREEN_EDGE_MARGIN,
+        ICON_MAPPING
     )
     from ..utils.helpers import get_asset_path
 except ImportError:
@@ -709,25 +710,33 @@ class DwellClickerUI:
                 self.window.setWindowOpacity(opacity)
     
     def update_contracted_button_state(self):
-        """Update the text and style of the contracted button to match current status."""
+        """Update the icon and style of the contracted button to match current status."""
         if not self.contracted_button or not self.is_contracted:
             return
             
-        status_text = self.get_current_status_text()
-        self.contracted_button.setText(status_text)
+        # Determine which icon to use based on current state
+        if not self.is_active:
+            icon_id = "ON_OFF"  # Will use off.png
+        else:
+            icon_id = self.current_mode  # Use current mode icon
         
-        # Update button style to match current state
+        # Set the icon
+        icon_path = self._get_icon_path(icon_id)
+        if icon_path and os.path.exists(icon_path):
+            icon = QIcon(icon_path)
+            # Scale icon to fit button size minus padding
+            icon_size = min(CONTRACT_BUTTON_SIZE[0], CONTRACT_BUTTON_SIZE[1]) - 10
+            self.contracted_button.setIcon(icon)
+            self.contracted_button.setIconSize(QSize(icon_size, icon_size))
+        
+        # Update button style to match current state (remove font styling)
         if not self.is_active:
             # OFF state - red like the ON/OFF button when off
             self.contracted_button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.RED_ACCENT};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.RED_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 8pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.RED_HOVER};
@@ -739,12 +748,8 @@ class DwellClickerUI:
             self.contracted_button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.RED_ACCENT};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.RED_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 8pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.RED_HOVER};
@@ -756,12 +761,8 @@ class DwellClickerUI:
             self.contracted_button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.BLUE_ACCENT};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BLUE_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 8pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.BLUE_HOVER};
@@ -874,10 +875,7 @@ class DwellClickerUI:
     
     def create_contracted_button(self):
         """Create the contracted button showing current status."""
-        # Get current status text
-        status_text = self.get_current_status_text()
-        
-        button = QPushButton(status_text)
+        button = QPushButton()
         button.setFixedSize(CONTRACT_BUTTON_SIZE[0], CONTRACT_BUTTON_SIZE[1])
         button.setObjectName("CONTRACTED")  # Give it an ID for button manager
         button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -915,23 +913,28 @@ class DwellClickerUI:
     
     def create_button(self, text, color, button_id):
         """Create a styled button with hover behavior."""
-        # Create button with fixed size
-        button = QPushButton(text)
+        # Create button with fixed size (no text, will use icon)
+        button = QPushButton()
         button.setFixedSize(QSize(BUTTON_SIZE[0], BUTTON_SIZE[1]))
         button.setObjectName(button_id)  # Store ID as object name
         button.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+        # Load and set icon
+        icon_path = self._get_icon_path(button_id)
+        if icon_path and os.path.exists(icon_path):
+            icon = QIcon(icon_path)
+            # Scale icon to fit button size minus padding
+            icon_size = min(BUTTON_SIZE[0], BUTTON_SIZE[1]) - 10
+            button.setIcon(icon)
+            button.setIconSize(QSize(icon_size, icon_size))
         
         # Style the button using Qt stylesheets
         if color == "blue":
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.DARK_BUTTON_BG};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 9pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.DARK_BUTTON_BG};
@@ -942,12 +945,8 @@ class DwellClickerUI:
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.DARK_BUTTON_BG};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 9pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.DARK_BUTTON_BG};
@@ -958,12 +957,8 @@ class DwellClickerUI:
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.DARK_BUTTON_BG};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 9pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: #3d3d3d;
@@ -974,12 +969,8 @@ class DwellClickerUI:
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.DARK_BUTTON_BG};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 9pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.DARK_BUTTON_BG};
@@ -1128,15 +1119,17 @@ class DwellClickerUI:
         
         # Update ON/OFF button
         if self.is_active:
+            # Update button icon to "on" state
+            icon_path = self._get_icon_path("ON_OFF")
+            if icon_path and os.path.exists(icon_path):
+                icon = QIcon(icon_path)
+                self.buttons["ON_OFF"].setIcon(icon)
+            
             self.buttons["ON_OFF"].setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.GREEN_ACCENT};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.GREEN_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 9pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.GREEN_HOVER};
@@ -1144,15 +1137,17 @@ class DwellClickerUI:
                 }}
             """)
         else:
+            # Update button icon to "off" state
+            icon_path = self._get_icon_path("ON_OFF")
+            if icon_path and os.path.exists(icon_path):
+                icon = QIcon(icon_path)
+                self.buttons["ON_OFF"].setIcon(icon)
+            
             self.buttons["ON_OFF"].setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.RED_ACCENT};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.RED_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 9pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.RED_HOVER};
@@ -2187,3 +2182,16 @@ class DwellClickerUI:
         # This is more forgiving for small movements during interaction
         movement_threshold = 8  # pixels - increased threshold for more forgiveness
         return current_distance > last_distance + movement_threshold
+
+    def _get_icon_path(self, button_id):
+        """Get the icon path for a button ID."""
+        # Special case for ON_OFF button - use different icon based on state
+        if button_id == "ON_OFF":
+            icon_file = "on.png" if self.is_active else "off.png"
+        else:
+            icon_file = ICON_MAPPING.get(button_id, "setup.png")  # Default to setup icon
+            
+        try:
+            return get_asset_path(icon_file)
+        except Exception:
+            return None

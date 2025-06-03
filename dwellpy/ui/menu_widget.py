@@ -2,14 +2,15 @@
 
 from PyQt6.QtWidgets import QWidget, QApplication
 from PyQt6.QtCore import Qt, QPoint, QPointF, QTimer, pyqtSignal, QRect, QSize
-from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPolygonF, QCursor, QFont
+from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPolygonF, QCursor, QFont, QPixmap
 from pynput.mouse import Controller as MouseController
 import math
 import sys
 import time
 
 try:
-    from ..config.constants import Colors, BUTTON_IDS
+    from ..config.constants import Colors, BUTTON_IDS, ICON_MAPPING
+    from ..utils.helpers import get_asset_path
 except ImportError:
     # Fallback if constants not available
     class Colors:
@@ -19,12 +20,26 @@ except ImportError:
         GREEN_ACCENT = "#2ecc71"
         RED_ACCENT = "#e74c3c"
     
+    def get_asset_path(asset_name):
+        """Fallback get_asset_path function"""
+        import os
+        return os.path.join(os.path.dirname(__file__), '..', 'assets', 'icons', asset_name)
+    
     BUTTON_IDS = {
         'LEFT': 'LEFT',
         'DOUBLE': 'DOUBLE', 
         'DRAG': 'DRAG',
         'RIGHT': 'RIGHT',
         'SETUP': 'SETUP'
+    }
+    
+    ICON_MAPPING = {
+        "LEFT": "left.png",
+        "DOUBLE": "double.png", 
+        "DRAG": "drag.png",
+        "RIGHT": "right.png",
+        "SETUP": "setup.png",
+        "ON_OFF": "off.png"
     }
 
 # Windows DPI awareness for better multi-monitor support
@@ -102,12 +117,12 @@ class MenuWidget(QWidget):
         
         # Menu items configuration
         self.menu_items = [
-            {'id': 'LEFT', 'label': 'Left', 'color': Colors.BLUE_ACCENT},
-            {'id': 'DOUBLE', 'label': 'Double', 'color': Colors.GREEN_ACCENT},
-            {'id': 'RIGHT', 'label': 'Right', 'color': Colors.RED_ACCENT},
-            {'id': 'DRAG', 'label': 'Drag', 'color': Colors.BLUE_ACCENT},
-            {'id': 'SETUP', 'label': 'Settings', 'color': Colors.TEXT_COLOR},
-            {'id': 'OFF', 'label': 'Turn Off', 'color': Colors.RED_ACCENT}
+            {'id': 'LEFT', 'label': 'Left', 'color': Colors.BLUE_ACCENT, 'icon': ICON_MAPPING.get('LEFT', 'left.png')},
+            {'id': 'DOUBLE', 'label': 'Double', 'color': Colors.GREEN_ACCENT, 'icon': ICON_MAPPING.get('DOUBLE', 'double.png')},
+            {'id': 'RIGHT', 'label': 'Right', 'color': Colors.RED_ACCENT, 'icon': ICON_MAPPING.get('RIGHT', 'right.png')},
+            {'id': 'DRAG', 'label': 'Drag', 'color': Colors.BLUE_ACCENT, 'icon': ICON_MAPPING.get('DRAG', 'drag.png')},
+            {'id': 'SETUP', 'label': 'Settings', 'color': Colors.TEXT_COLOR, 'icon': ICON_MAPPING.get('SETUP', 'setup.png')},
+            {'id': 'OFF', 'label': 'Turn Off', 'color': Colors.RED_ACCENT, 'icon': ICON_MAPPING.get('ON_OFF', 'off.png')}  # Use OFF state icon
         ]
         
         # Layout configuration - circular layout around hamburger icon
@@ -119,6 +134,14 @@ class MenuWidget(QWidget):
         
         # Reference to UI manager for state checking
         self.ui_manager = None
+        
+        # Load hamburger icon
+        self.hamburger_icon = None
+        self._load_hamburger_icon()
+        
+        # Load menu item icons
+        self.menu_item_icons = {}
+        self._load_menu_item_icons()
         
         # Setup UI
         self._setup_ui()
@@ -163,6 +186,28 @@ class MenuWidget(QWidget):
         
         # Initially hide the widget
         self.hide()
+    
+    def _load_hamburger_icon(self):
+        """Load the hamburger icon from assets."""
+        try:
+            icon_path = get_asset_path("hamburger.png")
+            self.hamburger_icon = QPixmap(icon_path)
+            if self.hamburger_icon.isNull():
+                self.hamburger_icon = None
+        except Exception:
+            self.hamburger_icon = None
+    
+    def _load_menu_item_icons(self):
+        """Load icons for menu items."""
+        self.menu_item_icons = {}
+        for item in self.menu_items:
+            try:
+                icon_path = get_asset_path(item['icon'])
+                icon = QPixmap(icon_path)
+                if not icon.isNull():
+                    self.menu_item_icons[item['id']] = icon
+            except Exception:
+                pass  # Icon will not be available for this item
         
     def paintEvent(self, event):
         """Custom paint event to draw the menu."""
@@ -189,21 +234,39 @@ class MenuWidget(QWidget):
         # Draw circular background
         painter.drawEllipse(self.rect())
         
-        # Draw hamburger lines
-        painter.setPen(QPen(QColor(255, 255, 255), 2))
-        
-        center_x = self.width() // 2
-        center_y = self.height() // 2
-        line_width = 12
-        line_spacing = 4
-        
-        # Three horizontal lines
-        for i in range(3):
-            y = center_y - line_spacing + (i * line_spacing)
-            painter.drawLine(
-                center_x - line_width // 2, y,
-                center_x + line_width // 2, y
+        # Draw hamburger icon from file if available, otherwise fallback to lines
+        if self.hamburger_icon and not self.hamburger_icon.isNull():
+            # Calculate icon size with minimal padding for larger icon
+            icon_size = min(self.width(), self.height()) - 6  # 3px padding on each side
+            center_x = self.width() // 2
+            center_y = self.height() // 2
+            
+            # Create target rectangle for the icon
+            icon_rect = QRect(
+                center_x - icon_size // 2,
+                center_y - icon_size // 2,
+                icon_size,
+                icon_size
             )
+            
+            # Draw the scaled hamburger icon
+            painter.drawPixmap(icon_rect, self.hamburger_icon)
+        else:
+            # Fallback to drawing hamburger lines
+            painter.setPen(QPen(QColor(255, 255, 255), 2))
+            
+            center_x = self.width() // 2
+            center_y = self.height() // 2
+            line_width = 12
+            line_spacing = 4
+            
+            # Three horizontal lines
+            for i in range(3):
+                y = center_y - line_spacing + (i * line_spacing)
+                painter.drawLine(
+                    center_x - line_width // 2, y,
+                    center_x + line_width // 2, y
+                )
     
     def _draw_expanded_menu(self, painter):
         """Draw the expanded menu with items in circular layout around hamburger icon."""
@@ -213,7 +276,7 @@ class MenuWidget(QWidget):
         hamburger_center = QPoint(hamburger_center_x, hamburger_center_y)
         
         # Draw hamburger icon at center
-        hamburger_size = 20
+        hamburger_size = 30  # Increased size for better visibility
         hamburger_rect = QRect(hamburger_center_x - hamburger_size//2, hamburger_center_y - hamburger_size//2, 
                               hamburger_size, hamburger_size)
         
@@ -229,17 +292,29 @@ class MenuWidget(QWidget):
             
         painter.drawEllipse(hamburger_rect)
         
-        # Draw hamburger lines
-        painter.setPen(QPen(QColor(255, 255, 255), 1))
-        line_width = 8
-        line_spacing = 3
-        
-        for i in range(3):
-            y = hamburger_center_y - line_spacing + (i * line_spacing)
-            painter.drawLine(
-                hamburger_center_x - line_width // 2, y,
-                hamburger_center_x + line_width // 2, y
+        # Draw hamburger icon from file if available, otherwise fallback to lines
+        if self.hamburger_icon and not self.hamburger_icon.isNull():
+            # Use the icon file for the hamburger in expanded menu
+            icon_size = hamburger_size - 4  # Small padding within the background circle
+            icon_rect = QRect(
+                hamburger_center_x - icon_size // 2,
+                hamburger_center_y - icon_size // 2,
+                icon_size,
+                icon_size
             )
+            painter.drawPixmap(icon_rect, self.hamburger_icon)
+        else:
+            # Fallback to drawing hamburger lines
+            painter.setPen(QPen(QColor(255, 255, 255), 1))
+            line_width = 8
+            line_spacing = 3
+            
+            for i in range(3):
+                y = hamburger_center_y - line_spacing + (i * line_spacing)
+                painter.drawLine(
+                    hamburger_center_x - line_width // 2, y,
+                    hamburger_center_x + line_width // 2, y
+                )
         
         # Draw menu items in a circle around hamburger icon using animated radius
         for i, item in enumerate(self.menu_items):
@@ -288,12 +363,26 @@ class MenuWidget(QWidget):
         
         painter.drawEllipse(item_rect)
         
-        # Draw item text with animated alpha
-        text_color = QColor(item_color) if is_hovered or self._is_item_active_state(item) else QColor(255, 255, 255)
-        text_color.setAlpha(min(255, base_alpha + 55))  # Ensure text is visible
-        painter.setPen(QPen(text_color))
-        painter.setFont(QFont("Helvetica Neue", 8, QFont.Weight.Bold))
-        painter.drawText(item_rect, Qt.AlignmentFlag.AlignCenter, item['label'])
+        # Draw item icon if available, otherwise draw text
+        if item['id'] in self.menu_item_icons:
+            # Draw icon
+            icon = self.menu_item_icons[item['id']]
+            # Calculate icon size with padding
+            icon_size = min(item_rect.width(), item_rect.height()) - 8  # 4px padding on each side
+            icon_rect = QRect(
+                item_rect.center().x() - icon_size // 2,
+                item_rect.center().y() - icon_size // 2,
+                icon_size,
+                icon_size
+            )
+            painter.drawPixmap(icon_rect, icon)
+        else:
+            # Fallback to text if icon not available
+            text_color = QColor(item_color) if is_hovered or self._is_item_active_state(item) else QColor(255, 255, 255)
+            text_color.setAlpha(min(255, base_alpha + 55))  # Ensure text is visible
+            painter.setPen(QPen(text_color))
+            painter.setFont(QFont("Helvetica Neue", 8, QFont.Weight.Bold))
+            painter.drawText(item_rect, Qt.AlignmentFlag.AlignCenter, item['label'])
     
     def _get_item_state_color(self, item):
         """Get the color for a menu item based on current UI state."""

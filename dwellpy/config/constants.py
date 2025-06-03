@@ -208,6 +208,20 @@ BUTTON_IDS = {
     'EXIT': 'EXIT'
 }
 
+# Icon mapping for buttons and menu items
+ICON_MAPPING = {
+    "ON_OFF": "on.png",  # Will use "off.png" when inactive
+    "LEFT": "left.png",
+    "DOUBLE": "double.png", 
+    "DRAG": "drag.png",
+    "RIGHT": "right.png",
+    "SCROLL": "scroll.png",
+    "MENU": "hamburger.png",
+    "SETUP": "setup.png",
+    "MOVE": "move.png",
+    "EXIT": "exit.png"
+}
+
 # Menu Widget Constants
 MENU_WIDGET_SIZE = 30
 MENU_WIDGET_OFFSET = 100  # Distance from cursor
