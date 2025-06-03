@@ -96,6 +96,7 @@ jobs:
           python utils/build_executable.py
 
       - name: Get version from tag
+        if: steps.should-run.outputs.should_run == 'true'
         id: get-version
         shell: bash
         run: |
@@ -112,7 +113,7 @@ jobs:
           if compgen -G "dist/Dwellpy*" > /dev/null; then
             for f in dist/Dwellpy*; do
               ext="${f##*.}"
-              base="dwellpy-${{ steps.get-version.outputs.version }}-${{ inputs.target }}"
+              base="dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}"
               if [[ "$f" == *.exe ]]; then
                 mv "$f" "dist/${base}.exe"
                 echo "Renamed $f to dist/${base}.exe"
@@ -129,18 +130,18 @@ jobs:
           fi
 
       - name: Upload executable to release
-        if: ${{ inputs.upload_url != '' }}
+        if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != ''
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: ${{ (inputs.target == 'windows-x64' || inputs.target == 'windows-arm64') && format('./dist/dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, inputs.target) || format('./dist/dwellpy-{0}-{1}', steps.get-version.outputs.version, inputs.target) }}
-          asset_name: ${{ (inputs.target == 'windows-x64' || inputs.target == 'windows-arm64') && format('dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, inputs.target) || format('dwellpy-{0}-{1}', steps.get-version.outputs.version, inputs.target) }}
+          asset_path: ${{ (matrix.target == 'windows-x64' || matrix.target == 'windows-arm64') && format('./dist/dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, matrix.target) || format('./dist/dwellpy-{0}-{1}', steps.get-version.outputs.version, matrix.target) }}
+          asset_name: ${{ (matrix.target == 'windows-x64' || matrix.target == 'windows-arm64') && format('dwellpy-{0}-{1}.exe', steps.get-version.outputs.version, matrix.target) || format('dwellpy-{0}-{1}', steps.get-version.outputs.version, matrix.target) }}
           asset_content_type: application/octet-stream
 
       - name: Upload build info
-        if: ${{ inputs.upload_url != '' }}
+        if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != ''
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -153,5 +154,7 @@ jobs:
       - name: List built files (testing)
         if: steps.should-run.outputs.should_run == 'true'
         run: |
+          echo "Built files:"
+          ls -la dist/
           echo "Built files:"
           ls dist/
