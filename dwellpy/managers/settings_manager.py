@@ -11,7 +11,8 @@ from ..config.constants import (
     MIN_MOVE_LIMIT, MAX_MOVE_LIMIT,
     MIN_DWELL_TIME, MAX_DWELL_TIME,
     MIN_TRANSPARENCY, MAX_TRANSPARENCY,
-    EXPANSION_DIRECTIONS
+    EXPANSION_DIRECTIONS,
+    WIDGET_APPEARANCE_DELAY_MIN, WIDGET_APPEARANCE_DELAY_MAX
 )
 from ..utils.helpers import get_settings_file_path, get_screen_center, clamp_value
 from ..ui.dialogs.settings_dialog import SettingsDialog
@@ -191,6 +192,11 @@ class SettingsManager:
         clamped_value = clamp_value(value, MIN_MOVE_LIMIT, MAX_MOVE_LIMIT)
         self.settings['move_limit'] = clamped_value
         self.dwell_detector.move_limit = clamped_value
+        
+        # Sync widget appearance movement threshold with dwell detection
+        if self.ui_manager and hasattr(self.ui_manager, 'cursor_movement_detector'):
+            self.ui_manager.cursor_movement_detector.set_movement_threshold(clamped_value)
+        
         self.logger.info(f"Move limit updated to: {clamped_value}px")
     
     def update_dwell_time(self, value: float) -> None:
@@ -613,3 +619,20 @@ Keywords=accessibility;dwell;click;motor;disability;
         self.logger.debug(f"Window position updated to: ({x}, {y})")
         # Note: We don't auto-save here to avoid excessive disk writes
         # Window position is saved when the app closes or settings dialog closes
+    
+    def update_widget_appearance_delay(self, delay: float) -> None:
+        """
+        Update widget appearance delay setting.
+        
+        Args:
+            delay: Time in seconds to wait before showing widgets after cursor stops
+        """
+        # Clamp delay between min and max values
+        clamped_delay = max(WIDGET_APPEARANCE_DELAY_MIN, min(WIDGET_APPEARANCE_DELAY_MAX, delay))
+        self.settings['widget_appearance_delay'] = clamped_delay
+        
+        # Apply widget appearance delay change immediately if UI manager is available
+        if self.ui_manager:
+            self.ui_manager.apply_widget_appearance_settings()
+        
+        self.logger.debug(f"Widget appearance delay updated to: {clamped_delay} seconds")

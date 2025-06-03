@@ -2,6 +2,18 @@
 
 This guide explains how to adjust Dwellpy's settings for your specific needs.
 
+## Floating Widgets
+
+Dwellpy includes two floating widgets that appear when you pause your cursor:
+
+### Menu Widget (Hamburger Menu)
+A small circular hamburger menu (☰) that appears when you dwell (pause cursor) for the configured delay. Expands into a circular menu with all click modes, settings, and power options when hovered.
+
+### Scroll Widget  
+A floating scroll helper with up/down arrows that appears alongside the menu widget when you dwell. Allows easy scrolling without precise targeting of scroll bars.
+
+Both widgets use the same appearance delay setting (configurable in the Scroll tab).
+
 ## Opening Settings
 
 Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog. The settings are organized into four main tabs for easy navigation:
@@ -116,13 +128,13 @@ This section controls visual indicators to show where and what type of clicks ar
 
 ## Scroll Tab
 
-The Scroll tab contains settings for the floating scroll widget.
+The Scroll tab contains settings for the floating scroll widget and menu widget appearance.
 
 ### Scroll Widget
 This section controls a floating scroll widget that appears near your cursor for easy scrolling.
 
 #### Enable Scroll Widget
-**What it does**: Shows/hides the floating scroll helper that follows your cursor.
+**What it does**: Shows/hides the floating scroll helper that appears when you dwell (pause cursor).
 
 **When to enable**: For reading documents, browsing web pages, or working with long content.
 
@@ -137,6 +149,21 @@ This section controls a floating scroll widget that appears near your cursor for
 - **1-3**: Slow, controlled scrolling for precise reading
 - **4-6**: Medium speed for general use
 - **7-10**: Fast scrolling for quickly moving through content
+
+#### Widget Appearance Delay (0.1s - 1.0s)
+**What it does**: Controls how long the cursor needs to remain still (dwell) before the menu and scroll widgets appear.
+
+**Scale**: 0.1s = widgets appear very quickly, 1.0s = widgets wait longer before appearing
+
+**Recommended values**:
+- **0.1s - 0.3s**: Quick appearance for frequent widget use
+- **0.4s - 0.6s**: Medium delay for balanced usage (default: 0.2s)
+- **0.7s - 1.0s**: Longer delay to avoid widgets appearing during normal cursor movement
+
+**When to adjust**:
+- **Increase delay**: If widgets appear too often during normal computer use
+- **Decrease delay**: If you want widgets to be more responsive when you stop moving the cursor
+- **Default (0.2s)**: Good balance for most users
 
 ## General Tab
 

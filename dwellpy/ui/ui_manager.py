@@ -5,8 +5,10 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QPushButton,
 from PyQt6.QtCore import Qt, QSize, QTimer
 from PyQt6.QtGui import QIcon
 from .scroll_widget import ScrollWidget
+from .menu_widget import MenuWidget
 import time
 import os
+import sys
 
 # Updated imports for new structure
 try:
@@ -54,6 +56,89 @@ except ImportError:
         else:
             base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         return os.path.join(base_path, 'assets', 'icons', asset_name)
+
+
+class CursorMovementDetector:
+    """Detects cursor movement vs dwelling to control widget visibility."""
+    
+    def __init__(self, dwell_delay=0.2):
+        self.last_position = None
+        self.last_movement_time = 0
+        self.movement_threshold = 5  # pixels - reduced for more sensitivity
+        self.dwell_delay = dwell_delay  # seconds - configurable time to wait before showing widgets
+        self.hide_delay = 0.05  # seconds - very quick hiding
+        self.movement_velocity_history = []
+        self.velocity_window = 2  # reduced window for faster response
+        self.movement_velocity_threshold = 30  # pixels per second - reduced threshold
+        self.last_update_time = 0
+        
+    def set_dwell_delay(self, delay):
+        """Update the dwell delay setting."""
+        self.dwell_delay = delay
+    
+    def set_movement_threshold(self, threshold):
+        """Update the movement threshold to match dwell detection."""
+        self.movement_threshold = threshold
+    
+    def update_position(self, position):
+        """Update cursor position and return movement state."""
+        current_time = time.time()
+        
+        if self.last_position is None:
+            self.last_position = position
+            self.last_update_time = current_time
+            return 'dwelling'  # Start in dwelling state
+        
+        # Calculate movement distance
+        dx = abs(position[0] - self.last_position[0])
+        dy = abs(position[1] - self.last_position[1])
+        distance = max(dx, dy)  # Use max distance for consistency with dwell detection
+        
+        # Calculate velocity
+        time_delta = current_time - self.last_update_time
+        if time_delta > 0:
+            velocity = distance / time_delta
+            self.movement_velocity_history.append(velocity)
+            if len(self.movement_velocity_history) > self.velocity_window:
+                self.movement_velocity_history.pop(0)
+        
+        # Determine if cursor is moving based on distance and velocity
+        is_moving = False
+        
+        # Check immediate movement
+        if distance >= self.movement_threshold:
+            is_moving = True
+            self.last_movement_time = current_time
+        
+        # Also check average velocity over recent history
+        if len(self.movement_velocity_history) > 0:
+            avg_velocity = sum(self.movement_velocity_history) / len(self.movement_velocity_history)
+            if avg_velocity > self.movement_velocity_threshold:
+                is_moving = True
+                self.last_movement_time = current_time
+        
+        # Update position tracking
+        self.last_position = position
+        self.last_update_time = current_time
+        
+        # Determine state based on movement and timing
+        time_since_movement = current_time - self.last_movement_time
+        
+        if is_moving:
+            return 'moving'
+        elif time_since_movement < self.dwell_delay:
+            return 'settling'  # Just stopped moving, waiting to show widgets
+        else:
+            return 'dwelling'  # Settled and dwelling
+            
+    def should_show_widgets(self, movement_state):
+        """Determine if widgets should be shown based on movement state."""
+        return movement_state == 'dwelling'
+        
+    def should_hide_widgets(self, movement_state):
+        """Determine if widgets should be hidden based on movement state."""
+        return movement_state in ['moving', 'settling']
+
 
 class DwellClickerUI:
     """UI Manager for the Dwell Clicker application with temporary/default modes."""
@@ -112,6 +197,25 @@ class DwellClickerUI:
         self.scroll_dwell_start_time = None
         self.scroll_dwell_triggered = False
         
+        # Initialize menu widget
+        self.menu_widget = MenuWidget()
+        self.menu_widget.set_active(False)  # Start inactive
+        self.menu_widget.menu_item_triggered.connect(self.handle_menu_item_selection)
+        self.menu_widget.ui_manager = self  # Set reference for state checking
+        
+        # Track menu widget hover state
+        self.menu_hover = None
+        self.menu_dwell_start_time = None
+        self.menu_dwell_triggered = False
+        
+        # Track widget initial orientation for consistent positioning
+        self.widgets_initial_orientation = None
+        
+        # Movement state tracking for widget visibility
+        initial_delay = 0.2  # Default delay, will be updated when settings manager connects
+        self.cursor_movement_detector = CursorMovementDetector(dwell_delay=initial_delay)
+        self.widgets_hidden_for_movement = False
+        
         # UI setup
         self.setup_ui()
         
@@ -145,6 +249,12 @@ class DwellClickerUI:
         
         # Apply scroll widget settings AFTER setting the active state
         self.apply_scroll_settings()
+        
+        # Apply menu widget settings AFTER setting the active state
+        self.apply_menu_settings()
+        
+        # Apply widget appearance settings
+        self.apply_widget_appearance_settings()
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
@@ -155,6 +265,7 @@ class DwellClickerUI:
         self.button_manager.register_command("DRAG", lambda: self.set_mode("DRAG"))
         self.button_manager.register_command("RIGHT", lambda: self.set_mode("RIGHT"))
         self.button_manager.register_command("SCROLL", self.toggle_scroll_widget)
+        self.button_manager.register_command("MENU", self.toggle_menu_widget)
         self.button_manager.register_command("CONTRACTED", self.expand_ui)
         # SETUP and EXIT will be set by the respective managers
     
@@ -182,10 +293,11 @@ class DwellClickerUI:
         # Set up window transparency events
         self.setup_transparency_events()
         
-        # Add close event handler for scroll widget cleanup
+        # Add close event handler for both widgets cleanup
         original_close_event = self.window.closeEvent
         def close_event_handler(event):
             self.cleanup_scroll_widget()
+            self.cleanup_menu_widget()
             if original_close_event:
                 original_close_event(event)
             else:
@@ -229,6 +341,10 @@ class DwellClickerUI:
         # Scroll toggle button
         self.buttons["SCROLL"] = self.create_button("SCROLL", "gray", "SCROLL")
         button_layout.addWidget(self.buttons["SCROLL"])
+        
+        # Menu toggle button
+        self.buttons["MENU"] = self.create_button("MENU", "gray", "MENU")
+        button_layout.addWidget(self.buttons["MENU"])
         
         # Utility buttons
         self.buttons["SETUP"] = self.create_button("SETUP", "gray", "SETUP")
@@ -352,7 +468,7 @@ class DwellClickerUI:
         new_central_widget.setLayout(new_layout)
         
         # Add all buttons to the new layout
-        button_order = ["ON_OFF", "LEFT", "DOUBLE", "DRAG", "RIGHT", "SCROLL", "SETUP", "MOVE", "EXIT"]
+        button_order = ["ON_OFF", "LEFT", "DOUBLE", "DRAG", "RIGHT", "SCROLL", "MENU", "SETUP", "MOVE", "EXIT"]
         for button_id in button_order:
             if button_id in self.buttons:
                 button = self.buttons[button_id]
@@ -1156,11 +1272,76 @@ class DwellClickerUI:
                         border: 1px solid #5d5d5d;
                     }}
                 """)
+        
+        # Handle MENU button state separately
+        if "MENU" in self.buttons:
+            menu_enabled = self.settings_manager.get_setting('menu_enabled', True) if self.settings_manager else True
+            
+            # Consider both app active state and menu enabled setting
+            if self.is_active and menu_enabled:
+                # App is active and menu is enabled - show as active (green)
+                self.buttons["MENU"].setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {Colors.GREEN_ACCENT};
+                        color: {Colors.TEXT_COLOR};
+                        border: 1px solid {Colors.GREEN_ACCENT};
+                        border-radius: {BORDER_RADIUS}px;
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: {Colors.GREEN_HOVER};
+                        border: 1px solid {Colors.GREEN_HOVER};
+                    }}
+                """)
+            elif self.is_active and not menu_enabled:
+                # App is active but menu is disabled - show as normal inactive button
+                self.buttons["MENU"].setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {Colors.DARK_BUTTON_BG};
+                        color: {Colors.TEXT_COLOR};
+                        border: 1px solid {Colors.BORDER_COLOR};
+                        border-radius: {BORDER_RADIUS}px;
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #3d3d3d;
+                        border: 1px solid #5d5d5d;
+                    }}
+                """)
+            else:
+                # App is inactive - show as grayed out (same as other buttons when inactive)
+                self.buttons["MENU"].setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: {Colors.DARK_BUTTON_BG};
+                        color: {Colors.DISABLED_TEXT};
+                        border: 1px solid {Colors.BORDER_COLOR};
+                        border-radius: {BORDER_RADIUS}px;
+                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                        font-size: 9pt;
+                        font-weight: bold;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #3d3d3d;
+                        border: 1px solid #5d5d5d;
+                    }}
+                """)
     
     def toggle_active(self):
-        """Modified toggle_active to also control scroll widget."""
+        """Modified toggle_active to also control scroll and menu widgets."""
         self.is_active = not self.is_active
+        
+        # Clear button hover state when turning off to prevent stuck hover states
+        if not self.is_active:
+            self.button_manager.clear_hover()
+        
         self.update_button_states()
+        
+        # Reset movement state when toggling
+        self.widgets_hidden_for_movement = False
         
         # Update contracted button text if UI is contracted
         self.update_contracted_button_state()
@@ -1168,14 +1349,19 @@ class DwellClickerUI:
         # Apply scroll settings which will show/hide widget based on active state
         self.apply_scroll_settings()
         
+        # Apply menu settings which will show/hide widget based on active state
+        self.apply_menu_settings()
+        
         if self.is_active:
             # Force immediate position update when becoming active
-            if self.settings_manager.get_setting('scroll_enabled', True):
+            if (self.settings_manager.get_setting('scroll_enabled', True) or 
+                self.settings_manager.get_setting('menu_enabled', True)):
                 try:
                     from pynput.mouse import Controller
                     mouse = Controller()
                     pos = mouse.position
                     self.update_scroll_widget_position(pos)
+                    self.update_menu_widget_position(pos)
                 except Exception as e:
                     pass
     
@@ -1223,7 +1409,7 @@ class DwellClickerUI:
         self.update_contracted_button_state()
     
     def process_dwell_event(self, center):
-        """Process a dwell event with scroll widget support."""
+        """Process a dwell event with scroll and menu widget support."""
         # Don't process regular dwell events if we're over scroll widget
         if self.scroll_hover:
             # The scrolling is handled by update_scroll_widget_position
@@ -1232,6 +1418,11 @@ class DwellClickerUI:
             # Stop scrolling if we've moved away
             if self.scroll_widget.is_scrolling:
                 self.scroll_widget.stop_scrolling()
+
+        # Don't process regular dwell events if we're over menu widget
+        if self.menu_hover and self.menu_hover not in ['hamburger', 'expanded']:
+            # The menu selection is handled by update_menu_widget_position
+            return
 
         # Get current hover button from button manager
         current_hover = self.button_manager.get_current_hover()
@@ -1286,7 +1477,7 @@ class DwellClickerUI:
             self.update_button_states()
             # Update contracted button text if UI is contracted
             self.update_contracted_button_state()
-    
+
     def handle_drag(self, center):
         """Handle drag operations that require two dwells."""
         
@@ -1314,15 +1505,23 @@ class DwellClickerUI:
         # Update contracted button text if UI is contracted
         self.update_contracted_button_state()
 
-    
     def update_scroll_widget_position(self, cursor_pos):
-        """Update scroll widget position to follow cursor."""
+        """Update scroll widget position to follow cursor with coordinated positioning."""
         # Only update if scroll widget is enabled
         if not self.settings_manager.get_setting('scroll_enabled', True):
             return
         
-        if self.is_active:
-            self.scroll_widget.update_position(cursor_pos)
+        # Continue with position updates only if widgets should be visible
+        if self.is_active and not self.widgets_hidden_for_movement:
+            # Check if both widgets are enabled for coordinated positioning
+            menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
+            
+            if menu_enabled:
+                # Coordinated positioning mode
+                self._update_coordinated_widget_positions(cursor_pos)
+            else:
+                # Normal positioning if menu is disabled
+                self.scroll_widget.update_position(cursor_pos)
             
             # Check for hover on scroll widget
             hover = self.scroll_widget.check_hover(cursor_pos)
@@ -1352,6 +1551,403 @@ class DwellClickerUI:
                 if hover_duration >= self.dwell_detector.dwell_time:
                     self.scroll_widget.start_scrolling(hover)
                     self.scroll_dwell_triggered = True
+
+    def update_menu_widget_position(self, cursor_pos):
+        """Update menu widget position to follow cursor with coordinated positioning."""
+        # Only update if menu widget is enabled
+        if not self.settings_manager.get_setting('menu_enabled', True):
+            return
+        
+        # Only continue if widgets are not hidden for movement
+        if self.is_active and not self.widgets_hidden_for_movement:
+            # Check if both widgets are enabled for coordinated positioning
+            scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+            
+            if scroll_enabled:
+                # Coordinated positioning is handled by update_scroll_widget_position
+                # Just handle hover detection here
+                pass
+            else:
+                # Normal positioning if scroll is disabled
+                self.menu_widget.update_position(cursor_pos)
+            
+            # Check for hover on menu widget
+            hover = self.menu_widget.check_hover(cursor_pos)
+            
+            # Track hover state changes
+            if hover != self.menu_hover:
+                self.menu_hover = hover
+                
+                if hover and hover not in ['hamburger', 'expanded']:
+                    # Started hovering over a specific menu item
+                    self.menu_dwell_start_time = time.time()
+                    self.menu_dwell_triggered = False
+                else:
+                    # Stopped hovering over specific menu item or just over hamburger/expanded area
+                    self.menu_dwell_start_time = None
+                    self.menu_dwell_triggered = False
+            
+            # Check if dwell complete for menu item selection
+            if (hover and hover not in ['hamburger', 'expanded'] and 
+                self.menu_dwell_start_time and not self.menu_dwell_triggered):
+                hover_duration = time.time() - self.menu_dwell_start_time
+                  # Check if dwell complete
+                if hover_duration >= self.dwell_detector.dwell_time:
+                    self.menu_widget.trigger_menu_item(hover)
+                    self.menu_dwell_triggered = True
+
+    def _update_coordinated_widget_positions(self, cursor_pos):
+        """Update both widgets with coordinated positioning and off-screen stacking detection."""
+        import math
+        from PyQt6.QtCore import QPoint, QSize
+        
+        # Convert pynput coordinates to Qt coordinates
+        if hasattr(cursor_pos, '__iter__'):
+            cursor_x, cursor_y = cursor_pos
+        else:
+            cursor_x, cursor_y = cursor_pos.x(), cursor_pos.y()
+        
+        # Initialize coordinated lock state if not exists
+        if not hasattr(self, '_coordinated_locked'):
+            self._coordinated_locked = False
+        
+        # Check if widgets should be locked based on cursor proximity
+        # Only check if widgets are visible and have been positioned
+        if self.scroll_widget.isVisible() and self.menu_widget.isVisible():
+            # Get current positions of both widgets
+            scroll_center = self.scroll_widget.rect().center()
+            scroll_global_center = self.scroll_widget.mapToGlobal(scroll_center)
+            menu_center = self.menu_widget.rect().center()
+            menu_global_center = self.menu_widget.mapToGlobal(menu_center)
+            
+            # Calculate distances to cursor
+            scroll_distance = math.sqrt((cursor_x - scroll_global_center.x()) ** 2 + (cursor_y - scroll_global_center.y()) ** 2)
+            menu_distance = math.sqrt((cursor_x - menu_global_center.x()) ** 2 + (cursor_y - menu_global_center.y()) ** 2)
+            
+            # Use lock thresholds similar to individual widgets
+            lock_threshold = 120
+            unlock_threshold = 180
+            
+            # Check if either widget is close enough to lock both
+            should_lock = (scroll_distance < lock_threshold or menu_distance < lock_threshold)
+            should_unlock = (scroll_distance > unlock_threshold and menu_distance > unlock_threshold)
+            
+            # Update lock state
+            if not self._coordinated_locked and should_lock:
+                self._coordinated_locked = True
+                # Update widget visual states to show they're locked
+                self.scroll_widget.is_locked = True
+                self.menu_widget.is_locked = True
+                self.scroll_widget.update()
+                self.menu_widget.update()
+                return  # Don't move when locking
+            elif self._coordinated_locked and should_unlock:
+                self._coordinated_locked = False
+                # Update widget visual states
+                self.scroll_widget.is_locked = False
+                self.menu_widget.is_locked = False
+                self.scroll_widget.update()
+                self.menu_widget.update()
+                # Continue to update positions after unlocking
+            elif self._coordinated_locked:
+                return  # Stay locked in place
+        
+        # Calculate initial side-by-side positioning
+        widget_distance = 80  # Distance from cursor to each widget
+        
+        # Initial positions - place menu widget below cursor for accessibility
+        scroll_widget_x = int(cursor_x + widget_distance - self.scroll_widget.width() // 2)
+        scroll_widget_y = int(cursor_y - self.scroll_widget.height() // 2)
+        
+        # Place menu widget below cursor for easy access (hamburger appears beneath cursor)
+        menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+        menu_widget_y = int(cursor_y + 20)  # 20 pixels below cursor
+        
+        # Check for off-screen positioning and implement intelligent positioning
+        scroll_pos = QPoint(scroll_widget_x, scroll_widget_y)
+        menu_pos = QPoint(menu_widget_x, menu_widget_y)
+        
+        scroll_size = QSize(self.scroll_widget.width(), self.scroll_widget.height())
+        menu_size = QSize(self.menu_widget.width(), self.menu_widget.height())
+        
+        # Detect off-screen positioning
+        scroll_off_screen = self.scroll_widget._detect_off_screen_position(scroll_pos, scroll_size)
+        menu_off_screen = self.menu_widget._detect_off_screen_position(menu_pos, menu_size)
+        
+        # Check specifically for horizontal off-screen issues
+        scroll_horizontal_issue = scroll_off_screen['off_screen'] and (scroll_off_screen['off_left'] or scroll_off_screen['off_right'])
+        menu_horizontal_issue = menu_off_screen['off_screen'] and (menu_off_screen['off_left'] or menu_off_screen['off_right'])
+        
+        # Implement intelligent positioning preferences
+        if scroll_horizontal_issue and menu_horizontal_issue:
+            # Both widgets would go off-screen horizontally - use full stacking mode
+            stack_distance = 25  # Distance from cursor to widgets
+            
+            # Get screen geometry to check available space
+            screen_geometry = self.scroll_widget._get_screen_geometry()
+            if screen_geometry:
+                # Calculate available space above and below cursor
+                space_above = cursor_y - screen_geometry.top()
+                space_below = screen_geometry.bottom() - cursor_y
+                # Calculate total space needed for stacked widgets
+                total_stack_height = (self.scroll_widget.height() + self.menu_widget.height() + 
+                                    stack_distance * 2)  # stack_distance on each side of cursor
+                
+                # Determine stacking arrangement based on available space
+                if space_above >= total_stack_height // 2 and space_below >= total_stack_height // 2:
+                    # Enough space on both sides - use preferred arrangement (scroll on top)
+                    scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
+                    scroll_widget_y = int(cursor_y - stack_distance - self.scroll_widget.height())
+                    
+                    menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+                    menu_widget_y = int(cursor_y + stack_distance)
+                    
+                elif space_below > space_above:
+                    # More space below - stack both widgets below cursor (scroll still on top)
+                    scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
+                    scroll_widget_y = int(cursor_y + stack_distance)
+                    
+                    menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+                    menu_widget_y = int(cursor_y + stack_distance + self.scroll_widget.height() + 5)
+                    
+                else:
+                    # More space above - stack both widgets above cursor (scroll still on top)                    menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+                    menu_widget_y = int(cursor_y - stack_distance - self.menu_widget.height())
+                    
+                    scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
+                    scroll_widget_y = int(cursor_y - stack_distance - self.menu_widget.height() - 
+                                        self.scroll_widget.height() - 5)
+            else:
+                # Fallback to default positioning if screen geometry unavailable
+                scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)
+                scroll_widget_y = int(cursor_y - stack_distance - self.scroll_widget.height())
+                
+                menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)
+                menu_widget_y = int(cursor_y + stack_distance)
+        elif scroll_horizontal_issue or menu_horizontal_issue:
+            # Only one widget would go off-screen horizontally - selective vertical offset
+            vertical_offset = 40  # Distance to offset the problematic widget vertically
+            
+            if scroll_horizontal_issue:
+                # Scroll widget goes off-screen horizontally - bump it down while keeping menu in normal position
+                scroll_widget_x = int(cursor_x - self.scroll_widget.width() // 2)  # Center horizontally
+                scroll_widget_y = int(cursor_y + vertical_offset)  # Offset down from cursor
+                
+                # Keep menu widget in normal side position
+                menu_widget_x = int(cursor_x - widget_distance - self.menu_widget.width() // 2)
+                menu_widget_y = int(cursor_y - self.menu_widget.height() // 2)
+            else:  # menu_horizontal_issue
+                # Menu widget goes off-screen horizontally - bump it down while keeping scroll in normal position
+                menu_widget_x = int(cursor_x - self.menu_widget.width() // 2)  # Center horizontally
+                menu_widget_y = int(cursor_y + vertical_offset)  # Offset down from cursor
+                  # Keep scroll widget in normal side position
+                scroll_widget_x = int(cursor_x + widget_distance - self.scroll_widget.width() // 2)
+                scroll_widget_y = int(cursor_y - self.scroll_widget.height() // 2)
+                
+        else:
+            # No horizontal off-screen issues - use normal side-by-side positioning
+            # Keep the original calculated positions (they will be adjusted for screen bounds later)
+            pass
+        
+        # Apply final position adjustments to ensure both widgets stay on screen
+        scroll_pos = QPoint(scroll_widget_x, scroll_widget_y)
+        menu_pos = QPoint(menu_widget_x, menu_widget_y)
+        
+        # For selective vertical offset cases, only adjust the widget that's NOT vertically offset
+        if (scroll_horizontal_issue and not menu_horizontal_issue) or (menu_horizontal_issue and not scroll_horizontal_issue):
+            # One widget was selectively offset - only adjust positions minimally to stay in bounds
+            if scroll_horizontal_issue and not menu_horizontal_issue:
+                # Scroll was offset vertically, only adjust menu horizontally if needed
+                menu_pos = self.menu_widget._adjust_position_for_screen_bounds(menu_pos, menu_size)
+                # For scroll widget, just ensure it stays within vertical bounds
+                screen_geometry = self.scroll_widget._get_screen_geometry()
+                if screen_geometry:
+                    if scroll_pos.y() < screen_geometry.top():
+                        scroll_pos.setY(screen_geometry.top())
+                    elif scroll_pos.y() + scroll_size.height() > screen_geometry.bottom():
+                        scroll_pos.setY(screen_geometry.bottom() - scroll_size.height())
+            else:
+                # Menu was offset vertically, only adjust scroll horizontally if needed  
+                scroll_pos = self.scroll_widget._adjust_position_for_screen_bounds(scroll_pos, scroll_size)
+                # For menu widget, just ensure it stays within vertical bounds
+                screen_geometry = self.menu_widget._get_screen_geometry()
+                if screen_geometry:
+                    if menu_pos.y() < screen_geometry.top():
+                        menu_pos.setY(screen_geometry.top())
+                    elif menu_pos.y() + menu_size.height() > screen_geometry.bottom():
+                        menu_pos.setY(screen_geometry.bottom() - menu_size.height())
+        else:
+            # Normal adjustment for both widgets (full stacking mode or normal side-by-side)
+            scroll_pos = self.scroll_widget._adjust_position_for_screen_bounds(scroll_pos, scroll_size)
+            menu_pos = self.menu_widget._adjust_position_for_screen_bounds(menu_pos, menu_size)
+        
+        scroll_widget_x, scroll_widget_y = scroll_pos.x(), scroll_pos.y()
+        menu_widget_x, menu_widget_y = menu_pos.x(), menu_pos.y()
+          # Update scroll widget position with coordinated mode
+        self.scroll_widget.update_position(cursor_pos, coordinated_mode=True)
+        self.scroll_widget.move(scroll_widget_x, scroll_widget_y)
+        
+        # Ensure scroll widget appears on top when stacking - but avoid focus stealing on macOS
+        if sys.platform != "darwin":
+            self.scroll_widget.raise_()
+        
+        # Update menu widget with coordinated position
+        self.menu_widget.update_position(cursor_pos, coordinated_mode=True)
+        self.menu_widget.set_coordinated_position((menu_widget_x, menu_widget_y))
+
+    def update_movement_detection(self, cursor_pos):
+        """Update movement detection and control widget visibility."""
+        # Update movement detector and get current movement state
+        movement_state = self.cursor_movement_detector.update_position(cursor_pos)
+        
+        # Check if cursor is near any widget (override hiding if close to widgets)
+        cursor_near_widget = self._is_cursor_near_widgets(cursor_pos)
+        
+        # Handle widget visibility based on movement state and proximity
+        should_hide = self.cursor_movement_detector.should_hide_widgets(movement_state) and not cursor_near_widget
+        should_show = self.cursor_movement_detector.should_show_widgets(movement_state) or cursor_near_widget
+        
+        # Only hide/show if active
+        if self.is_active:
+            if should_hide and not self.widgets_hidden_for_movement:
+                # Hide both widgets when movement detected and not near widgets
+                self._hide_widgets_for_movement()
+            elif should_show and self.widgets_hidden_for_movement:
+                # Show both widgets when dwelling detected or near widgets
+                self._show_widgets_for_movement()
+
+    def _hide_widgets_for_movement(self):
+        """Hide widgets when cursor movement is detected."""
+        if not self.widgets_hidden_for_movement:
+            self.widgets_hidden_for_movement = True
+            
+            # Completely hide widgets when moving for cleaner experience
+            if self.scroll_widget.isVisible():
+                self.scroll_widget.hide()
+            if self.menu_widget.isVisible():
+                self.menu_widget.hide()
+                
+            # Reset any active hover states
+            self.scroll_hover = None
+            self.scroll_dwell_start_time = None
+            self.scroll_dwell_triggered = False
+            self.menu_hover = None
+            self.menu_dwell_start_time = None
+            self.menu_dwell_triggered = False
+            
+            # Stop any active scrolling
+            if self.scroll_widget.is_scrolling:
+                self.scroll_widget.stop_scrolling()
+                
+            # Clear hover states in widgets
+            if hasattr(self.scroll_widget, '_set_hover'):
+                self.scroll_widget._set_hover(None)
+            if hasattr(self.menu_widget, '_set_hover'):
+                self.menu_widget._set_hover(None)
+            if hasattr(self.menu_widget, '_set_expanded'):
+                self.menu_widget._set_expanded(False)
+    
+    def _show_widgets_for_movement(self):
+        """Show widgets when cursor dwelling is detected."""
+        if self.widgets_hidden_for_movement:
+            self.widgets_hidden_for_movement = False
+              # Show widgets and restore their normal state
+            scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+            menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
+            
+            if scroll_enabled and self.is_active:
+                self.scroll_widget.show()
+                self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
+                # Only raise on non-macOS platforms to prevent focus stealing
+                if sys.platform != "darwin":
+                    self.scroll_widget.raise_()
+                
+            if menu_enabled and self.is_active:
+                self.menu_widget.show()
+                self.menu_widget.setWindowOpacity(self.menu_widget.base_opacity)
+                # Only raise on non-macOS platforms to prevent focus stealing
+                if sys.platform != "darwin":
+                    self.menu_widget.raise_()
+
+    def _refresh_button_hover_states(self):
+        """Force a refresh of button hover states by simulating mouse movement."""
+        try:
+            from PyQt6.QtCore import QCoreApplication
+            from PyQt6.QtGui import QCursor
+            
+            # Get current cursor position
+            cursor_pos = QCursor.pos()
+            
+            # Clear all button hover states first
+            self.button_manager.clear_hover()
+            
+            # Check which button (if any) should be hovered based on current cursor position
+            for button_id, button in self.buttons.items():
+                if button.isVisible():
+                    # Convert global cursor position to button coordinates
+                    button_pos = button.mapFromGlobal(cursor_pos)
+                    
+                    # Check if cursor is within button bounds
+                    if button.rect().contains(button_pos):
+                        # Manually trigger the hover state
+                        self.button_manager.set_hover(button_id)
+                        break
+              # Process any pending Qt events to ensure proper state updates
+            QCoreApplication.processEvents()
+            
+        except Exception as e:
+            # If there's any error, just clear the hover state
+            self.button_manager.clear_hover()
+
+    def handle_menu_item_selection(self, item_id):
+        """Handle selection of a menu item."""
+        if item_id == 'LEFT':
+            self.set_mode('LEFT')
+        elif item_id == 'DOUBLE':
+            self.set_mode('DOUBLE')
+        elif item_id == 'RIGHT':
+            self.set_mode('RIGHT')
+        elif item_id == 'DRAG':
+            self.set_mode('DRAG')
+        elif item_id == 'OFF':
+            # Turn off the application with special handling for menu widget interaction
+            if self.is_active:
+                # First hide the menu widget to prevent event conflicts
+                self.menu_widget.set_active(False)
+                # Clear any menu widget hover states
+                self.menu_hover = None
+                self.menu_dwell_start_time = None
+                self.menu_dwell_triggered = False
+                # Now toggle the application off
+                self.toggle_active()
+                # Force a refresh of mouse hover state for main UI
+                self._refresh_button_hover_states()
+        elif item_id == 'SETUP':
+            # Execute the setup command if available
+            if self.settings_manager:
+                self.button_manager.execute_command('SETUP')
+        
+        # Force menu widget to repaint to show updated blue/red states
+        if item_id in ['LEFT', 'DOUBLE', 'RIGHT', 'DRAG']:
+            self.menu_widget.update()
+
+    def toggle_menu_widget(self):
+        """Toggle the menu widget on/off."""
+        if not self.settings_manager:
+            return
+            
+        # Get current menu enabled state and toggle it
+        current_menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
+        new_menu_enabled = not current_menu_enabled
+        
+        # Update setting
+        self.settings_manager.set_setting('menu_enabled', new_menu_enabled)
+        
+        # Apply the new menu settings (this handles show/hide)
+        self.apply_menu_settings()
+        
+        # Update button states to reflect new state
+        self.update_button_states()
 
     def toggle_scroll_widget(self):
         """Toggle the scroll widget on/off."""
@@ -1396,6 +1992,18 @@ class DwellClickerUI:
         # Expand UI if contracted
         if hasattr(self, 'is_contracted') and self.is_contracted:
             self.expand_ui()
+
+    def cleanup_menu_widget(self):
+        """Clean up the menu widget before application exit."""
+        if hasattr(self, 'menu_widget') and self.menu_widget:
+            # Deactivate the widget (this will hide it)
+            self.menu_widget.set_active(False)
+            # Close the widget completely
+            self.menu_widget.close()
+            # Clear hover state
+            self.menu_hover = None
+            self.menu_dwell_start_time = None
+            self.menu_dwell_triggered = False
 
     def determine_expansion_direction(self):
         """Determine the best expansion direction based on window position and user preference."""
@@ -1454,3 +2062,128 @@ class DwellClickerUI:
         except Exception:
             # Fallback to horizontal if there's any error
             return 'horizontal'
+
+    def apply_menu_settings(self):
+        """Apply menu widget settings from the settings manager."""
+        if not self.settings_manager:
+            return
+        
+        # Get menu settings
+        menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
+        menu_offset = self.settings_manager.get_setting('menu_offset', 100)
+        menu_angle = self.settings_manager.get_setting('menu_angle', -45)
+        menu_opacity_base = self.settings_manager.get_setting('menu_opacity_base', 80)
+        menu_opacity_hover = self.settings_manager.get_setting('menu_opacity_hover', 95)
+        
+        # Apply settings to menu widget
+        self.menu_widget.set_offset(distance=menu_offset, angle=menu_angle)
+        self.menu_widget.set_opacity(
+            base=menu_opacity_base,
+            hover=menu_opacity_hover
+        )
+        
+        # Enable/disable menu widget based on setting and active state
+        should_be_active = self.is_active and menu_enabled
+        self.menu_widget.set_active(should_be_active)
+        
+        # Update button states to reflect menu setting changes
+        self.update_button_states()
+
+    def apply_widget_appearance_settings(self):
+        """Apply widget appearance settings from the settings manager."""
+        if not self.settings_manager:
+            return
+        
+        # Get widget appearance delay setting
+        appearance_delay = self.settings_manager.get_setting('widget_appearance_delay', 0.2)
+        
+        # Update the movement detector with the new delay
+        self.cursor_movement_detector.set_dwell_delay(appearance_delay)
+        
+        # Sync movement threshold with dwell detection move_limit
+        if hasattr(self, 'dwell_detector') and self.dwell_detector:
+            self.cursor_movement_detector.set_movement_threshold(self.dwell_detector.move_limit)
+
+    def _is_cursor_near_widgets(self, cursor_pos):
+        """Check if cursor is close enough to any widget to keep them visible."""
+        if not self.is_active:
+            return False
+            
+        # Convert cursor position
+        if hasattr(cursor_pos, '__iter__'):
+            cursor_x, cursor_y = cursor_pos
+        else:
+            cursor_x, cursor_y = cursor_pos.x(), cursor_pos.y()
+        
+        # Only check proximity to widgets that are currently visible
+        # Don't use predicted positions - that creates the always-near problem
+        
+        # Check scroll widget if enabled and currently visible
+        scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+        if scroll_enabled and self.scroll_widget.isVisible() and not self.widgets_hidden_for_movement:
+            # First check if cursor is actually hovering over the scroll widget UI
+            scroll_hover = self.scroll_widget.check_hover(cursor_pos)
+            if scroll_hover is not None:
+                return True  # Definitely keep visible if hovering over UI
+            
+            # Otherwise check proximity and movement direction
+            scroll_rect = self.scroll_widget.geometry()
+            scroll_center_x = scroll_rect.x() + scroll_rect.width() // 2
+            scroll_center_y = scroll_rect.y() + scroll_rect.height() // 2
+            
+            # Use a larger proximity threshold for staying visible (more forgiving)
+            stay_visible_threshold = 140  # pixels - increased for easier interaction
+            scroll_distance = ((cursor_x - scroll_center_x) ** 2 + 
+                             (cursor_y - scroll_center_y) ** 2) ** 0.5
+            
+            # Be more forgiving with movement detection - only hide if clearly moving away
+            if scroll_distance <= stay_visible_threshold:
+                if not self._is_cursor_clearly_moving_away_from_point(cursor_pos, (scroll_center_x, scroll_center_y)):
+                    return True
+        
+        # Check menu widget if enabled and currently visible
+        menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
+        if menu_enabled and self.menu_widget.isVisible() and not self.widgets_hidden_for_movement:
+            # First check if cursor is actually hovering over the menu widget UI
+            menu_hover = self.menu_widget.check_hover(cursor_pos)
+            if menu_hover is not None:
+                return True  # Definitely keep visible if hovering over UI
+            
+            # Otherwise check proximity and movement direction
+            menu_rect = self.menu_widget.geometry()
+            menu_center_x = menu_rect.x() + menu_rect.width() // 2
+            menu_center_y = menu_rect.y() + menu_rect.height() // 2
+            
+            stay_visible_threshold = 140  # pixels - increased for easier interaction
+            menu_distance = ((cursor_x - menu_center_x) ** 2 + 
+                           (cursor_y - menu_center_y) ** 2) ** 0.5
+            
+            # Be more forgiving with movement detection - only hide if clearly moving away
+            if menu_distance <= stay_visible_threshold:
+                if not self._is_cursor_clearly_moving_away_from_point(cursor_pos, (menu_center_x, menu_center_y)):
+                    return True
+        
+        return False
+    
+    def _is_cursor_clearly_moving_away_from_point(self, current_pos, target_point):
+        """Check if cursor is clearly moving away from a specific point (more forgiving than before)."""
+        if not hasattr(self.cursor_movement_detector, 'last_position') or self.cursor_movement_detector.last_position is None:
+            return False
+            
+        # Convert positions
+        if hasattr(current_pos, '__iter__'):
+            curr_x, curr_y = current_pos
+        else:
+            curr_x, curr_y = current_pos.x(), current_pos.y()
+            
+        last_x, last_y = self.cursor_movement_detector.last_position
+        target_x, target_y = target_point
+        
+        # Calculate distances
+        last_distance = ((last_x - target_x) ** 2 + (last_y - target_y) ** 2) ** 0.5
+        current_distance = ((curr_x - target_x) ** 2 + (curr_y - target_y) ** 2) ** 0.5
+        
+        # Only consider it "clearly moving away" if distance increased significantly
+        # This is more forgiving for small movements during interaction
+        movement_threshold = 8  # pixels - increased threshold for more forgiveness
+        return current_distance > last_distance + movement_threshold
