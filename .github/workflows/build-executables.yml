@@ -67,6 +67,15 @@ jobs:
       - name: Checkout repository
         if: steps.should-run.outputs.should_run == 'true'
         uses: actions/checkout@v4
+      
+      - name: Set up virtual display (Linux only)
+        if: steps.should-run.outputs.should_run == 'true' && startsWith(matrix.target, 'linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
 
       - name: Set up Python
         if: steps.should-run.outputs.should_run == 'true'
@@ -80,15 +89,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r dwellpy/requirements.txt
           pip install pyinstaller
-
-      - name: Set up virtual display (Linux only)
-        if: steps.should-run.outputs.should_run == 'true' && startsWith(matrix.target, 'linux')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-          echo "DISPLAY=:99" >> $GITHUB_ENV
 
       - name: Build executable
         if: steps.should-run.outputs.should_run == 'true'
