@@ -12,6 +12,26 @@ on:
       target:
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for testing'
+        required: true
+        type: string
+        default: 'v0.8.0'
+      upload_url:
+        description: 'Upload URL (leave empty for testing)'
+        required: false
+        type: string
+        default: ''
+      target:
+        description: 'Target platform'
+        required: true
+        type: choice
+        options:
+          - windows-x64
+          - linux-x64
+          - macos-x64
 
 jobs:
   build:
@@ -34,23 +54,46 @@ jobs:
     runs-on: ${{ matrix.runner }}
     
     steps:
+      - name: Check if target should run
+        id: should-run
+        shell: bash
+        run: |
+          if [[ "${{ inputs.target }}" == "" || "${{ inputs.target }}" == "${{ matrix.target }}" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Checkout repository
+        if: steps.should-run.outputs.should_run == 'true'
         uses: actions/checkout@v4
+      
+      - name: Set up virtual display (Linux only)
+        if: steps.should-run.outputs.should_run == 'true' && startsWith(matrix.target, 'linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
 
       - name: Set up Python
+        if: steps.should-run.outputs.should_run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 
       - name: Install dependencies
+        if: steps.should-run.outputs.should_run == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r dwellpy/requirements.txt
           pip install pyinstaller
 
       - name: Build executable
+        if: steps.should-run.outputs.should_run == 'true'
         run: |
-          python build_executable.py
+          python utils/build_executable.py
 
       - name: Get version from tag
         id: get-version
@@ -63,6 +106,7 @@ jobs:
           echo "Version: $version"
 
       - name: Rename executable with version and target
+        if: steps.should-run.outputs.should_run == 'true'
         shell: bash
         run: |
           if compgen -G "dist/Dwellpy*" > /dev/null; then
@@ -85,6 +129,7 @@ jobs:
           fi
 
       - name: Upload executable to release
+        if: ${{ inputs.upload_url != '' }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,6 +140,7 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Upload build info
+        if: ${{ inputs.upload_url != '' }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -103,3 +149,9 @@ jobs:
           asset_path: ./BUILD_INFO.md
           asset_name: BUILD_INFO.md
           asset_content_type: text/markdown
+
+      - name: List built files (testing)
+        if: steps.should-run.outputs.should_run == 'true'
+        run: |
+          echo "Built files:"
+          ls dist/

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.0](https://github.com/code0nwheels/Dwellpy/compare/v0.7.1...v0.8.0) (2025-06-02)
+
+
+### Features
+
+* add taskbar icon support for all PyQt6 windows across all OS ([28193e5](https://github.com/code0nwheels/Dwellpy/commit/28193e51be98e8b5ffcea4d2399d26e41a9f082a))
+* release improvements ([#31](https://github.com/code0nwheels/Dwellpy/issues/31)) ([515cea1](https://github.com/code0nwheels/Dwellpy/commit/515cea13d07292171c629de9f5047f244779ab85))
+
+
+### Bug Fixes
+
+* add tag-based triggering and test mode to PyPI workflow ([ffd30a5](https://github.com/code0nwheels/Dwellpy/commit/ffd30a576094787d303c56cfaff16f2ae06e5ff9))
+* remove secrets from release-please ([#32](https://github.com/code0nwheels/Dwellpy/issues/32)) ([dd643a9](https://github.com/code0nwheels/Dwellpy/commit/dd643a98b0281fe1f45d1207f53eeb44d5f2b0ab))
+
 ## [0.7.1](https://github.com/code0nwheels/Dwellpy/compare/v0.7.0...v0.7.1) (2025-05-30)
 
 
