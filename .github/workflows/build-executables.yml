@@ -40,17 +40,17 @@ jobs:
       matrix:
         include:
           - target: windows-x64
-            runner: windows-latest
+            runner: windows-2025
           - target: windows-arm64
-            runner: windows-latest
+            runner: windows-11-arm
           - target: linux-x64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
           - target: linux-arm64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04-arm
           - target: macos-x64
             runner: macos-13
           - target: macos-arm64
-            runner: macos-latest
+            runner: macos-15
     runs-on: ${{ matrix.runner }}
     
     steps:
@@ -78,7 +78,17 @@ jobs:
         if: steps.should-run.outputs.should_run == 'true'
         run: |
           python -m pip install --upgrade pip
-          python -m pip install PyQt6 pynput pyinstaller
+          pip install -r dwellpy/requirements.txt
+          pip install pyinstaller
+
+      - name: Set up virtual display (Linux only)
+        if: steps.should-run.outputs.should_run == 'true' && startsWith(matrix.target, 'linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
 
       - name: Build executable
         if: steps.should-run.outputs.should_run == 'true'
