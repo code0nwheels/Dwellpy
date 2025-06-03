@@ -105,8 +105,7 @@ class ScrollWidget(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
     def _setup_ui(self):
-        """Setup the widget UI."""
-        # Platform-specific window flags for better macOS compatibility
+        """Setup the widget UI."""        # Platform-specific window flags for better macOS compatibility
         if sys.platform == "darwin":  # macOS
             # macOS: Use minimal flags that actually work (based on testing)
             # The blue widget test showed only these flags work reliably
@@ -125,6 +124,9 @@ class ScrollWidget(QWidget):
         
         # Make widget transparent
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # Prevent focus stealing on all platforms - this is crucial for macOS
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         
         # Set to not accept focus
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -551,7 +553,6 @@ class ScrollWidget(QWidget):
                 
                 # Get the window handle at the cursor position
                 hwnd = user32.WindowFromPoint(wintypes.POINT(int(cursor_pos[0]), int(cursor_pos[1])))
-                
                 if hwnd:
                     # Send mouse wheel message to the window
                     wparam = (wheel_delta << 16)
@@ -576,8 +577,9 @@ class ScrollWidget(QWidget):
         if active:
             # Show the widget when activated
             self.show()
-            # Force widget to show on top
-            self.raise_()
+            # Force widget to show on top - but avoid focus stealing on macOS
+            if sys.platform != "darwin":
+                self.raise_()
             # Set initial position if we can get mouse position
             try:
                 pos = self.mouse.position
@@ -585,8 +587,7 @@ class ScrollWidget(QWidget):
             except:
                 pass
         else:
-            # Stop any active scrolling when deactivated
-            self.stop_scrolling()
+            # Stop any active scrolling when deactivated            self.stop_scrolling()
             self._set_hover(None)
             # Hide the widget when deactivated
             self.hide()
@@ -595,7 +596,9 @@ class ScrollWidget(QWidget):
     def showEvent(self, event):
         """Override show event to ensure widget appears on top."""
         super().showEvent(event)
-        self.raise_()
+        # Only raise on non-macOS platforms to prevent focus stealing
+        if sys.platform != "darwin":
+            self.raise_()
     
     def changeEvent(self, event):
         """Handle window state changes."""

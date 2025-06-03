@@ -131,8 +131,7 @@ class MenuWidget(QWidget):
         self.target_expanded = False
         
     def _setup_ui(self):
-        """Setup the widget UI."""
-        # Platform-specific window flags for better macOS compatibility
+        """Setup the widget UI."""        # Platform-specific window flags for better macOS compatibility
         if sys.platform == "darwin":  # macOS
             self.setWindowFlags(
                 Qt.WindowType.FramelessWindowHint |
@@ -149,6 +148,9 @@ class MenuWidget(QWidget):
         
         # Make widget transparent
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # Prevent focus stealing on all platforms - this is crucial for macOS
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         
         # Set to not accept focus
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -647,8 +649,7 @@ class MenuWidget(QWidget):
     def trigger_menu_item(self, item_id):
         """Trigger a menu item action."""
         if item_id and item_id != 'hamburger' and item_id != 'expanded':
-            self.menu_item_triggered.emit(item_id)
-            # Don't contract menu after selection - keep it expanded
+            self.menu_item_triggered.emit(item_id)            # Don't contract menu after selection - keep it expanded
             # self._set_expanded(False)
             # self._set_hover(None)
     
@@ -657,7 +658,9 @@ class MenuWidget(QWidget):
         self.is_active = active
         if active:
             self.show()
-            self.raise_()
+            # Only raise on non-macOS platforms to prevent focus stealing
+            if sys.platform != "darwin":
+                self.raise_()
             try:
                 pos = self.mouse.position
                 self.update_position(pos)
@@ -672,7 +675,9 @@ class MenuWidget(QWidget):
     def showEvent(self, event):
         """Override show event to ensure widget appears on top."""
         super().showEvent(event)
-        self.raise_()
+        # Only raise on non-macOS platforms to prevent focus stealing
+        if sys.platform != "darwin":
+            self.raise_()
     
     def set_offset(self, distance=None, angle=None):
         """Set the offset distance and angle for positioning relative to cursor."""

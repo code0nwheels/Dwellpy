@@ -61,8 +61,9 @@ class ClickFeedbackWidget(QWidget):
                 Qt.WindowType.FramelessWindowHint |
                 Qt.WindowType.WindowStaysOnTopHint
             )
-            # macOS: Don't use WA_ShowWithoutActivating as it might cause issues
+            # Prevent focus stealing - this is crucial for macOS
             self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+            self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         else:
             # Windows/Linux flags (original behavior)
             self.setWindowFlags(
@@ -245,7 +246,10 @@ class ClickFeedbackWidget(QWidget):
         
         # Show the widget
         self.show()
-        self.raise_()
+        
+        # Only raise on non-macOS platforms to prevent focus stealing
+        if sys.platform != "darwin":
+            self.raise_()
         
         # Start animations
         self.radius_animation.stop()

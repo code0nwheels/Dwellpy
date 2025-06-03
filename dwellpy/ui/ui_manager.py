@@ -8,6 +8,7 @@ from .scroll_widget import ScrollWidget
 from .menu_widget import MenuWidget
 import time
 import os
+import sys
 
 # Updated imports for new structure
 try:
@@ -1782,13 +1783,13 @@ class DwellClickerUI:
         
         scroll_widget_x, scroll_widget_y = scroll_pos.x(), scroll_pos.y()
         menu_widget_x, menu_widget_y = menu_pos.x(), menu_pos.y()
-        
-        # Update scroll widget position with coordinated mode
+          # Update scroll widget position with coordinated mode
         self.scroll_widget.update_position(cursor_pos, coordinated_mode=True)
         self.scroll_widget.move(scroll_widget_x, scroll_widget_y)
         
-        # Ensure scroll widget appears on top when stacking
-        self.scroll_widget.raise_()
+        # Ensure scroll widget appears on top when stacking - but avoid focus stealing on macOS
+        if sys.platform != "darwin":
+            self.scroll_widget.raise_()
         
         # Update menu widget with coordinated position
         self.menu_widget.update_position(cursor_pos, coordinated_mode=True)
@@ -1850,20 +1851,23 @@ class DwellClickerUI:
         """Show widgets when cursor dwelling is detected."""
         if self.widgets_hidden_for_movement:
             self.widgets_hidden_for_movement = False
-            
-            # Show widgets and restore their normal state
+              # Show widgets and restore their normal state
             scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
             menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
             
             if scroll_enabled and self.is_active:
                 self.scroll_widget.show()
                 self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
-                self.scroll_widget.raise_()
+                # Only raise on non-macOS platforms to prevent focus stealing
+                if sys.platform != "darwin":
+                    self.scroll_widget.raise_()
                 
             if menu_enabled and self.is_active:
                 self.menu_widget.show()
                 self.menu_widget.setWindowOpacity(self.menu_widget.base_opacity)
-                self.menu_widget.raise_()
+                # Only raise on non-macOS platforms to prevent focus stealing
+                if sys.platform != "darwin":
+                    self.menu_widget.raise_()
 
     def _refresh_button_hover_states(self):
         """Force a refresh of button hover states by simulating mouse movement."""
