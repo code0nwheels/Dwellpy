@@ -6,12 +6,10 @@ on:
       tag_name:
         required: true
         type: string
-      upload_url:
-        required: true
-        type: string
       target:
-        required: true
+        required: false
         type: string
+        default: "all"
   workflow_dispatch:
     inputs:
       tag_name:
@@ -19,40 +17,34 @@ on:
         required: true
         type: string
         default: 'v0.8.0'
-      upload_url:
-        description: 'Upload URL (leave empty for testing)'
-        required: false
-        type: string
-        default: ''
       target:
         description: 'Target platform'
-        required: true
+        required: false
         type: choice
+        default: "all"
         options:
+          - all
           - windows-x64
           - linux-x64
           - macos-x64
 
 jobs:
   build:
-    name: Build Executable
-    permissions:
-      contents: write
+    name: Build ${{ matrix.target }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: windows-x64
-            runner: windows-2025
-          - target: windows-arm64
-            runner: windows-11-arm
+            runner: windows-latest
+            python-version: '3.11'
           - target: linux-x64
-            runner: ubuntu-24.04
-          - target: linux-arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-22.04
+            python-version: '3.11'
           - target: macos-x64
             runner: macos-13
-          - target: macos-arm64
-            runner: macos-15
+            python-version: '3.11'
+    
     runs-on: ${{ matrix.runner }}
     
     steps:
@@ -60,42 +52,80 @@ jobs:
         id: should-run
         shell: bash
         run: |
-          if [[ "${{ inputs.target }}" == "" || "${{ inputs.target }}" == "${{ matrix.target }}" ]]; then
+          if [[ "${{ inputs.target }}" == "all" || "${{ inputs.target }}" == "${{ matrix.target }}" ]]; then
             echo "should_run=true" >> $GITHUB_OUTPUT
+            echo "Building for ${{ matrix.target }}"
           else
             echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "Skipping ${{ matrix.target }}"
           fi
-      
+
       - name: Checkout repository
         if: steps.should-run.outputs.should_run == 'true'
         uses: actions/checkout@v4
-      
+
       - name: Set up virtual display (Linux only)
-        if: steps.should-run.outputs.should_run == 'true' && startsWith(matrix.target, 'linux')
+        if: steps.should-run.outputs.should_run == 'true' && matrix.target == 'linux-x64'
         run: |
-          sudo apt-get update
+          sudo apt-get update -qq
           sudo apt-get install -y xvfb
-          export DISPLAY=:99
-          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
           echo "DISPLAY=:99" >> $GITHUB_ENV
+          Xvfb :99 -screen 0 1024x768x24 &
+          sleep 3
 
       - name: Set up Python
         if: steps.should-run.outputs.should_run == 'true'
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
+      - name: Create build environment
         if: steps.should-run.outputs.should_run == 'true'
         run: |
-          python -m pip install --upgrade pip
-          pip install -r dwellpy/requirements.txt
-          pip install pyinstaller
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install pyinstaller
 
-      - name: Build executable
+      - name: Install project dependencies
+        if: steps.should-run.outputs.should_run == 'true'
+        working-directory: dwellpy
+        run: |
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          else
+            echo "Warning: requirements.txt not found in dwellpy/"
+            python -m pip install PyQt6 pynput
+          fi
+
+      - name: Verify installation
         if: steps.should-run.outputs.should_run == 'true'
         run: |
-          python utils/build_executable.py
+          python -c "import PyQt6; print('PyQt6 version:', PyQt6.QtCore.PYQT_VERSION_STR)"
+          python -c "import pynput; print('pynput imported successfully')"
+
+      - name: Build executable with PyInstaller
+        if: steps.should-run.outputs.should_run == 'true'
+        run: |
+          # Create simple PyInstaller spec if build script doesn't exist
+          if [ ! -f "utils/build_executable.py" ]; then
+            echo "Creating PyInstaller command..."
+            pyinstaller --onefile \
+              --windowed \
+              --name "Dwellpy" \
+              --add-data "dwellpy:dwellpy" \
+              dwellpy/__main__.py
+          else
+            echo "Using existing build script..."
+            python utils/build_executable.py
+          fi
+
+      - name: Verify build output
+        if: steps.should-run.outputs.should_run == 'true'
+        run: |
+          echo "Contents of dist directory:"
+          ls -la dist/ || echo "dist/ directory not found"
+          
+          echo "Looking for executables..."
+          find . -name "*wellpy*" -type f 2>/dev/null || echo "No Dwellpy files found"
 
       - name: Get version from tag
         if: steps.should-run.outputs.should_run == 'true'
@@ -103,71 +133,63 @@ jobs:
         shell: bash
         run: |
           version="${{ inputs.tag_name }}"
-          # Remove 'v' prefix if present
           version=${version#v}
           echo "version=$version" >> $GITHUB_OUTPUT
-          echo "Version: $version"
+          echo "Extracted version: $version"
 
-      - name: Rename executable with version and target
+      - name: Prepare release artifact
         if: steps.should-run.outputs.should_run == 'true'
         shell: bash
         run: |
-          if compgen -G "dist/Dwellpy*" > /dev/null; then
-            for f in dist/Dwellpy*; do
-              ext="${f##*.}"
-              base="dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}"
-              if [[ "$f" == *.exe ]]; then
-                mv "$f" "dist/${base}.exe"
-                echo "Renamed $f to dist/${base}.exe"
-              else
-                mv "$f" "dist/${base}"
-                echo "Renamed $f to dist/${base}"
-              fi
-            done
-            ls -la dist/
+          cd dist
+          
+          # Find the executable
+          if [ "${{ matrix.target }}" = "windows-x64" ]; then
+            exe_pattern="*.exe"
           else
-            echo "Error: No Dwellpy executable found in dist/"
-            ls -la dist/
-            exit 1
+            exe_pattern="*"
           fi
+          
+          # Rename executable
+          for file in $exe_pattern; do
+            if [ -f "$file" ] && [[ "$file" == *"wellpy"* ]]; then
+              new_name="dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}"
+              if [ "${{ matrix.target }}" = "windows-x64" ]; then
+                new_name="${new_name}.exe"
+              fi
+              
+              echo "Renaming $file to $new_name"
+              mv "$file" "$new_name"
+              
+              # Make executable on Unix systems
+              if [ "${{ matrix.target }}" != "windows-x64" ]; then
+                chmod +x "$new_name"
+              fi
+              
+              echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
+              break
+            fi
+          done
+          
+          echo "Final dist contents:"
+          ls -la
 
-      - name: Upload executable to release (Windows)
-        if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != '' && (matrix.target == 'windows-x64' || matrix.target == 'windows-arm64')
-        uses: actions/upload-release-asset@v1
+      - name: Upload to release
+        if: steps.should-run.outputs.should_run == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: dist/dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}*
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ inputs.upload_url }}
-          asset_path: ./dist/dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}.exe
-          asset_name: dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}.exe
-          asset_content_type: application/octet-stream
 
-      - name: Upload executable to release (Non-Windows)
-        if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != '' && matrix.target != 'windows-x64' && matrix.target != 'windows-arm64'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ inputs.upload_url }}
-          asset_path: ./dist/dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}
-          asset_name: dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}
-          asset_content_type: application/octet-stream
-
-      - name: Upload build info
-        if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != ''
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ inputs.upload_url }}
-          asset_path: ./BUILD_INFO.md
-          asset_name: BUILD_INFO.md
-          asset_content_type: text/markdown
-
-      - name: List built files (testing)
+      - name: Create build summary
         if: steps.should-run.outputs.should_run == 'true'
         run: |
-          echo "Built files:"
-          ls -la dist/
-          echo "Built files:"
-          ls dist/
+          echo "## Build Summary for ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target**: ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runner**: ${{ matrix.runner }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifact**: ${ARTIFACT_NAME:-'Not found'}" >> $GITHUB_STEP_SUMMARY
