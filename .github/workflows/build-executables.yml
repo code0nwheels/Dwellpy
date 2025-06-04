@@ -25,7 +25,6 @@ on:
         options:
           - all
           - windows-x64
-          - windows-arm64
           - linux-debian-x64
           - linux-debian-arm64
           - macos-x64
@@ -48,12 +47,6 @@ jobs:
             python-version: '3.11'
             shell: pwsh
             arch: x64
-            
-          - target: windows-arm64
-            runner: windows-latest
-            python-version: '3.11'
-            shell: pwsh
-            arch: arm64
             
           # Debian builds (covers Ubuntu compatibility)
           - target: linux-debian-x64
