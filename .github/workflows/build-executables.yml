@@ -124,7 +124,8 @@ jobs:
                 echo "Renamed $f to dist/${base}"
               fi
             done
-            ls -la dist/          else
+            ls -la dist/
+          else
             echo "Error: No Dwellpy executable found in dist/"
             ls -la dist/
             exit 1
