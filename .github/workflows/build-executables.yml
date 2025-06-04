@@ -26,8 +26,6 @@ on:
           - all
           - windows-x64
           - windows-arm64
-          - linux-debian-x64
-          - linux-debian-arm64
           - linux-ubuntu-x64
           - linux-ubuntu-arm64
           - linux-fedora-x64
@@ -51,52 +49,35 @@ jobs:
           # Windows builds
           - target: windows-x64
             runner: windows-latest
-            python-version: '3.13'
+            python-version: '3.11'
             shell: pwsh
             arch: x64
             
           - target: windows-arm64
             runner: windows-latest
-            python-version: '3.13'
+            python-version: '3.11'
             shell: pwsh
             arch: arm64
             
-          # Ubuntu builds
+          # Ubuntu builds (covers Debian compatibility)
           - target: linux-ubuntu-x64
             runner: ubuntu-22.04
-            python-version: '3.13'
+            python-version: '3.11'
             shell: bash
             arch: x64
             distro: ubuntu
             
           - target: linux-ubuntu-arm64
             runner: ubuntu-22.04
-            python-version: '3.13'
+            python-version: '3.11'
             shell: bash
             arch: arm64
             distro: ubuntu
             
-          # Debian builds
-          - target: linux-debian-x64
-            runner: ubuntu-22.04
-            python-version: '3.13'
-            shell: bash
-            arch: x64
-            distro: debian
-            container: debian:bookworm
-            
-          - target: linux-debian-arm64
-            runner: ubuntu-22.04
-            python-version: '3.13'
-            shell: bash
-            arch: arm64
-            distro: debian
-            container: debian:bookworm
-            
-          # Fedora builds
+          # Fedora builds (RPM-based distributions)
           - target: linux-fedora-x64
             runner: ubuntu-22.04
-            python-version: '3.13'
+            python-version: '3.11'
             shell: bash
             arch: x64
             distro: fedora
@@ -104,7 +85,7 @@ jobs:
             
           - target: linux-fedora-arm64
             runner: ubuntu-22.04
-            python-version: '3.13'
+            python-version: '3.11'
             shell: bash
             arch: arm64
             distro: fedora
@@ -113,7 +94,7 @@ jobs:
           # Arch Linux builds
           - target: linux-arch-x64
             runner: ubuntu-22.04
-            python-version: '3.13'
+            python-version: '3.11'
             shell: bash
             arch: x64
             distro: arch
@@ -121,7 +102,7 @@ jobs:
             
           - target: linux-arch-arm64
             runner: ubuntu-22.04
-            python-version: '3.13'
+            python-version: '3.11'
             shell: bash
             arch: arm64
             distro: arch
@@ -130,7 +111,7 @@ jobs:
           # macOS build
           - target: macos-x64
             runner: macos-13
-            python-version: '3.13'
+            python-version: '3.11'
             shell: bash
             arch: x64
     
@@ -192,29 +173,35 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up QEMU for ARM emulation
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.arch == 'arm64'
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.arch == 'arm64' && matrix.container != null && matrix.distro == 'ubuntu'
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: arm64
+          platforms: linux/arm64
 
-      - name: Install system dependencies (Debian/Ubuntu)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (matrix.distro == 'debian' || matrix.distro == 'ubuntu')
+      - name: Install system dependencies (Ubuntu)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.distro == 'ubuntu'
         shell: bash
         run: |
-          if [ "${{ matrix.container }}" != "" ]; then
-            apt-get update -qq
-            apt-get install -y software-properties-common wget curl git build-essential
-            add-apt-repository ppa:deadsnakes/ppa -y || true
-            apt-get update -qq
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update -qq
+          sudo apt-get install -y python3 python3-pip python3-venv python3-dev build-essential
+          
+          # Create symlink for easier usage
+          if [ ! -f /usr/bin/python ]; then
+            sudo ln -sf /usr/bin/python3 /usr/bin/python || true
           fi
-          apt-get install -y python${{ matrix.python-version }} python${{ matrix.python-version }}-pip python${{ matrix.python-version }}-venv
 
       - name: Install system dependencies (Fedora)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.distro == 'fedora'
         shell: bash
         run: |
           dnf update -y
-          dnf install -y python${{ matrix.python-version }} python${{ matrix.python-version }}-pip git which
+          dnf install -y python3 python3-pip git which gcc gcc-c++ make
+          
+          # Create symlink for easier usage
+          if [ ! -f /usr/bin/python ]; then
+            ln -sf /usr/bin/python3 /usr/bin/python || true
+          fi
 
       - name: Install system dependencies (Arch)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.distro == 'arch'
@@ -227,8 +214,8 @@ jobs:
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
         shell: bash
         run: |
-          if [ "${{ matrix.distro }}" = "debian" ] || [ "${{ matrix.distro }}" = "ubuntu" ]; then
-            apt-get install -y xvfb
+          if [ "${{ matrix.distro }}" = "ubuntu" ]; then
+            sudo apt-get install -y xvfb
           elif [ "${{ matrix.distro }}" = "fedora" ]; then
             dnf install -y xorg-x11-server-Xvfb
           elif [ "${{ matrix.distro }}" = "arch" ]; then
@@ -245,11 +232,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.arch }}
 
+      - name: Set up Python (Ubuntu native)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.distro == 'ubuntu'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Create build environment
         if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         run: |
-          python${{ startsWith(matrix.target, 'linux-') && '3' || '' }} -m pip install --upgrade pip setuptools wheel
-          python${{ startsWith(matrix.target, 'linux-') && '3' || '' }} -m pip install pyinstaller
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install pyinstaller
 
       - name: Install project dependencies (Windows)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
@@ -267,20 +260,19 @@ jobs:
         working-directory: dwellpy
         shell: bash
         run: |
-          python_cmd="python${{ startsWith(matrix.target, 'linux-') && '3' || '' }}"
           if [ -f requirements.txt ]; then
-            $python_cmd -m pip install -r requirements.txt
+            python -m pip install -r requirements.txt
           else
             echo "Warning: requirements.txt not found in dwellpy/"
-            $python_cmd -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput
+            python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput
           fi
 
       - name: Install additional Qt dependencies (Linux)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
         shell: bash
         run: |
-          if [ "${{ matrix.distro }}" = "debian" ] || [ "${{ matrix.distro }}" = "ubuntu" ]; then
-            apt-get install -y \
+          if [ "${{ matrix.distro }}" = "ubuntu" ]; then
+            sudo apt-get install -y \
               libegl1-mesa \
               libxkbcommon-x11-0 \
               libxcb-icccm4 \
@@ -289,7 +281,9 @@ jobs:
               libxcb-randr0 \
               libxcb-render-util0 \
               libxcb-xinerama0 \
-              libxcb-xfixes0
+              libxcb-xfixes0 \
+              libfontconfig1 \
+              libfreetype6
           elif [ "${{ matrix.distro }}" = "fedora" ]; then
             dnf install -y \
               mesa-libEGL \
@@ -297,7 +291,9 @@ jobs:
               xcb-util-wm \
               xcb-util-image \
               xcb-util-keysyms \
-              xcb-util-renderutil
+              xcb-util-renderutil \
+              fontconfig \
+              freetype
           elif [ "${{ matrix.distro }}" = "arch" ]; then
             pacman -S --noconfirm \
               mesa \
@@ -305,15 +301,17 @@ jobs:
               xcb-util-wm \
               xcb-util-image \
               xcb-util-keysyms \
-              xcb-util-renderutil
+              xcb-util-renderutil \
+              fontconfig \
+              freetype2
           fi
 
       - name: Verify installation
         if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         run: |
-          python${{ startsWith(matrix.target, 'linux-') && '3' || '' }} -c "import PyQt6.QtCore; print('PyQt6.QtCore version:', PyQt6.QtCore.PYQT_VERSION_STR)"
-          python${{ startsWith(matrix.target, 'linux-') && '3' || '' }} -c "import PyQt6.QtWidgets; print('PyQt6.QtWidgets imported successfully')"
-          python${{ startsWith(matrix.target, 'linux-') && '3' || '' }} -c "import pynput; print('pynput imported successfully')"
+          python -c "import PyQt6.QtCore; print('PyQt6.QtCore version:', PyQt6.QtCore.PYQT_VERSION_STR)"
+          python -c "import PyQt6.QtWidgets; print('PyQt6.QtWidgets imported successfully')"
+          python -c "import pynput; print('pynput imported successfully')"
 
       - name: Build executable with PyInstaller (Windows)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
@@ -330,13 +328,12 @@ jobs:
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-') || startsWith(matrix.target, 'macos-'))
         shell: bash
         run: |
-          python_cmd="python${{ startsWith(matrix.target, 'linux-') && '3' || '' }}"
           if [ -f "utils/build_executable.py" ]; then
             echo "Using existing build script..."
-            $python_cmd utils/build_executable.py
+            python utils/build_executable.py
           else
             echo "Creating PyInstaller command..."
-            $python_cmd -m pyinstaller --onefile --windowed --name "Dwellpy" --add-data "dwellpy:dwellpy" dwellpy/__main__.py
+            python -m pyinstaller --onefile --windowed --name "Dwellpy" --add-data "dwellpy:dwellpy" dwellpy/__main__.py
           fi
 
       - name: Verify build output (Windows)
@@ -378,7 +375,7 @@ jobs:
         run: |
           Set-Location dist
           
-          $files = Get-ChildItem -Name "*wellpy*.exe"
+          $files = Get-ChildItem -Name "*.exe"
           foreach ($file in $files) {
             $version = "${{ steps.get-version.outputs.version }}"
             $newName = "dwellpy-$version-${{ matrix.target }}.exe"
@@ -394,27 +391,14 @@ jobs:
           Get-ChildItem | Format-Table
 
       - name: Prepare release artifact (Unix)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check_unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-') || startsWith(matrix.target, 'macos-'))
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-') || startsWith(matrix.target, 'macos-'))
         shell: bash
         run: |
           cd dist
           
           # Find the executable
           for file in *; do
-            if [ -f "$file" ] && [[ "$file" == *"wellpy"* ]]; then
-              version="${{ steps.get-version-unix.outputs.version }}"
-              new_name="dwellpy-$version-${{ matrix.target }}"
-              
-              echo "Renaming $file to $new_name"
-              mv "$file" "$new_name"
-              chmod +x "$new_name"
-              
-              echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
-              break
-            fi
-            
-            # Also check for generic executable without extension
-            if [ -x "$file" ] && [[ "$file" == "Dwellpy" ]]; then
+            if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]]; then
               version="${{ steps.get-version-unix.outputs.version }}"
               new_name="dwellpy-$version-${{ matrix.target }}"
               
@@ -431,7 +415,7 @@ jobs:
           ls -la
 
       - name: Upload to release
-        if: steps.final-check.outputs.should_run == 'true' || steps.final-check_unix.outputs.should_run == 'true'
+        if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name }}
@@ -441,7 +425,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create build summary (Windows)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check_unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
         run: |
           echo "## Build Summary for ${{ matrix.target }}" >> $env:GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.get-version.outputs.version }}" >> $env:GITHUB_STEP_SUMMARY
@@ -452,7 +436,7 @@ jobs:
           echo "- **Artifact**: $env:ARTIFACT_NAME" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Create build summary (Unix)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check_unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-') || startsWith(matrix.target, 'macos-'))
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-') || startsWith(matrix.target, 'macos-'))
         shell: bash
         run: |
           echo "## Build Summary for ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
