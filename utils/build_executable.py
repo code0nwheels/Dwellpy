@@ -523,6 +523,38 @@ def macos_post_build():
     
     return True
 
+def windows_post_build():
+    """Handle Windows-specific post-build actions."""
+    if not is_windows():
+        return True  # Skip on non-Windows
+    
+    print("Windows post-build actions...")
+    
+    # Check if we have an executable
+    exe_path = Path('dist/Dwellpy.exe')
+    if exe_path.exists():
+        print("   ✓ Executable found")
+        
+        # Automatically create Windows installer
+        print("   Creating NSIS installer...")
+        installer_script = Path('utils/create_windows_installer.py')
+        if installer_script.exists():
+            result = subprocess.run([
+                sys.executable, str(installer_script)
+            ], cwd=Path.cwd())
+            
+            if result.returncode == 0:
+                print("   ✓ Windows installer created successfully")
+            else:
+                print("   ! Installer creation failed (continuing anyway)")
+                return True  # Don't fail the build for installer issues
+        else:
+            print("   ! Windows installer script not found")
+    else:
+        print("   ! No executable found")
+    
+    return True
+
 def main():
     """Main build process."""
     print("Building Dwellpy Executable")
@@ -551,6 +583,7 @@ def main():
         ("Test executable", test_executable),
         ("Create build info", create_installer_info),
         ("macOS post-build actions", macos_post_build),
+        ("Windows post-build actions", windows_post_build),
     ]
     
     for step_name, step_func in steps:
