@@ -8,28 +8,29 @@ This guide will help you install and run Dwellpy on Windows.
 - Administrator access (for some installation methods)
 - Internet connection for downloads
 
-## Method 1: Standalone Executable (Recommended - Easiest)
+## Method 1: Windows Installer (Recommended - Easiest)
 
 This is the simplest way to get Dwellpy running on Windows:
 
-### Download and Setup
+### Download and Install
 1. Go to the [latest releases page](https://github.com/code0nwheels/dwellpy/releases/latest)
-2. Download the Windows executable (look for `dwellpy-*-windows-x64.exe`)
-3. **Rename and organize** (recommended):
-   - Rename the downloaded file to `Dwellpy.exe`
-   - Move it to a permanent location like `C:\Program Files\Dwellpy\` or `C:\Users\[YourName]\AppData\Local\Programs\Dwellpy\`
-   - Or simply keep it in a dedicated folder like `C:\Dwellpy\`
-4. Double-click `Dwellpy.exe` to run
-5. If Windows shows a security warning, click "More info" then "Run anyway"
-6. The Dwellpy toolbar should appear on your screen!
+2. Download the Windows installer (look for `dwellpy-installer-*-windows-x64.exe`)
+3. **Run the installer**:
+   - Double-click the downloaded installer file
+   - If Windows shows a security warning, click "More info" then "Run anyway"
+   - Follow the installer wizard (click "Next", choose installation location, etc.)
+   - The installer will create Start Menu shortcuts and handle all setup automatically
+4. **Launch Dwellpy**:
+   - Use the Start Menu shortcut: Start → All Programs → Dwellpy
+   - Or double-click the desktop shortcut if you chose to create one
+   - The Dwellpy toolbar should appear on your screen!
 
-### Security Note
-Windows may show a SmartScreen warning because the executable isn't digitally signed. This is normal for open-source software. Click "More info" then "Run anyway" to proceed.
-
-### Creating a Desktop Shortcut (Recommended)
-1. Right-click on the renamed `Dwellpy.exe` file
-2. Select "Create shortcut"
-3. Move the shortcut to your desktop or Start menu for easy access
+### Installer Benefits
+- **Professional installation**: Handles all file placement and shortcuts automatically
+- **Start Menu integration**: Easy access through Windows Start Menu
+- **Uninstaller included**: Clean removal through Windows Add/Remove Programs
+- **Desktop shortcut option**: Quick access from your desktop
+- **No manual file management**: No need to create folders or move files
 
 ## Method 2: Install via Python (Advanced Users)
 
@@ -76,23 +77,28 @@ The Dwellpy toolbar should appear on your screen!
 
 | Method | Pros | Cons |
 |--------|------|------|
-| **Standalone Executable** | No Python required, instant startup, no dependencies | Larger file size (~36 MB) |
+| **Windows Installer** | Professional installation, Start Menu integration, automatic uninstaller, desktop shortcuts | None - this is the recommended approach |
 | **Python pip install** | Smaller download, easier updates, access to latest features | Requires Python installation, potential dependency conflicts |
 
-**Recommendation**: Use the standalone executable unless you're already comfortable with Python or need development features.
+**Recommendation**: Use the Windows installer for the best user experience.
 
 ## Common Issues
 
-### Standalone Executable Issues
+### Windows Installer Issues
 
 **Windows Security Warning**
-- This is normal for unsigned executables
-- Click "More info" then "Run anyway"
-- You can also right-click the file, go to Properties, and check "Unblock" at the bottom
+- This is normal for installers from open-source projects
+- Click "More info" then "Run anyway" to proceed with installation
+- You can also right-click the installer file, go to Properties, and check "Unblock" at the bottom
 
-**Slow Startup**
-- First run may be slower as Windows scans the executable
-- Subsequent runs should be faster
+**Installation Location**
+- The installer defaults to `C:\Program Files\Dwellpy\`
+- You can choose a different location during installation if desired
+- Admin privileges may be required for system-wide installation locations
+
+**Uninstalling**
+- Use Windows Add/Remove Programs: Settings → Apps → find "Dwellpy" → Uninstall
+- Or use the uninstaller: Start Menu → All Programs → Dwellpy → Uninstall Dwellpy
 
 ### Python Installation Issues
 
