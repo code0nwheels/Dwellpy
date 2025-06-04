@@ -137,12 +137,25 @@ app = BUNDLE(
     info_plist={{
         'NSPrincipalClass': 'NSApplication',
         'NSAppleScriptEnabled': False,
+        'NSHighResolutionCapable': True,
+        'LSMinimumSystemVersion': '10.14.0',
+        'LSUIElement': True,
+        'NSAppleEventsUsageDescription': 'Dwellpy needs accessibility permissions to monitor mouse movements and provide dwell clicking functionality.',
+        'NSAccessibilityUsageDescription': 'Dwellpy requires accessibility permissions to detect mouse hover events and perform clicks for users with motor disabilities.',
+        'LSApplicationCategoryType': 'public.app-category.utilities',
         'CFBundleDocumentTypes': [
             {{
                 'CFBundleTypeName': 'Dwellpy Settings',
                 'CFBundleTypeIconFile': '{icon_file}',
                 'LSItemContentTypes': ['public.json'],
-                'LSHandlerRank': 'Owner'
+                'LSHandlerRank': 'Owner',
+                'CFBundleTypeRole': 'Editor'
+            }}
+        ],
+        'CFBundleURLTypes': [
+            {{
+                'CFBundleURLName': 'com.dwellpy.settings',
+                'CFBundleURLSchemes': ['dwellpy']
             }}
         ]
     }},
@@ -155,10 +168,16 @@ app = BUNDLE(
     exe,
     name='Dwellpy.app',
     bundle_identifier='com.dwellpy.dwellpy',
-    info_plist={
+    info_plist={{
         'NSPrincipalClass': 'NSApplication',
         'NSAppleScriptEnabled': False,
-    },
+        'NSHighResolutionCapable': True,
+        'LSMinimumSystemVersion': '10.14.0',
+        'LSUIElement': True,
+        'NSAppleEventsUsageDescription': 'Dwellpy needs accessibility permissions to monitor mouse movements and provide dwell clicking functionality.',
+        'NSAccessibilityUsageDescription': 'Dwellpy requires accessibility permissions to detect mouse hover events and perform clicks for users with motor disabilities.',
+        'LSApplicationCategoryType': 'public.app-category.utilities',
+    }},
 )"""
             
             print("   Configured for macOS (no UAC flags)")
@@ -473,6 +492,37 @@ def create_installer_info():
     
     print("   Created BUILD_INFO.md")
 
+def macos_post_build():
+    """Handle macOS-specific post-build actions."""
+    if platform.system().lower() != 'darwin':
+        return True  # Skip on non-macOS
+    
+    print("macOS post-build actions...")
+      # Check if we have an app bundle
+    app_bundle = Path('dist/Dwellpy.app')
+    if app_bundle.exists():
+        print("   ✓ App bundle created successfully")
+        
+        # Automatically create DMG
+        print("   Creating DMG installer...")
+        dmg_script = Path('utils/create_macos_dmg.py')
+        if dmg_script.exists():
+            result = subprocess.run([
+                sys.executable, str(dmg_script)
+            ], cwd=Path.cwd())
+            
+            if result.returncode == 0:
+                print("   ✓ DMG created successfully")
+            else:
+                print("   ! DMG creation failed (continuing anyway)")
+                return True  # Don't fail the build for DMG issues
+        else:
+            print("   ! DMG script not found")
+    else:
+        print("   ! No app bundle found")
+    
+    return True
+
 def main():
     """Main build process."""
     print("Building Dwellpy Executable")
@@ -500,6 +550,7 @@ def main():
         ("Build executable", build_executable),
         ("Test executable", test_executable),
         ("Create build info", create_installer_info),
+        ("macOS post-build actions", macos_post_build),
     ]
     
     for step_name, step_func in steps:

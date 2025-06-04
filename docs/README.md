@@ -14,6 +14,19 @@ Built for users with motor disabilities who use head trackers, eye-tracking syst
 
 ### For End Users
 
+**Option 1: Standalone Executables (Easiest)**
+
+Download and run the executable for your platform - no installation required:
+
+- **Windows**: Download from [latest releases](https://github.com/code0nwheels/dwellpy/releases/latest) - look for `dwellpy-*-windows-x64.exe`
+- **macOS**: Download from [latest releases](https://github.com/code0nwheels/dwellpy/releases/latest) - look for `dwellpy-*-macos-x64`
+- **Linux x64**: Download from [latest releases](https://github.com/code0nwheels/dwellpy/releases/latest) - look for `dwellpy-*-linux-debian-x64`
+- **Linux ARM64**: Download from [latest releases](https://github.com/code0nwheels/dwellpy/releases/latest) - look for `dwellpy-*-linux-debian-arm64`
+
+Simply download, make executable (Linux/macOS), and run. See [setup guides](https://github.com/code0nwheels/dwellpy/wiki) for platform-specific instructions.
+
+**Option 2: Package Managers**
+
 **Linux (Automated Install):**
 ```bash
 curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-install.sh | bash
@@ -29,8 +42,6 @@ curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linu
 pip install dwellpy
 dwellpy
 ```
-
-*Standalone executables coming soon for easier installation.*
 
 **Need help?** Check the [setup guides](https://github.com/code0nwheels/dwellpy/wiki) for your operating system.
 
@@ -98,6 +109,16 @@ dwellpy/
 ## License
 
 GNU General Public License v3.0. See [LICENSE](LICENSE) for details.
+
+## Executable Naming Suggestion
+
+For better user experience, consider renaming the executables to be more user-friendly:
+- `dwellpy-0.9.0-windows-x64.exe` → `Dwellpy.exe`
+- `dwellpy-0.9.0-macos-x64` → `Dwellpy`  
+- `dwellpy-0.9.0-linux-debian-x64` → `Dwellpy`
+- `dwellpy-0.9.0-linux-debian-arm64` → `Dwellpy`
+
+This would make downloads clearer and reduce confusion for end users.
 
 ---
 

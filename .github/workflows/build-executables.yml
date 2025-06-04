@@ -299,8 +299,7 @@ jobs:
             echo "ARTIFACT_NAME=$newName" >> $env:GITHUB_ENV
             break
           }
-          
-          Write-Host "Final dist contents:"
+            Write-Host "Final dist contents:"
           Get-ChildItem | Format-Table
 
       - name: Prepare release artifact (Unix)
@@ -309,20 +308,62 @@ jobs:
         run: |
           cd dist
           
-          # Find the executable
-          for file in *; do
-            if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]]; then
-              version="${{ steps.get-version-unix.outputs.version }}"
-              new_name="dwellpy-$version-${{ matrix.target }}"
-              
-              echo "Renaming $file to $new_name"
-              mv "$file" "$new_name"
-              chmod +x "$new_name"
-              
-              echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
-              break
+          version="${{ steps.get-version-unix.outputs.version }}"
+          
+          # Handle macOS app bundle and DMG
+          if [[ "${{ matrix.target }}" == "macos-x64" ]]; then
+            # Check for DMG first (preferred)
+            if [ -f "dwellpy-installer.dmg" ]; then
+              dmg_name="dwellpy-installer-$version-${{ matrix.target }}.dmg"
+              echo "Renaming dwellpy-installer.dmg to $dmg_name"
+              mv "dwellpy-installer.dmg" "$dmg_name"
+              echo "ARTIFACT_NAME=$dmg_name" >> $GITHUB_ENV
+              echo "ADDITIONAL_ARTIFACTS=" >> $GITHUB_ENV
+            else
+              echo "Warning: DMG not found, checking for app bundle..."
             fi
-          done
+            
+            # Also handle app bundle if present
+            if [ -d "Dwellpy.app" ]; then
+              app_name="Dwellpy-$version-${{ matrix.target }}.app"
+              echo "Renaming Dwellpy.app to $app_name"
+              mv "Dwellpy.app" "$app_name"
+              
+              if [ -z "$ARTIFACT_NAME" ]; then
+                echo "ARTIFACT_NAME=$app_name" >> $GITHUB_ENV
+              else
+                echo "ADDITIONAL_ARTIFACTS=$app_name" >> $GITHUB_ENV
+              fi
+            fi
+            
+            # Handle standalone executable if no app bundle
+            if [ -z "$ARTIFACT_NAME" ]; then
+              for file in *; do
+                if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]] && [[ "$file" != *.app ]]; then
+                  new_name="dwellpy-$version-${{ matrix.target }}"
+                  echo "Renaming $file to $new_name"
+                  mv "$file" "$new_name"
+                  chmod +x "$new_name"
+                  echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
+                  break
+                fi
+              done
+            fi
+          else
+            # Linux: Handle executable
+            for file in *; do
+              if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]]; then
+                new_name="dwellpy-$version-${{ matrix.target }}"
+                
+                echo "Renaming $file to $new_name"
+                mv "$file" "$new_name"
+                chmod +x "$new_name"
+                
+                echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
+                break
+              fi
+            done
+          fi
           
           echo "Final dist contents:"
           ls -la

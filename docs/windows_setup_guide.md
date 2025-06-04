@@ -5,8 +5,35 @@ This guide will help you install and run Dwellpy on Windows.
 ## System Requirements
 
 - Windows 10 or Windows 11
-- Administrator access
-- Internet connection for installation
+- Administrator access (for some installation methods)
+- Internet connection for downloads
+
+## Method 1: Standalone Executable (Recommended - Easiest)
+
+This is the simplest way to get Dwellpy running on Windows:
+
+### Download and Setup
+1. Go to the [latest releases page](https://github.com/code0nwheels/dwellpy/releases/latest)
+2. Download the Windows executable (look for `dwellpy-*-windows-x64.exe`)
+3. **Rename and organize** (recommended):
+   - Rename the downloaded file to `Dwellpy.exe`
+   - Move it to a permanent location like `C:\Program Files\Dwellpy\` or `C:\Users\[YourName]\AppData\Local\Programs\Dwellpy\`
+   - Or simply keep it in a dedicated folder like `C:\Dwellpy\`
+4. Double-click `Dwellpy.exe` to run
+5. If Windows shows a security warning, click "More info" then "Run anyway"
+6. The Dwellpy toolbar should appear on your screen!
+
+### Security Note
+Windows may show a SmartScreen warning because the executable isn't digitally signed. This is normal for open-source software. Click "More info" then "Run anyway" to proceed.
+
+### Creating a Desktop Shortcut (Recommended)
+1. Right-click on the renamed `Dwellpy.exe` file
+2. Select "Create shortcut"
+3. Move the shortcut to your desktop or Start menu for easy access
+
+## Method 2: Install via Python (Advanced Users)
+
+If you prefer to install via Python or need the latest development version:
 
 ## Step 1: Install Python
 
@@ -45,7 +72,29 @@ If you get an error like "python is not recognized", Python wasn't added to your
 
 The Dwellpy toolbar should appear on your screen!
 
+## Comparison of Installation Methods
+
+| Method | Pros | Cons |
+|--------|------|------|
+| **Standalone Executable** | No Python required, instant startup, no dependencies | Larger file size (~36 MB) |
+| **Python pip install** | Smaller download, easier updates, access to latest features | Requires Python installation, potential dependency conflicts |
+
+**Recommendation**: Use the standalone executable unless you're already comfortable with Python or need development features.
+
 ## Common Issues
+
+### Standalone Executable Issues
+
+**Windows Security Warning**
+- This is normal for unsigned executables
+- Click "More info" then "Run anyway"
+- You can also right-click the file, go to Properties, and check "Unblock" at the bottom
+
+**Slow Startup**
+- First run may be slower as Windows scans the executable
+- Subsequent runs should be faster
+
+### Python Installation Issues
 
 ### "Access Denied" or Permission Errors
 If you get permission errors, make sure you're running Command Prompt as administrator (see Step 3 above).
