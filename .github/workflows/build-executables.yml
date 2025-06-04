@@ -115,7 +115,7 @@ jobs:
           if compgen -G "dist/Dwellpy*" > /dev/null; then
             for f in dist/Dwellpy*; do
               ext="${f##*.}"
-              base="dwellpy_v${{ steps.get-version.outputs.version }}_${{ matrix.target }}"
+              base="dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}"
               if [[ "$f" == *.exe ]]; then
                 mv "$f" "dist/${base}.exe"
                 echo "Renamed $f to dist/${base}.exe"
@@ -138,8 +138,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: ./dist/dwellpy_v${{ steps.get-version.outputs.version }}_${{ matrix.target }}.exe
-          asset_name: dwellpy_v${{ steps.get-version.outputs.version }}_${{ matrix.target }}.exe
+          asset_path: ./dist/dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}.exe
+          asset_name: dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}.exe
           asset_content_type: application/octet-stream
 
       - name: Upload executable to release (Non-Windows)
@@ -149,8 +149,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: ./dist/dwellpy_v${{ steps.get-version.outputs.version }}_${{ matrix.target }}
-          asset_name: dwellpy_v${{ steps.get-version.outputs.version }}_${{ matrix.target }}
+          asset_path: ./dist/dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}
+          asset_name: dwellpy.v${{ steps.get-version.outputs.version }}.${{ matrix.target }}
           asset_content_type: application/octet-stream
 
       - name: Upload build info
