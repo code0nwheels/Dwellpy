@@ -26,8 +26,8 @@ on:
           - all
           - windows-x64
           - windows-arm64
-          - linux-ubuntu-x64
-          - linux-ubuntu-arm64
+          - linux-debian-x64
+          - linux-debian-arm64
           - linux-fedora-x64
           - linux-fedora-arm64
           - linux-arch-x64
@@ -59,20 +59,20 @@ jobs:
             shell: pwsh
             arch: arm64
             
-          # Ubuntu builds (covers Debian compatibility)
-          - target: linux-ubuntu-x64
+          # Debian builds (covers Ubuntu compatibility)
+          - target: linux-debian-x64
             runner: ubuntu-22.04
             python-version: '3.11'
             shell: bash
             arch: x64
-            distro: ubuntu
+            distro: debian
             
-          - target: linux-ubuntu-arm64
+          - target: linux-debian-arm64
             runner: ubuntu-22.04
             python-version: '3.11'
             shell: bash
             arch: arm64
-            distro: ubuntu
+            distro: debian
             
           # Fedora builds (RPM-based distributions)
           - target: linux-fedora-x64
@@ -173,13 +173,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up QEMU for ARM emulation
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.arch == 'arm64' && matrix.container != null && matrix.distro == 'ubuntu'
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.arch == 'arm64' && matrix.container != null && matrix.distro == 'debian'
         uses: docker/setup-qemu-action@v3
         with:
           platforms: linux/arm64
 
-      - name: Install system dependencies (Ubuntu)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.distro == 'ubuntu'
+      - name: Install system dependencies (Debian)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.distro == 'debian'
         shell: bash
         run: |
           export DEBIAN_FRONTEND=noninteractive
@@ -196,7 +196,7 @@ jobs:
         shell: bash
         run: |
           dnf update -y
-          dnf install -y python3 python3-pip git which gcc gcc-c++ make
+          dnf install -y python3 python3-pip python3-devel git which gcc gcc-c++ make
           
           # Create symlink for easier usage
           if [ ! -f /usr/bin/python ]; then
@@ -214,7 +214,7 @@ jobs:
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
         shell: bash
         run: |
-          if [ "${{ matrix.distro }}" = "ubuntu" ]; then
+          if [ "${{ matrix.distro }}" = "debian" ]; then
             sudo apt-get install -y xvfb
           elif [ "${{ matrix.distro }}" = "fedora" ]; then
             dnf install -y xorg-x11-server-Xvfb
@@ -232,8 +232,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.arch }}
 
-      - name: Set up Python (Ubuntu native)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.distro == 'ubuntu'
+      - name: Set up Python (Debian native)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.distro == 'debian'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -241,8 +241,8 @@ jobs:
       - name: Create build environment
         if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install pyinstaller
+          python -m pip install --upgrade pip setuptools wheel --break-system-packages --user || python -m pip install --upgrade pip setuptools wheel --user || python -m pip install --upgrade pip setuptools wheel
+          python -m pip install pyinstaller --break-system-packages --user || python -m pip install pyinstaller --user || python -m pip install pyinstaller
 
       - name: Install project dependencies (Windows)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
@@ -261,17 +261,17 @@ jobs:
         shell: bash
         run: |
           if [ -f requirements.txt ]; then
-            python -m pip install -r requirements.txt
+            python -m pip install -r requirements.txt --break-system-packages --user || python -m pip install -r requirements.txt --user || python -m pip install -r requirements.txt
           else
             echo "Warning: requirements.txt not found in dwellpy/"
-            python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput
+            python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput --break-system-packages --user || python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput --user || python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput
           fi
 
       - name: Install additional Qt dependencies (Linux)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
         shell: bash
         run: |
-          if [ "${{ matrix.distro }}" = "ubuntu" ]; then
+          if [ "${{ matrix.distro }}" = "debian" ]; then
             sudo apt-get install -y \
               libegl1-mesa \
               libxkbcommon-x11-0 \
