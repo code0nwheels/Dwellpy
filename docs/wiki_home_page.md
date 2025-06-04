@@ -43,10 +43,11 @@ Dwellpy is an accessibility tool that automatically performs mouse clicks when y
 ### Key Features
 
 - **Multiple click types**: Left, right, double-click, and drag operations
+- **Floating menu widget**: Hamburger menu that follows your cursor for always-accessible controls
 - **Smart scroll widget**: Floating helper for document navigation
 - **Configurable sensitivity**: Adjust timing and movement thresholds
 - **Cross-platform**: Works on Windows, macOS, and Linux
-- **Always-on-top toolbar**: Small, accessible control interface
+- **Flexible interface**: Choose between traditional toolbar or floating menu widget
 
 ## Getting Help
 

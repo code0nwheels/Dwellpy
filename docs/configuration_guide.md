@@ -2,6 +2,18 @@
 
 This guide explains how to adjust Dwellpy's settings for your specific needs.
 
+## Floating Widgets
+
+Dwellpy includes two floating widgets that appear when you pause your cursor:
+
+### Menu Widget (Hamburger Menu)
+A small circular hamburger menu (☰) that appears when you dwell (pause cursor) for the configured delay. Expands into a circular menu with all click modes, settings, and power options when hovered.
+
+### Scroll Widget  
+A floating scroll helper with up/down arrows that appears alongside the menu widget when you dwell. Allows easy scrolling without precise targeting of scroll bars.
+
+Both widgets use the same appearance delay setting (configurable in the Scroll tab).
+
 ## Opening Settings
 
 Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog. The settings are organized into four main tabs for easy navigation:
@@ -116,13 +128,13 @@ This section controls visual indicators to show where and what type of clicks ar
 
 ## Scroll Tab
 
-The Scroll tab contains settings for the floating scroll widget.
+The Scroll tab contains settings for the floating scroll widget and menu widget appearance.
 
 ### Scroll Widget
 This section controls a floating scroll widget that appears near your cursor for easy scrolling.
 
 #### Enable Scroll Widget
-**What it does**: Shows/hides the floating scroll helper that follows your cursor.
+**What it does**: Shows/hides the floating scroll helper that appears when you dwell (pause cursor).
 
 **When to enable**: For reading documents, browsing web pages, or working with long content.
 
@@ -139,7 +151,7 @@ This section controls a floating scroll widget that appears near your cursor for
 - **7-10**: Fast scrolling for quickly moving through content
 
 #### Widget Appearance Delay (0.1s - 1.0s)
-**What it does**: Controls how long the cursor needs to remain still before the menu and scroll widgets appear.
+**What it does**: Controls how long the cursor needs to remain still (dwell) before the menu and scroll widgets appear.
 
 **Scale**: 0.1s = widgets appear very quickly, 1.0s = widgets wait longer before appearing
 

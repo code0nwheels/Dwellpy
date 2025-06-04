@@ -363,6 +363,216 @@ class SettingsManager:
             self.logger.info(f"UI expansion direction updated to: {direction}")
         else:
             self.logger.warning(f"Invalid expansion direction: {direction}")
+
+    def update_auto_start_enabled(self, enabled: bool) -> None:
+        """
+        Update auto-start setting and apply immediately on Linux.
+        
+        Args:
+            enabled: Whether app should start automatically on login
+        """
+        self.settings['auto_start_enabled'] = enabled
+        
+        # Apply auto-start configuration immediately on Linux
+        self._apply_auto_start_setting(enabled)
+        
+        self.logger.info(f"Auto-start enabled: {enabled}")
+
+    def _apply_auto_start_setting(self, enabled: bool) -> None:
+        """
+        Apply auto-start setting to the operating system.
+        Currently supports Linux (XDG autostart), Windows (Task Scheduler), and macOS (launchd).
+        
+        Args:
+            enabled: Whether to enable or disable auto-start
+        """
+        import os
+        import platform
+        
+        if platform.system() == 'Linux':
+            self._apply_linux_autostart(enabled)
+        elif platform.system() == 'Windows':
+            self._apply_windows_autostart(enabled)
+        elif platform.system() == 'Darwin':
+            self._apply_macos_autostart(enabled)
+        else:
+            self.logger.warning(f"Auto-start not supported on {platform.system()}")
+
+    def _apply_linux_autostart(self, enabled: bool) -> None:
+        """
+        Apply Linux XDG autostart configuration.
+        
+        Args:
+            enabled: Whether to enable or disable auto-start
+        """
+        import os
+        
+        autostart_dir = os.path.expanduser("~/.config/autostart")
+        autostart_file = os.path.join(autostart_dir, "dwellpy.desktop")
+        desktop_file = os.path.expanduser("~/.local/share/applications/dwellpy.desktop")
+        
+        try:
+            if enabled:
+                # Create autostart directory if it doesn't exist                os.makedirs(autostart_dir, exist_ok=True)
+                
+                # Check if the main desktop file exists
+                if os.path.exists(desktop_file):
+                    # Copy the main desktop file to autostart
+                    import shutil
+                    shutil.copy2(desktop_file, autostart_file)
+                    self.logger.info(f"Auto-start enabled: copied {desktop_file} to {autostart_file}")
+                else:
+                    # Create a basic autostart entry using the current executable path
+                    import sys
+                    
+                    # Get the executable path
+                    if getattr(sys, 'frozen', False):
+                        # Running as PyInstaller executable
+                        executable_path = sys.executable
+                    else:
+                        # Running as Python script - use python with the main script
+                        main_script = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'main.py')
+                        executable_path = f"{sys.executable} {main_script}"
+                    
+                    autostart_content = f"""[Desktop Entry]
+Type=Application
+Name=Dwellpy
+Comment=Accessibility dwell clicker for motor disabilities
+Exec={executable_path}
+Icon=accessibility
+Terminal=false
+NoDisplay=false
+Hidden=false
+X-GNOME-Autostart-enabled=true
+StartupNotify=false
+Categories=Accessibility;Utility;
+Keywords=accessibility;dwell;click;motor;disability;
+"""
+                    with open(autostart_file, 'w', encoding='utf-8') as f:
+                        f.write(autostart_content)
+                    self.logger.info(f"Auto-start enabled: created {autostart_file} with executable: {executable_path}")
+            else:
+                # Remove autostart file
+                if os.path.exists(autostart_file):
+                    os.remove(autostart_file)
+                    self.logger.info(f"Auto-start disabled: removed {autostart_file}")
+                    
+        except Exception as e:
+            self.logger.error(f"Error applying auto-start setting: {e}", exc_info=True)
+
+    def _apply_windows_autostart(self, enabled: bool) -> None:
+        """
+        Apply Windows auto-start configuration using Task Scheduler.
+        Creates a scheduled task with highest privileges for optimal accessibility support.
+        
+        Args:
+            enabled: Whether to enable or disable auto-start
+        """
+        import os
+        import sys
+        import subprocess
+        
+        task_name = "Dwellpy Accessibility Tool"
+        
+        try:
+            if enabled:
+                # Get the executable path
+                if getattr(sys, 'frozen', False):
+                    # Running as PyInstaller executable
+                    executable_path = sys.executable
+                else:
+                    # Running as Python script - use python with the main script
+                    main_script = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'main.py')
+                    executable_path = f'"{sys.executable}" "{main_script}"'
+                
+                # Create the scheduled task using schtasks
+                cmd = [
+                    'schtasks', '/create',
+                    '/tn', task_name,
+                    '/tr', executable_path,
+                    '/sc', 'onlogon',
+                    '/rl', 'highest',  # Run with highest privileges
+                    '/f'  # Force create (overwrites existing)
+                ]
+                
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                
+                if result.returncode == 0:
+                    self.logger.info(f"Auto-start enabled: created scheduled task '{task_name}' with executable: {executable_path}")
+                else:
+                    self.logger.error(f"Failed to create scheduled task: {result.stderr}")
+            else:
+                # Remove the scheduled task
+                cmd = ['schtasks', '/delete', '/tn', task_name, '/f']
+                
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                
+                if result.returncode == 0:
+                    self.logger.info(f"Auto-start disabled: removed scheduled task '{task_name}'")
+                else:
+                    # Task might not exist, which is fine
+                    if "cannot find" in result.stderr.lower() or "not found" in result.stderr.lower():
+                        self.logger.info(f"Auto-start disabled: scheduled task '{task_name}' was not found (already disabled)")
+                    else:
+                        self.logger.error(f"Failed to remove scheduled task: {result.stderr}")
+        except Exception as e:
+            self.logger.error(f"Error applying Windows auto-start setting: {e}", exc_info=True)
+
+    def _apply_macos_autostart(self, enabled: bool) -> None:
+        """
+        Apply macOS auto-start configuration using launchd.
+        Creates a Launch Agent plist file for user login.
+        
+        Args:
+            enabled: Whether to enable or disable auto-start
+        """
+        import os
+        import sys
+        import plistlib
+        
+        launchagents_dir = os.path.expanduser("~/Library/LaunchAgents")
+        plist_filename = "com.dwellpy.accessibility.plist"
+        plist_path = os.path.join(launchagents_dir, plist_filename)
+        
+        try:
+            if enabled:
+                # Get the executable path
+                if getattr(sys, 'frozen', False):
+                    # Running as PyInstaller executable
+                    executable_path = sys.executable
+                    program_arguments = [executable_path]
+                else:
+                    # Running as Python script - use python with the main script
+                    main_script = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'main.py')
+                    program_arguments = [sys.executable, main_script]
+                
+                # Create launch agent plist data
+                plist_data = {
+                    'Label': 'com.dwellpy.accessibility',
+                    'ProgramArguments': program_arguments,
+                    'RunAtLoad': True,
+                    'KeepAlive': False,
+                    'ProcessType': 'Interactive'  # Allows GUI applications
+                }
+                
+                # Ensure the LaunchAgents directory exists
+                os.makedirs(launchagents_dir, exist_ok=True)
+                
+                # Write the plist file
+                with open(plist_path, 'wb') as f:
+                    plistlib.dump(plist_data, f)
+                
+                self.logger.info(f"Auto-start enabled: created Launch Agent at {plist_path} with executable: {' '.join(program_arguments)}")
+            else:
+                # Remove the plist file
+                if os.path.exists(plist_path):
+                    os.remove(plist_path)
+                    self.logger.info(f"Auto-start disabled: removed Launch Agent {plist_path}")
+                else:
+                    self.logger.info(f"Auto-start disabled: Launch Agent {plist_path} was not found (already disabled)")
+                    
+        except Exception as e:
+            self.logger.error(f"Error applying macOS auto-start setting: {e}", exc_info=True)
     
     def reset_to_defaults(self) -> None:
         """Reset all settings to their default values."""

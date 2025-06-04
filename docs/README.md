@@ -16,12 +16,12 @@ Built for users with motor disabilities who use head trackers, eye-tracking syst
 
 **Linux (Automated Install):**
 ```bash
-curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-install.sh | bash
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-install.sh | bash
 ```
 
 *To uninstall:*
 ```bash
-curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/linux-uninstall.sh | bash
+curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-uninstall.sh | bash
 ```
 
 **All Platforms (pip):**
@@ -46,7 +46,7 @@ python -m dwellpy.main
 ## What it does
 
 - **Multiple click types**: Left, right, double-click, and drag operations
-- **Smart scrolling**: Floating widget for hands-free document navigation
+- **Floating widgets**: Menu and scroll widgets that appear when you dwell (pause cursor)
 - **Visual feedback**: Customizable click animations with distinctive colors for each action type
 - **Organized settings**: Tabbed interface with logical grouping (Dwell, Visual, Scroll, General)
 - **Dwell-friendly controls**: Large buttons with hover functionality for easy adjustment
@@ -88,7 +88,7 @@ This project was created by and for the disability community. We welcome:
 dwellpy/
 ├── dwellpy/              # Main application package
 │   ├── core/            # Dwell detection and input handling
-│   ├── ui/              # User interface components  
+│   ├── ui/              # User interface components (including menu widget)
 │   ├── managers/        # Application state management
 │   └── config/          # Configuration and settings
 ├── docs/                # Documentation
