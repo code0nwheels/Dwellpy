@@ -139,7 +139,7 @@ jobs:
             python -m pip install -r requirements.txt
           } else {
             Write-Host "Warning: requirements.txt not found in dwellpy/"
-            python -m pip install PyQt6 pynput
+            python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput
           }
 
       - name: Install project dependencies (Unix)
@@ -151,13 +151,30 @@ jobs:
             python -m pip install -r requirements.txt
           else
             echo "Warning: requirements.txt not found in dwellpy/"
-            python -m pip install PyQt6 pynput
+            python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput
           fi
+
+      - name: Install additional Qt dependencies (Linux)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target == 'linux-x64'
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            libegl1-mesa \
+            libxkbcommon-x11-0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-xinerama0 \
+            libxcb-xfixes0
 
       - name: Verify installation
         if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         run: |
-          python -c "import PyQt6; print('PyQt6 version:', PyQt6.QtCore.PYQT_VERSION_STR)"
+          python -c "import PyQt6.QtCore; print('PyQt6.QtCore version:', PyQt6.QtCore.PYQT_VERSION_STR)"
+          python -c "import PyQt6.QtWidgets; print('PyQt6.QtWidgets imported successfully')"
           python -c "import pynput; print('pynput imported successfully')"
 
       - name: Build executable with PyInstaller (Windows)
