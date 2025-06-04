@@ -99,7 +99,7 @@ def create_spec_file():
     #uac_uiaccess=True,"""
             icon_line = "    icon='dwellpy/assets/icons/Dwellpy.ico',"
             macos_app_bundle = ""
-            print("   Adding Windows UAC flags for mouse control")
+            #print("   Adding Windows UAC flags for mouse control")
             print("   Using Windows .ico icon")
         elif platform.system().lower() == 'darwin':  # macOS
             # macOS - no UAC, different icon handling, create app bundle
@@ -520,8 +520,8 @@ def main():
     print(f"\nYour executable is in: dist/")
     print("See BUILD_INFO.md for distribution instructions")
     
-    if is_windows():
-        print("Windows UAC flags included for mouse control access")
+    #if is_windows():
+        #print("Windows UAC flags included for mouse control access")
 
 if __name__ == "__main__":
     main()
