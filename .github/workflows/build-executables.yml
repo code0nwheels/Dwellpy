@@ -16,7 +16,7 @@ on:
         description: 'Tag name for testing'
         required: true
         type: string
-        default: 'v0.8.0'
+        default: 'v0.9.0'
       target:
         description: 'Target platform'
         required: false
@@ -38,18 +38,36 @@ jobs:
           - target: windows-x64
             runner: windows-latest
             python-version: '3.11'
+            shell: pwsh
           - target: linux-x64
             runner: ubuntu-22.04
             python-version: '3.11'
+            shell: bash
           - target: macos-x64
             runner: macos-13
             python-version: '3.11'
+            shell: bash
     
     runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
     
     steps:
       - name: Check if target should run
         id: should-run
+        run: |
+          if ("${{ inputs.target }}" -eq "all" -or "${{ inputs.target }}" -eq "${{ matrix.target }}") {
+            echo "should_run=true" >> $env:GITHUB_OUTPUT
+            Write-Host "Building for ${{ matrix.target }}"
+          } else {
+            echo "should_run=false" >> $env:GITHUB_OUTPUT
+            Write-Host "Skipping ${{ matrix.target }}"
+          }
+        if: matrix.target == 'windows-x64'
+
+      - name: Check if target should run (Unix)
+        id: should-run-unix
         shell: bash
         run: |
           if [[ "${{ inputs.target }}" == "all" || "${{ inputs.target }}" == "${{ matrix.target }}" ]]; then
@@ -59,13 +77,36 @@ jobs:
             echo "should_run=false" >> $GITHUB_OUTPUT
             echo "Skipping ${{ matrix.target }}"
           fi
+        if: matrix.target != 'windows-x64'
+
+      - name: Set should run output
+        id: final-check
+        run: |
+          if ("${{ steps.should-run.outputs.should_run }}" -eq "true" -or "${{ steps.should-run-unix.outputs.should_run }}" -eq "true") {
+            echo "should_run=true" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "should_run=false" >> $env:GITHUB_OUTPUT
+          }
+        if: matrix.target == 'windows-x64'
+
+      - name: Set should run output (Unix)
+        id: final-check-unix
+        shell: bash
+        run: |
+          if [[ "${{ steps.should-run-unix.outputs.should_run }}" == "true" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+        if: matrix.target != 'windows-x64'
 
       - name: Checkout repository
-        if: steps.should-run.outputs.should_run == 'true'
+        if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         uses: actions/checkout@v4
 
       - name: Set up virtual display (Linux only)
-        if: steps.should-run.outputs.should_run == 'true' && matrix.target == 'linux-x64'
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target == 'linux-x64'
+        shell: bash
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y xvfb
@@ -74,20 +115,32 @@ jobs:
           sleep 3
 
       - name: Set up Python
-        if: steps.should-run.outputs.should_run == 'true'
+        if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Create build environment
-        if: steps.should-run.outputs.should_run == 'true'
+        if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install pyinstaller
 
-      - name: Install project dependencies
-        if: steps.should-run.outputs.should_run == 'true'
+      - name: Install project dependencies (Windows)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target == 'windows-x64'
         working-directory: dwellpy
+        run: |
+          if (Test-Path "requirements.txt") {
+            python -m pip install -r requirements.txt
+          } else {
+            Write-Host "Warning: requirements.txt not found in dwellpy/"
+            python -m pip install PyQt6 pynput
+          }
+
+      - name: Install project dependencies (Unix)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target != 'windows-x64'
+        working-directory: dwellpy
+        shell: bash
         run: |
           if [ -f requirements.txt ]; then
             python -m pip install -r requirements.txt
@@ -97,29 +150,43 @@ jobs:
           fi
 
       - name: Verify installation
-        if: steps.should-run.outputs.should_run == 'true'
+        if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         run: |
           python -c "import PyQt6; print('PyQt6 version:', PyQt6.QtCore.PYQT_VERSION_STR)"
           python -c "import pynput; print('pynput imported successfully')"
 
-      - name: Build executable with PyInstaller
-        if: steps.should-run.outputs.should_run == 'true'
+      - name: Build executable with PyInstaller (Windows)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target == 'windows-x64'
         run: |
-          # Create simple PyInstaller spec if build script doesn't exist
-          if [ ! -f "utils/build_executable.py" ]; then
-            echo "Creating PyInstaller command..."
-            pyinstaller --onefile \
-              --windowed \
-              --name "Dwellpy" \
-              --add-data "dwellpy:dwellpy" \
-              dwellpy/__main__.py
-          else
+          if (Test-Path "utils/build_executable.py") {
+            Write-Host "Using existing build script..."
+            python utils/build_executable.py
+          } else {
+            Write-Host "Creating PyInstaller command..."
+            pyinstaller --onefile --windowed --name "Dwellpy" --add-data "dwellpy;dwellpy" dwellpy/__main__.py
+          }
+
+      - name: Build executable with PyInstaller (Unix)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target != 'windows-x64'
+        shell: bash
+        run: |
+          if [ -f "utils/build_executable.py" ]; then
             echo "Using existing build script..."
             python utils/build_executable.py
+          else
+            echo "Creating PyInstaller command..."
+            pyinstaller --onefile --windowed --name "Dwellpy" --add-data "dwellpy:dwellpy" dwellpy/__main__.py
           fi
 
-      - name: Verify build output
-        if: steps.should-run.outputs.should_run == 'true'
+      - name: Verify build output (Windows)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target == 'windows-x64'
+        run: |
+          Get-ChildItem -Path "dist" -ErrorAction SilentlyContinue | Format-Table
+          Get-ChildItem -Path "." -Recurse -Name "*wellpy*" -ErrorAction SilentlyContinue
+
+      - name: Verify build output (Unix)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target != 'windows-x64'
+        shell: bash
         run: |
           echo "Contents of dist directory:"
           ls -la dist/ || echo "dist/ directory not found"
@@ -127,9 +194,17 @@ jobs:
           echo "Looking for executables..."
           find . -name "*wellpy*" -type f 2>/dev/null || echo "No Dwellpy files found"
 
-      - name: Get version from tag
-        if: steps.should-run.outputs.should_run == 'true'
+      - name: Get version from tag (Windows)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target == 'windows-x64'
         id: get-version
+        run: |
+          $version = "${{ inputs.tag_name }}" -replace '^v', ''
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Extracted version: $version"
+
+      - name: Get version from tag (Unix)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target != 'windows-x64'
+        id: get-version-unix
         shell: bash
         run: |
           version="${{ inputs.tag_name }}"
@@ -137,34 +212,41 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "Extracted version: $version"
 
-      - name: Prepare release artifact
-        if: steps.should-run.outputs.should_run == 'true'
+      - name: Prepare release artifact (Windows)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target == 'windows-x64'
+        run: |
+          Set-Location dist
+          
+          $files = Get-ChildItem -Name "*wellpy*.exe"
+          foreach ($file in $files) {
+            $version = "${{ steps.get-version.outputs.version }}"
+            $newName = "dwellpy-$version-${{ matrix.target }}.exe"
+            
+            Write-Host "Renaming $file to $newName"
+            Rename-Item $file $newName
+            
+            echo "ARTIFACT_NAME=$newName" >> $env:GITHUB_ENV
+            break
+          }
+          
+          Write-Host "Final dist contents:"
+          Get-ChildItem | Format-Table
+
+      - name: Prepare release artifact (Unix)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target != 'windows-x64'
         shell: bash
         run: |
           cd dist
           
           # Find the executable
-          if [ "${{ matrix.target }}" = "windows-x64" ]; then
-            exe_pattern="*.exe"
-          else
-            exe_pattern="*"
-          fi
-          
-          # Rename executable
-          for file in $exe_pattern; do
+          for file in *; do
             if [ -f "$file" ] && [[ "$file" == *"wellpy"* ]]; then
-              new_name="dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}"
-              if [ "${{ matrix.target }}" = "windows-x64" ]; then
-                new_name="${new_name}.exe"
-              fi
+              version="${{ steps.get-version-unix.outputs.version }}"
+              new_name="dwellpy-$version-${{ matrix.target }}"
               
               echo "Renaming $file to $new_name"
               mv "$file" "$new_name"
-              
-              # Make executable on Unix systems
-              if [ "${{ matrix.target }}" != "windows-x64" ]; then
-                chmod +x "$new_name"
-              fi
+              chmod +x "$new_name"
               
               echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
               break
@@ -175,20 +257,32 @@ jobs:
           ls -la
 
       - name: Upload to release
-        if: steps.should-run.outputs.should_run == 'true'
+        if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name }}
-          files: dist/dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}*
+          files: dist/*wellpy*
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create build summary
-        if: steps.should-run.outputs.should_run == 'true'
+      - name: Create build summary (Windows)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target == 'windows-x64'
+        run: |
+          $version = if ("${{ steps.get-version.outputs.version }}" -ne "") { "${{ steps.get-version.outputs.version }}" } else { "${{ steps.get-version-unix.outputs.version }}" }
+          echo "## Build Summary for ${{ matrix.target }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "- **Version**: $version" >> $env:GITHUB_STEP_SUMMARY
+          echo "- **Target**: ${{ matrix.target }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "- **Python**: ${{ matrix.python-version }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "- **Runner**: ${{ matrix.runner }}" >> $env:GITHUB_STEP_SUMMARY
+          echo "- **Artifact**: $env:ARTIFACT_NAME" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Create build summary (Unix)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && matrix.target != 'windows-x64'
+        shell: bash
         run: |
           echo "## Build Summary for ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version**: ${{ steps.get-version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.get-version-unix.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target**: ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Python**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Runner**: ${{ matrix.runner }}" >> $GITHUB_STEP_SUMMARY
