@@ -36,12 +36,12 @@ def check_nsis():
                                   capture_output=True, text=True, timeout=10)
             if result.returncode == 0:
                 version = result.stdout.strip()
-                print(f"   ✓ NSIS {version} found at: {nsis_path}")
+                print(f"   OK: NSIS {version} found at: {nsis_path}")
                 return nsis_path
         except (FileNotFoundError, subprocess.TimeoutExpired):
             continue
     
-    print("   ✗ NSIS not found")
+    print("   ERROR: NSIS not found")
     print("\nTo install NSIS:")
     print("1. Download from: https://nsis.sourceforge.io/Download")
     print("2. Run the installer as administrator")
@@ -56,10 +56,10 @@ def check_executable():
     exe_path = Path('dist/Dwellpy.exe')
     if exe_path.exists():
         size_mb = exe_path.stat().st_size / (1024 * 1024)
-        print(f"   ✓ Found: {exe_path} ({size_mb:.1f} MB)")
+        print(f"    Found: {exe_path} ({size_mb:.1f} MB)")
         return exe_path
     else:
-        print("   ✗ Dwellpy.exe not found in dist/")
+        print("    Dwellpy.exe not found in dist/")
         print("   Run the build script first: python utils/build_executable.py")
         return None
 
@@ -77,7 +77,7 @@ def get_version():
                 match = re.search(r'version\s*=\s*["\']([^"\']+)["\']', content)
                 if match:
                     version = match.group(1)
-                    print(f"   ✓ Version from pyproject.toml: {version}")
+                    print(f"    Version from pyproject.toml: {version}")
                     return version
         except Exception as e:
             print(f"   ! Could not read pyproject.toml: {e}")
@@ -98,7 +98,7 @@ def get_version():
                     match = re.search(r'(?:__)?version(?:__)?\s*=\s*["\']([^"\']+)["\']', content)
                     if match:
                         version = match.group(1)
-                        print(f"   ✓ Version from {file_path}: {version}")
+                        print(f"    Version from {file_path}: {version}")
                         return version
             except Exception as e:
                 print(f"   ! Could not read {file_path}: {e}")
@@ -119,7 +119,7 @@ def prepare_nsis_script(version):
     nsi_working = Path('utils/dwellpy-installer-temp.nsi')
     
     if not nsi_template.exists():
-        print("   ✗ NSIS template not found: utils/dwellpy-installer.nsi")
+        print("    NSIS template not found: utils/dwellpy-installer.nsi")
         return None
     
     try:
@@ -146,11 +146,11 @@ def prepare_nsis_script(version):
         with open(nsi_working, 'w', encoding='utf-8') as f:
             f.write(content)
         
-        print(f"   ✓ NSIS script prepared with version {version}")
+        print(f"    NSIS script prepared with version {version}")
         return nsi_working
         
     except Exception as e:
-        print(f"   ✗ Error preparing NSIS script: {e}")
+        print(f"    Error preparing NSIS script: {e}")
         return None
 
 def create_installer(nsis_path, nsi_script, version):
@@ -164,7 +164,7 @@ def create_installer(nsis_path, nsi_script, version):
         result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path.cwd())
         
         if result.returncode == 0:
-            print("   ✓ NSIS compilation successful!")
+            print("    NSIS compilation successful!")
             
             # Find the generated installer (NSIS creates it in utils directory)
             installer_path = Path('utils/dwellpy-installer.exe')
@@ -179,20 +179,20 @@ def create_installer(nsis_path, nsi_script, version):
                 shutil.move(str(installer_path), str(versioned_installer))
                 
                 size_mb = versioned_installer.stat().st_size / (1024 * 1024)
-                print(f"   ✓ Installer created: {versioned_installer} ({size_mb:.1f} MB)")
+                print(f"    Installer created: {versioned_installer} ({size_mb:.1f} MB)")
                 return versioned_installer
             else:
-                print("   ✗ Installer file not found after compilation")
+                print("    Installer file not found after compilation")
                 return None
         else:
-            print("   ✗ NSIS compilation failed!")
+            print("    NSIS compilation failed!")
             print(f"   Error: {result.stderr}")
             if result.stdout:
                 print(f"   Output: {result.stdout}")
             return None
             
     except Exception as e:
-        print(f"   ✗ Error running NSIS: {e}")
+        print(f"    Error running NSIS: {e}")
         return None
 
 def cleanup_temp_files():

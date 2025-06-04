@@ -501,7 +501,7 @@ def macos_post_build():
       # Check if we have an app bundle
     app_bundle = Path('dist/Dwellpy.app')
     if app_bundle.exists():
-        print("   ✓ App bundle created successfully")
+        print("    App bundle created successfully")
         
         # Automatically create DMG
         print("   Creating DMG installer...")
@@ -512,7 +512,7 @@ def macos_post_build():
             ], cwd=Path.cwd())
             
             if result.returncode == 0:
-                print("   ✓ DMG created successfully")
+                print("    DMG created successfully")
             else:
                 print("   ! DMG creation failed (continuing anyway)")
                 return True  # Don't fail the build for DMG issues
@@ -533,7 +533,7 @@ def windows_post_build():
     # Check if we have an executable
     exe_path = Path('dist/Dwellpy.exe')
     if exe_path.exists():
-        print("   ✓ Executable found")
+        print("    Executable found")
         
         # Automatically create Windows installer
         print("   Creating NSIS installer...")
@@ -544,7 +544,7 @@ def windows_post_build():
             ], cwd=Path.cwd())
             
             if result.returncode == 0:
-                print("   ✓ Windows installer created successfully")
+                print("    Windows installer created successfully")
             else:
                 print("   ! Installer creation failed (continuing anyway)")
                 return True  # Don't fail the build for installer issues
