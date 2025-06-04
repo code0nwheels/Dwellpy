@@ -113,7 +113,7 @@ jobs:
           if compgen -G "dist/Dwellpy*" > /dev/null; then
             for f in dist/Dwellpy*; do
               ext="${f##*.}"
-              base="dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}"
+              base="dwellpy_v${{ steps.get-version.outputs.version }}_${{ matrix.target }}"
               if [[ "$f" == *.exe ]]; then
                 mv "$f" "dist/${base}.exe"
                 echo "Renamed $f to dist/${base}.exe"
@@ -130,23 +130,19 @@ jobs:
 
       - name: Upload executable to release (Windows)
         if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != '' && (matrix.target == 'windows-x64' || matrix.target == 'windows-arm64')
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: shogo82148/actions-upload-release-asset@v1
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: ./dist/dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}.exe
+          asset_path: ./dist/dwellpy_v${{ steps.get-version.outputs.version }}_${{ matrix.target }}.exe
           asset_name: dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}.exe
           asset_content_type: application/octet-stream
 
       - name: Upload executable to release (Non-Windows)
         if: steps.should-run.outputs.should_run == 'true' && inputs.upload_url != '' && matrix.target != 'windows-x64' && matrix.target != 'windows-arm64'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: shogo82148/actions-upload-release-asset@v1
         with:
           upload_url: ${{ inputs.upload_url }}
-          asset_path: ./dist/dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}
+          asset_path: ./dist/dwellpy_v${{ steps.get-version.outputs.version }}_${{ matrix.target }}
           asset_name: dwellpy-${{ steps.get-version.outputs.version }}-${{ matrix.target }}
           asset_content_type: application/octet-stream
 
