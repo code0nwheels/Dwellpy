@@ -5,8 +5,36 @@ This guide will help you install and run Dwellpy on Windows.
 ## System Requirements
 
 - Windows 10 or Windows 11
-- Administrator access
-- Internet connection for installation
+- Administrator access (for some installation methods)
+- Internet connection for downloads
+
+## Method 1: Windows Installer (Recommended - Easiest)
+
+This is the simplest way to get Dwellpy running on Windows:
+
+### Download and Install
+1. Go to the [latest releases page](https://github.com/code0nwheels/dwellpy/releases/latest)
+2. Download the Windows installer (look for `dwellpy-installer-*-windows-x64.exe`)
+3. **Run the installer**:
+   - Double-click the downloaded installer file
+   - If Windows shows a security warning, click "More info" then "Run anyway"
+   - Follow the installer wizard (click "Next", choose installation location, etc.)
+   - The installer will create Start Menu shortcuts and handle all setup automatically
+4. **Launch Dwellpy**:
+   - Use the Start Menu shortcut: Start → All Programs → Dwellpy
+   - Or double-click the desktop shortcut if you chose to create one
+   - The Dwellpy toolbar should appear on your screen!
+
+### Installer Benefits
+- **Professional installation**: Handles all file placement and shortcuts automatically
+- **Start Menu integration**: Easy access through Windows Start Menu
+- **Uninstaller included**: Clean removal through Windows Add/Remove Programs
+- **Desktop shortcut option**: Quick access from your desktop
+- **No manual file management**: No need to create folders or move files
+
+## Method 2: Install via Python (Advanced Users)
+
+If you prefer to install via Python or need the latest development version:
 
 ## Step 1: Install Python
 
@@ -45,7 +73,34 @@ If you get an error like "python is not recognized", Python wasn't added to your
 
 The Dwellpy toolbar should appear on your screen!
 
+## Comparison of Installation Methods
+
+| Method | Pros | Cons |
+|--------|------|------|
+| **Windows Installer** | Professional installation, Start Menu integration, automatic uninstaller, desktop shortcuts | None - this is the recommended approach |
+| **Python pip install** | Smaller download, easier updates, access to latest features | Requires Python installation, potential dependency conflicts |
+
+**Recommendation**: Use the Windows installer for the best user experience.
+
 ## Common Issues
+
+### Windows Installer Issues
+
+**Windows Security Warning**
+- This is normal for installers from open-source projects
+- Click "More info" then "Run anyway" to proceed with installation
+- You can also right-click the installer file, go to Properties, and check "Unblock" at the bottom
+
+**Installation Location**
+- The installer defaults to `C:\Program Files\Dwellpy\`
+- You can choose a different location during installation if desired
+- Admin privileges may be required for system-wide installation locations
+
+**Uninstalling**
+- Use Windows Add/Remove Programs: Settings → Apps → find "Dwellpy" → Uninstall
+- Or use the uninstaller: Start Menu → All Programs → Dwellpy → Uninstall Dwellpy
+
+### Python Installation Issues
 
 ### "Access Denied" or Permission Errors
 If you get permission errors, make sure you're running Command Prompt as administrator (see Step 3 above).

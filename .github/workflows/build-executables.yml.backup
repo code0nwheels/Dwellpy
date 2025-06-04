@@ -295,21 +295,16 @@ jobs:
         run: |
           Set-Location dist
           
-          # For Windows, we expect the build script to create the installer
-          # Look for the installer file created by the Windows post-build process
-          $installerFiles = Get-ChildItem -Name "*installer*.exe"
-          if ($installerFiles) {
-            foreach ($file in $installerFiles) {
-              Write-Host "Found installer: $file"
-              echo "ARTIFACT_NAME=$file" >> $env:GITHUB_ENV
-              break
-            }
-          } else {
-            Write-Host "Warning: No installer found in dist directory"
-            # List all files to help debug
-            Write-Host "Available files:"
-            Get-ChildItem | Format-Table
-          }
+          $files = Get-ChildItem -Name "*.exe"
+          foreach ($file in $files) {
+            $version = "${{ steps.get-version.outputs.version }}"
+            $newName = "dwellpy-$version-${{ matrix.target }}.exe"
+            
+            Write-Host "Renaming $file to $newName"
+            Rename-Item $file $newName
+            
+            echo "ARTIFACT_NAME=$newName" >> $env:GITHUB_ENV
+            break          }
           
           Write-Host "Final dist contents:"
           Get-ChildItem | Format-Table
@@ -387,7 +382,7 @@ jobs:
           files: |
             dist/dwellpy-*-linux-debian-x64
             dist/dwellpy-*-linux-debian-arm64
-            dist/dwellpy-installer-*-windows-x64.exe
+            dist/dwellpy-*-windows-x64.exe
             dist/dwellpy-installer-*-macos-x64.dmg
           fail_on_unmatched_files: false
         env:
@@ -412,9 +407,15 @@ jobs:
           echo "- **Version**: ${{ steps.get-version-unix.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target**: ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Architecture**: ${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Distro**: ${{ matrix.distro || 'macOS' }}" >> $GITHUB_STEP_SUMMARY          echo "- **Python**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Distro**: ${{ matrix.distro || 'macOS' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Runner**: ${{ matrix.runner }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Artifact**: ${ARTIFACT_NAME:-'Not found'}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifact**: ${ARTIFACT_NAME:-'Not found'}" >> $GITHUB_STEP_SUMMARY      - name: Install NSIS (Windows)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
+        run: |
+          Write-Host "Installing NSIS..."
+          choco install nsis -y
+          Write-Host "NSIS installed successfully"
 
       - name: Clean up (Windows)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')

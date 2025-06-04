@@ -4,6 +4,36 @@ This guide helps you diagnose and fix common issues with Dwellpy.
 
 ## Installation Issues
 
+### Windows Installer Issues
+
+**Problem**: Windows shows a security warning when running the installer.
+
+**Solutions**:
+- Click "More info" then "Run anyway" - this is normal for open-source installers
+- Right-click the installer file, go to Properties, and check "Unblock" at the bottom
+- Temporarily disable Windows Defender SmartScreen if the above doesn't work
+
+**Problem**: Installer fails to run or install.
+
+**Solutions**:
+1. Run the installer as administrator (right-click → "Run as administrator")
+2. Check available disk space - installer needs ~50MB free space
+3. Close other programs that might be using files in the installation directory
+4. Try downloading the installer again in case it was corrupted
+
+**Problem**: Can't find Dwellpy after installation.
+
+**Solutions**:
+- Check Start Menu: Start → All Programs → Dwellpy
+- Look for desktop shortcut if you chose to create one during installation
+- Default installation location: `C:\Program Files\Dwellpy\Dwellpy.exe`
+
+**Problem**: Need to uninstall Dwellpy installed via installer.
+
+**Solutions**:
+- Use Windows Add/Remove Programs: Settings → Apps → find "Dwellpy" → Uninstall
+- Or use the uninstaller: Start Menu → All Programs → Dwellpy → Uninstall Dwellpy
+
 ### "Command not found: dwellpy"
 
 **Cause**: Dwellpy installed but isn't in your system's PATH.
