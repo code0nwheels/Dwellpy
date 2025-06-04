@@ -28,6 +28,11 @@ on:
           - linux-x64
           - macos-x64
 
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+
 jobs:
   build:
     name: Build ${{ matrix.target }}
