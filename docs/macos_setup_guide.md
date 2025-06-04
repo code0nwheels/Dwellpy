@@ -31,40 +31,6 @@ This is the simplest way to get Dwellpy running on macOS - just like any other M
 - This is normal for open-source software - just click **"Open"** when prompted
 - If the app is blocked, go to **System Preferences > Security & Privacy > General** and click **"Open Anyway"**
 
-## Method 2: Standalone Executable (Advanced Users)
-
-If you prefer the command-line approach or the DMG doesn't work:
-
-### Download and Setup
-1. Go to the [latest releases page](https://github.com/code0nwheels/dwellpy/releases/latest)
-2. Download the macOS executable (look for `dwellpy-*-macos-x64`)
-3. Open Terminal (Applications > Utilities > Terminal)
-4. Navigate to your Downloads folder: `cd ~/Downloads`
-5. **Rename and organize** (recommended):
-   ```bash
-   # Rename the file
-   mv dwellpy-*-macos-x64 Dwellpy
-   
-   # Create a dedicated folder and move it there
-   mkdir -p ~/Applications/Dwellpy
-   mv Dwellpy ~/Applications/Dwellpy/
-   
-   # Make it executable
-   chmod +x ~/Applications/Dwellpy/Dwellpy
-   ```
-6. Run Dwellpy: `~/Applications/Dwellpy/Dwellpy`
-7. macOS will automatically prompt you to grant Terminal accessibility permissions
-8. Click "Open System Preferences" and allow Terminal access to control your computer
-9. The Dwellpy toolbar should appear on your screen!
-
-### Adding to PATH (Optional)
-To run Dwellpy from anywhere in Terminal:
-```bash
-echo 'export PATH="$HOME/Applications/Dwellpy:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-Then you can simply run: `Dwellpy`
-
 ### Security Note
 macOS may show a Gatekeeper warning because the executable isn't signed with an Apple Developer certificate. This is normal for open-source software.
 
@@ -98,7 +64,6 @@ macOS may also show a security dialog the first time you run Dwellpy. Click "Ope
 | Method | Pros | Cons |
 |--------|------|------|
 | **DMG Installer** | Easy drag-and-drop installation, appears in Applications folder, professional experience | Still requires accessibility permissions, may show Gatekeeper warnings |
-| **Standalone Executable** | No Python required, self-contained, consistent performance | Requires terminal usage, larger file size (31.1 MB) |
 | **Python pip install** | Smaller download, easier updates, integrates with system Python | Requires Python installation, potential dependency conflicts |
 
 **Recommendation**: Use the DMG installer for the best user experience, especially if you're not familiar with the terminal.
@@ -159,8 +124,19 @@ pip3 uninstall dwellpy
 
 ## Running Dwellpy Automatically
 
-### Auto-Start with Login
-To start Dwellpy automatically when you log in:
+### Method 1: Via Dwellpy Settings (Recommended)
+The easiest way to enable auto-start is through Dwellpy's built-in settings:
+
+1. Open Dwellpy
+2. Click the **Settings** button (gear icon) 
+3. Go to the **General** tab
+4. Check **"Auto-start on system login"**
+5. Click **OK**
+
+Dwellpy will now automatically start when you log in to macOS. This method creates a proper Launch Agent that integrates cleanly with the system.
+
+### Method 2: Manual Setup with Login Items
+If you prefer to set up auto-start manually:
 
 1. Create a simple startup script:
    ```
@@ -176,7 +152,10 @@ To start Dwellpy automatically when you log in:
 6. Navigate to your home folder and select `dwellpy_start.sh`
 7. Add it to the list
 
-Dwellpy will now start automatically when you log in.
+### Disabling Auto-Start
+To disable auto-start:
+- **Via Settings**: Uncheck "Auto-start on system login" in Dwellpy Settings → General
+- **Manually**: Remove the script from Login Items in System Preferences
 
 ## Getting Help
 

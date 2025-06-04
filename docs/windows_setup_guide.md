@@ -146,8 +146,19 @@ For easier manual access:
 
 ## Running Dwellpy Automatically
 
-### Auto-Start with Windows (Advanced)
-For automatic startup with administrator privileges, use Task Scheduler:
+### Method 1: Via Dwellpy Settings (Recommended)
+The easiest way to enable auto-start is through Dwellpy's built-in settings:
+
+1. Open Dwellpy
+2. Click the **Settings** button (gear icon) 
+3. Go to the **General** tab
+4. Check **"Auto-start on system login"**
+5. Click **OK**
+
+Dwellpy will now automatically start when you log in to Windows. This method creates a scheduled task with administrator privileges, ensuring Dwellpy works properly with all applications.
+
+### Method 2: Manual Task Scheduler Setup (Advanced)
+If you prefer to set up auto-start manually using Task Scheduler:
 
 1. Press `Windows Key + R`, type `taskschd.msc`, press Enter
 2. In Task Scheduler, click "Create Task" in the right panel
@@ -167,6 +178,11 @@ For automatic startup with administrator privileges, use Task Scheduler:
 6. Click "OK" to save the task
 
 **Note**: You may see one UAC prompt when the task first runs, but after that it will start automatically with admin privileges.
+
+### Disabling Auto-Start
+To disable auto-start:
+- **Via Settings**: Uncheck "Auto-start on system login" in Dwellpy Settings → General
+- **Manual**: Delete the "Dwellpy Accessibility Tool" task from Task Scheduler
 
 **Important**: Do NOT use the regular startup folder (`shell:startup`) for Dwellpy. Windows ignores "Run as administrator" settings for shortcuts in the startup folder, so Dwellpy won't have the permissions it needs.
 

@@ -179,6 +179,27 @@ This section controls how Dwellpy should behave when first launched.
 
 **When to disable**: If you prefer to manually turn it on when needed.
 
+#### Auto-start on System Login
+**What it does**: Automatically starts Dwellpy when you log in to your computer.
+
+**How it works**: 
+- Creates platform-appropriate startup entries:
+  - **Windows**: Scheduled task with administrator privileges
+  - **macOS**: Launch Agent for user login
+  - **Linux**: XDG autostart desktop entry
+
+**When to enable**:
+- You use Dwellpy regularly and want it always available
+- For accessibility users who need consistent access
+- When Dwellpy is essential for computer interaction
+
+**When to disable**:
+- You only use Dwellpy occasionally
+- You prefer to start applications manually
+- Your system has limited startup applications
+
+**Note**: You can always enable/disable this setting later through the General tab in settings.
+
 ### UI Behavior
 This section controls how the toolbar behaves when you're not using it.
 
