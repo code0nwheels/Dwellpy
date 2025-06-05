@@ -191,7 +191,6 @@ def create_dmg_background():
 def create_dmg(app_path):
     """Create the DMG installer."""
     print("Creating DMG installer...")
-    
     app_name = app_path.name
     dmg_name = "dwellpy-installer"
     

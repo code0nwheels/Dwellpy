@@ -496,21 +496,15 @@ def macos_post_build():
     """Handle macOS-specific post-build actions."""
     if platform.system().lower() != 'darwin':
         return True  # Skip on non-macOS
-    
+
     print("macOS post-build actions...")
-      # Check if we have an app bundle
-    app_bundle = Path('dist/Dwellpy.app')
-    if app_bundle.exists():
-        print("    App bundle created successfully")
-        
-        # Automatically create DMG
-        print("   Creating DMG installer...")
+    # Always attempt to run the DMG script if the one-file executable exists
+    onefile_exe = Path('dist/Dwellpy')
+    if onefile_exe.exists():
+        print("    One-file executable found; running DMG script")
         dmg_script = Path('utils/create_macos_dmg.py')
         if dmg_script.exists():
-            result = subprocess.run([
-                sys.executable, str(dmg_script)
-            ], cwd=Path.cwd())
-            
+            result = subprocess.run([sys.executable, str(dmg_script)], cwd=Path.cwd())
             if result.returncode == 0:
                 print("    DMG created successfully")
             else:
@@ -519,8 +513,7 @@ def macos_post_build():
         else:
             print("   ! DMG script not found")
     else:
-        print("   ! No app bundle found")
-    
+        print("   ! No one-file executable found in dist/")
     return True
 
 def windows_post_build():

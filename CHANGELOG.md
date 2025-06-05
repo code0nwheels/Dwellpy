@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.1](https://github.com/code0nwheels/Dwellpy/compare/v0.9.0...v0.9.1) (2025-06-05)
+
+
+### Bug Fixes
+
+* resolve widget delay and auto-start error handling ([3a59e1e](https://github.com/code0nwheels/Dwellpy/commit/3a59e1e91b861d32469ddc50601f5bee93fcda5d))
+* respect widget appearance delay when activating Dwellpy ([6d9ab71](https://github.com/code0nwheels/Dwellpy/commit/6d9ab71efd47e7032938166f353c98324d192e83))
+* **ui:** add user-facing error dialogs for Windows auto-start configuration failures ([75f2523](https://github.com/code0nwheels/Dwellpy/commit/75f2523354fc5d585a2f1cc06b15525015de5e1b))
+
 ## [0.9.0](https://github.com/code0nwheels/Dwellpy/compare/v0.8.0...v0.9.0) (2025-06-03)
 
 
