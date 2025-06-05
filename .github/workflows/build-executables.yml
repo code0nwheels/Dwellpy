@@ -344,6 +344,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create DMG (macOS)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
+        shell: bash
+        run: |
+          python3 utils/create_macos_dmg.py
+
       - name: Upload to release (macOS)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
         uses: softprops/action-gh-release@v2
