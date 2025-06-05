@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import plistlib
+import argparse
 from pathlib import Path
 
 def check_macos():
@@ -188,12 +189,14 @@ def create_dmg_background():
     # This could be enhanced later with a custom background image
     pass
 
-def create_dmg(app_path):
+def create_dmg(app_path, tag=None):
     """Create the DMG installer."""
     print("Creating DMG installer...")
-    
     app_name = app_path.name
-    dmg_name = "dwellpy-installer"
+    if tag:
+        dmg_name = f"dwellpy-installer-{tag}"
+    else:
+        dmg_name = "dwellpy-installer"
     
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create staging directory
@@ -296,6 +299,9 @@ def main():
     """Main DMG creation process."""
     print("Dwellpy macOS DMG Creator")
     print("=" * 40)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--tag', type=str, default=None, help='Version tag for output filename')
+    args = parser.parse_args()
     
     # Check environment
     if not check_macos():
@@ -316,7 +322,7 @@ def main():
     
     # Create DMG
     try:
-        dmg_path = create_dmg(app_path)
+        dmg_path = create_dmg(app_path, tag=args.tag)
         
         print("\n" + "=" * 40)
         print("SUCCESS: DMG created successfully!")

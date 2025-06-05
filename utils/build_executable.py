@@ -504,9 +504,12 @@ def macos_post_build():
         print("    One-file executable found; running DMG script")
         dmg_script = Path('utils/create_macos_dmg.py')
         if dmg_script.exists():
-            result = subprocess.run([
-                sys.executable, str(dmg_script)
-            ], cwd=Path.cwd())
+            # Pass version/tag to DMG script if available
+            tag = os.environ.get('GITHUB_REF_NAME') or os.environ.get('GITHUB_TAG_NAME') or os.environ.get('DWELLPY_VERSION')
+            args = [sys.executable, str(dmg_script)]
+            if tag:
+                args.append(f'--tag={tag}')
+            result = subprocess.run(args, cwd=Path.cwd())
             if result.returncode == 0:
                 print("    DMG created successfully")
             else:
