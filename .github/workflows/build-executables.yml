@@ -315,7 +315,7 @@ jobs:
           Get-ChildItem | Format-Table
 
       - name: Prepare release artifact (Unix)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-') || startsWith(matrix.target, 'macos-'))
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-'))
         shell: bash
         run: |
           cd dist
@@ -334,6 +334,13 @@ jobs:
           echo "Final dist contents:"
           ls -la
 
+      - name: Prepare release artifact (macOS)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
+        shell: bash
+        run: |
+          echo "No renaming needed for macOS, DMG will be created from default output."
+          ls -la dist/
+
       - name: Upload to release (Windows)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
         uses: softprops/action-gh-release@v2
@@ -343,12 +350,6 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create DMG (macOS)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
-        shell: bash
-        run: |
-          python3 utils/create_macos_dmg.py
 
       - name: Upload to release (macOS)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
