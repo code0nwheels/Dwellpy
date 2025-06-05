@@ -375,8 +375,7 @@ jobs:
               fi
             done
           fi
-          
-          echo "Final dist contents:"
+            echo "Final dist contents:"
           ls -la
 
       - name: Upload to release
@@ -384,11 +383,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name }}
-          files: |
-            dist/dwellpy-*-linux-debian-x64
-            dist/dwellpy-*-linux-debian-arm64
-            dist/dwellpy-installer-*-windows-x64.exe
-            dist/dwellpy-installer-*-macos-x64.dmg
+          files: dist/*
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
