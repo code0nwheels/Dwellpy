@@ -377,66 +377,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload to release (Linux)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.tag_name }}
-          files: dist/*.deb
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create build summary (Windows)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
-        run: |
-          echo "## Build Summary for ${{ matrix.target }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "- **Version**: ${{ steps.get-version.outputs.version }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "- **Target**: ${{ matrix.target }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "- **Architecture**: ${{ matrix.arch }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "- **Python**: ${{ matrix.python-version }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "- **Runner**: ${{ matrix.runner }}" >> $env:GITHUB_STEP_SUMMARY
-          echo "- **Artifact**: $env:ARTIFACT_NAME" >> $env:GITHUB_STEP_SUMMARY
-
-      - name: Create build summary (Unix)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-') || startsWith(matrix.target, 'macos-'))
-        shell: bash
-        run: |
-          echo "## Build Summary for ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version**: ${{ steps.get-version-unix.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target**: ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Architecture**: ${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Distro**: ${{ matrix.distro || 'macOS' }}" >> $GITHUB_STEP_SUMMARY          echo "- **Python**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Runner**: ${{ matrix.runner }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Artifact**: ${ARTIFACT_NAME:-'Not found'}" >> $GITHUB_STEP_SUMMARY
-
-      - name: Clean up (Windows)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
-        run: |
-          Remove-Item -Path "dist\*.*" -Recurse -Force
-          Remove-Item -Path "build\*.*" -Recurse -Force
-          Remove-Item -Path "dwellpy\__pycache__\*.*" -Recurse -Force
-          Remove-Item -Path "dwellpy\*.spec" -Force
-
-      - name: Clean up (Unix)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-') || startsWith(matrix.target, 'macos-'))
-        shell: bash
-        run: |
-          rm -rf dist/* || true
-          rm -rf build/* || true
-          rm -rf dwellpy/__pycache__/* || true
-          rm -f dwellpy/*.spec || true
-
       - name: Package as .deb (Linux)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
         shell: bash
         run: |
           version="${{ steps.get-version-unix.outputs.version }}"
           arch="${{ matrix.arch }}"
+          executable_name="dwellpy-$version-${{ matrix.target }}" # This is the renamed executable from "Prepare release artifact (Unix)"
+          deb_file_name="dwellpy-$version-${{ matrix.target }}.deb"
+
+          echo "Preparing to package .deb. Looking for executable: dist/$executable_name"
+          echo "Current contents of dist/ directory:"
+          ls -la dist/
+
+          if [ ! -f "dist/$executable_name" ]; then
+            echo "Error: Executable dist/$executable_name not found for .deb packaging!"
+            exit 1
+          fi
+
           mkdir -p debbuild/DEBIAN
           mkdir -p debbuild/usr/local/bin
-          cp dist/dwellpy-$version-${{ matrix.target }} debbuild/usr/local/bin/dwellpy
+          cp "dist/$executable_name" debbuild/usr/local/bin/dwellpy
           chmod 755 debbuild/usr/local/bin/dwellpy
+          
           cat > debbuild/DEBIAN/control <<EOF
           Package: dwellpy
           Version: $version
@@ -446,34 +409,17 @@ jobs:
           Maintainer: Dwellpy Team <your@email.com>
           Description: Dwellpy - Dwell clicking accessibility tool
           EOF
-          dpkg-deb --build debbuild "dist/dwellpy-$version-${{ matrix.target }}.deb"
-
-      - name: Upload to release (Windows)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.tag_name }}
-          files: dist/*installer*.exe
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload to release (macOS)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.tag_name }}
-          files: dist/*.dmg
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+          dpkg-deb --build debbuild "dist/$deb_file_name"
+          echo "Successfully created .deb package: dist/$deb_file_name"
+          echo "ARTIFACT_NAME=$deb_file_name" >> $GITHUB_ENV # For the build summary
 
       - name: Upload to release (Linux)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name }}
-          files: dist/*.deb
+          files: dist/*.deb # Uploads the .deb file
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
