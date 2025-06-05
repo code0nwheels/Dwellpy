@@ -501,7 +501,7 @@ def macos_post_build():
     # Always attempt to run the DMG script if the one-file executable exists
     onefile_exe = Path('dist/Dwellpy')
     if onefile_exe.exists():
-        print("    One-file executable found; running DMG script"
+        print("    One-file executable found; running DMG script")
         dmg_script = Path('utils/create_macos_dmg.py')
         if dmg_script.exists():
             result = subprocess.run([
