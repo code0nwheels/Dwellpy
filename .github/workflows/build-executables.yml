@@ -400,13 +400,20 @@ jobs:
           cp "dist/$executable_name" debbuild/usr/local/bin/dwellpy
           chmod 755 debbuild/usr/local/bin/dwellpy
           
+          debian_arch=$arch
+          if [ "$arch" == "x64" ]; then
+            debian_arch="amd64"
+          fi
+          # Add other architecture mappings if needed, e.g.:
+          # elif [ "$arch" == "arm64" ]; then
+          #   debian_arch="arm64"
           cat > debbuild/DEBIAN/control <<EOF
           Package: dwellpy
           Version: $version
           Section: utils
           Priority: optional
-          Architecture: $arch
-          Maintainer: Dwellpy Team <your@email.com>
+          Architecture: $debian_arch
+          Maintainer: Dwellpy Team code0nwheels@proton.me
           Description: Dwellpy - Dwell clicking accessibility tool
           EOF
           
