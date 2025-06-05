@@ -319,72 +319,48 @@ jobs:
         shell: bash
         run: |
           cd dist
-          
-          version="${{ steps.get-version-unix.outputs.version }}"
-          # Handle macOS DMG only - enforce DMG-only uploads for macOS
-          if [[ "${{ matrix.target }}" == "macos-x64" ]]; then
-            # Check for DMG (required for macOS distribution)
-            if [ -f "dwellpy-installer.dmg" ]; then
-              dmg_name="dwellpy-installer-$version-${{ matrix.target }}.dmg"
-              echo "Renaming dwellpy-installer.dmg to $dmg_name"
-              mv "dwellpy-installer.dmg" "$dmg_name"
-              echo "ARTIFACT_NAME=$dmg_name" >> $GITHUB_ENV
-              echo "Successfully prepared DMG: $dmg_name"
-            else
-              echo "ERROR: DMG not found! macOS builds must create DMG installers."
-              echo "The build script should automatically create DMG from app bundle."
-              echo "Available files in dist:"
-              ls -la
-              echo ""
-              echo "Checking if app bundle exists for DMG creation:"
-              if [ -d "Dwellpy.app" ]; then
-                echo "App bundle found - trying to create DMG manually..."
-                cd ..
-                if [ -f "utils/create_macos_dmg.py" ]; then
-                  python utils/create_macos_dmg.py
-                  cd dist
-                  if [ -f "dwellpy-installer.dmg" ]; then
-                    dmg_name="dwellpy-installer-$version-${{ matrix.target }}.dmg"
-                    echo "DMG created successfully, renaming to $dmg_name"
-                    mv "dwellpy-installer.dmg" "$dmg_name"
-                    echo "ARTIFACT_NAME=$dmg_name" >> $GITHUB_ENV
-                  else
-                    echo "DMG creation failed"
-                    exit 1
-                  fi
-                else
-                  echo "DMG creation script not found"
-                  exit 1
-                fi
-              else
-                echo "No app bundle found either - build may have failed"
-                exit 1
-              fi
+          # Find the executable
+          for file in *; do
+            if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]]; then
+              version="${{ steps.get-version-unix.outputs.version }}"
+              new_name="dwellpy-$version-${{ matrix.target }}"
+              echo "Renaming $file to $new_name"
+              mv "$file" "$new_name"
+              chmod +x "$new_name"
+              echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
+              break
             fi
-          else
-            # Linux: Handle executable
-            for file in *; do
-              if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]]; then
-                new_name="dwellpy-$version-${{ matrix.target }}"
-                
-                echo "Renaming $file to $new_name"
-                mv "$file" "$new_name"
-                chmod +x "$new_name"
-                  echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
-                break
-              fi
-            done
-          fi
-            echo "Final dist contents:"
+          done
+          echo "Final dist contents:"
           ls -la
 
-      - name: Upload to release
-        if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
+      - name: Upload to release (Windows)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name }}
-          files: dist/*
-          fail_on_unmatched_files: false
+          files: dist/*installer*.exe
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to release (macOS)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: dist/*.dmg
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload to release (Linux)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          files: dist/dwellpy-*
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

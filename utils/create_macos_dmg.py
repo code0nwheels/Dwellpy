@@ -48,41 +48,18 @@ def create_app_bundle():
     """Create a proper macOS .app bundle from the PyInstaller executable."""
     print("Creating macOS app bundle...")
     
-    # Check if we have a PyInstaller-built app bundle (preferred)
-    pyinstaller_app = Path('dist/Dwellpy.app')
-    if pyinstaller_app.exists():
+    # Check if we have a PyInstaller-built executable
+    if Path('dist/Dwellpy.app').exists():
         print("   ✓ PyInstaller app bundle already exists")
-        # Verify it's a complete app bundle
-        executable_path = pyinstaller_app / 'Contents' / 'MacOS' / 'Dwellpy'
-        if executable_path.exists() and executable_path.is_file():
-            print("   ✓ App bundle structure verified")
-            return pyinstaller_app
-        else:
-            print("   ! App bundle incomplete, checking for standalone executable...")
+        return Path('dist/Dwellpy.app')
     
-    # Check if we have a standalone executable to convert
     exe_path = Path('dist/Dwellpy')
     if not exe_path.exists():
         print("   ERROR: No executable found in dist/")
-        print("   Expected locations:")
-        print("     - dist/Dwellpy.app (PyInstaller app bundle)")
-        print("     - dist/Dwellpy (standalone executable)")
         print("   Run the build script first: python utils/build_executable.py")
-        
-        # Debug: show what's actually in dist/
-        dist_path = Path('dist')
-        if dist_path.exists():
-            print("   Current dist/ contents:")
-            for item in dist_path.iterdir():
-                size = ""
-                if item.is_file():
-                    size = f" ({item.stat().st_size / 1024 / 1024:.1f} MB)"
-                print(f"     {item.name} ({'dir' if item.is_dir() else 'file'}){size}")
-        
         return None
     
-    # Create app bundle structure from standalone executable
-    print("   Converting standalone executable to app bundle...")
+    # Create app bundle structure
     app_path = Path('dist/Dwellpy.app')
     contents_path = app_path / 'Contents'
     macos_path = contents_path / 'MacOS'

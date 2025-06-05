@@ -498,7 +498,7 @@ def macos_post_build():
         return True  # Skip on non-macOS
     
     print("macOS post-build actions...")
-    # Check if we have an app bundle
+      # Check if we have an app bundle
     app_bundle = Path('dist/Dwellpy.app')
     if app_bundle.exists():
         print("    App bundle created successfully")
@@ -507,35 +507,19 @@ def macos_post_build():
         print("   Creating DMG installer...")
         dmg_script = Path('utils/create_macos_dmg.py')
         if dmg_script.exists():
-            # Make sure we're in the right directory and pass proper environment
             result = subprocess.run([
-                sys.executable, str(dmg_script.absolute())
-            ], cwd=Path.cwd(), capture_output=True, text=True)
+                sys.executable, str(dmg_script)
+            ], cwd=Path.cwd())
             
             if result.returncode == 0:
                 print("    DMG created successfully")
-                # Verify DMG was actually created
-                dmg_path = Path('dist/dwellpy-installer.dmg')
-                if dmg_path.exists():
-                    print(f"    DMG file: {dmg_path} ({dmg_path.stat().st_size / 1024 / 1024:.1f} MB)")
-                else:
-                    print("   ! DMG file not found despite successful script execution")
             else:
                 print("   ! DMG creation failed (continuing anyway)")
-                print(f"   Error output: {result.stderr}")
-                print(f"   Standard output: {result.stdout}")
                 return True  # Don't fail the build for DMG issues
         else:
             print("   ! DMG script not found")
     else:
         print("   ! No app bundle found")
-        print("   Checking dist directory contents:")
-        dist_path = Path('dist')
-        if dist_path.exists():
-            for item in dist_path.iterdir():
-                print(f"     {item.name} ({'dir' if item.is_dir() else 'file'})")
-        else:
-            print("     dist directory does not exist")
     
     return True
 
