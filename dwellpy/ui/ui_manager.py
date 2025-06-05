@@ -778,11 +778,6 @@ class DwellClickerUI:
         if self.is_cursor_over_window:
             return
         
-        # Don't contract if settings dialog is open
-        if (self.settings_manager.settings_dialog and 
-            self.settings_manager.settings_dialog.isVisible()):
-            return
-        
         self.is_contracted = True
         
         # Store current window position before resizing

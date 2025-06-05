@@ -1,7 +1,7 @@
 """Settings dialog for the Dwellpy application."""
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                           QPushButton, QSlider, QCheckBox, QFrame, QComboBox, QColorDialog, QTabWidget, QWidget, QRadioButton, QButtonGroup)
+                           QPushButton, QSlider, QCheckBox, QFrame, QComboBox, QColorDialog, QTabWidget, QWidget, QRadioButton, QButtonGroup, QMessageBox)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor, QIcon
 import os
@@ -1052,11 +1052,6 @@ class SettingsDialog(QDialog):
         is_active = state == 2  # Qt.CheckState.Checked is 2
         self.settings_manager.update_default_active(is_active)
 
-    def on_auto_start_toggle(self, state):
-        """Handle auto-start checkbox toggle."""
-        is_enabled = state == 2  # Qt.CheckState.Checked is 2
-        self.settings_manager.update_auto_start_enabled(is_enabled)
-
     def on_contract_ui_toggle(self, state):
         """Handle contract UI checkbox toggle."""
         is_enabled = state == 2  # Qt.CheckState.Checked is 2
@@ -1073,14 +1068,31 @@ class SettingsDialog(QDialog):
             direction = 'vertical'
         else:
             direction = 'auto'  # fallback
-        
-        # Update settings
+          # Update settings
         self.settings_manager.update_expansion_direction(direction)
     
     def on_auto_start_toggle(self, state):
         """Handle auto-start checkbox toggle."""
         is_enabled = state == 2  # Qt.CheckState.Checked is 2
-        self.settings_manager.update_auto_start_enabled(is_enabled)
+        
+        # Call update_auto_start_enabled which returns (success, error_message)
+        success, error_message = self.settings_manager.update_auto_start_enabled(is_enabled)
+        
+        if not success:
+            # Auto-start configuration failed - show error dialog
+            msg_box = QMessageBox(self)
+            msg_box.setIcon(QMessageBox.Icon.Critical)
+            msg_box.setWindowTitle("Auto-start Configuration Error")
+            msg_box.setText(error_message)
+            msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+            
+            # Set the checkbox back to the opposite state since the operation failed
+            self.auto_start_check.blockSignals(True)  # Prevent recursive calls
+            self.auto_start_check.setChecked(not is_enabled)
+            self.auto_start_check.blockSignals(False)
+            
+            # Show the error dialog
+            msg_box.exec()
     
     # Hover enter/leave methods for +/- buttons
     def on_enter_minus_move(self):
