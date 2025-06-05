@@ -363,47 +363,60 @@ class SettingsManager:
             self.logger.info(f"UI expansion direction updated to: {direction}")
         else:
             self.logger.warning(f"Invalid expansion direction: {direction}")
-
-    def update_auto_start_enabled(self, enabled: bool) -> None:
+    
+    def update_auto_start_enabled(self, enabled: bool) -> tuple[bool, str]:
         """
-        Update auto-start setting and apply immediately on Linux.
+        Update auto-start setting and apply immediately.
         
         Args:
             enabled: Whether app should start automatically on login
+            
+        Returns:
+            Tuple of (success: bool, error_message: str). error_message is empty on success.
         """
         self.settings['auto_start_enabled'] = enabled
         
-        # Apply auto-start configuration immediately on Linux
-        self._apply_auto_start_setting(enabled)
+        # Apply auto-start configuration immediately
+        success, error_message = self._apply_auto_start_setting(enabled)
         
-        self.logger.info(f"Auto-start enabled: {enabled}")
+        if success:
+            self.logger.info(f"Auto-start enabled: {enabled}")
+        
+        return success, error_message
 
-    def _apply_auto_start_setting(self, enabled: bool) -> None:
+    def _apply_auto_start_setting(self, enabled: bool) -> tuple[bool, str]:
         """
         Apply auto-start setting to the operating system.
         Currently supports Linux (XDG autostart), Windows (Task Scheduler), and macOS (launchd).
         
         Args:
             enabled: Whether to enable or disable auto-start
+            
+        Returns:
+            Tuple of (success: bool, error_message: str). error_message is empty on success.
         """
         import os
         import platform
-        
         if platform.system() == 'Linux':
-            self._apply_linux_autostart(enabled)
+            return self._apply_linux_autostart(enabled)
         elif platform.system() == 'Windows':
-            self._apply_windows_autostart(enabled)
+            return self._apply_windows_autostart(enabled)
         elif platform.system() == 'Darwin':
-            self._apply_macos_autostart(enabled)
+            return self._apply_macos_autostart(enabled)
         else:
-            self.logger.warning(f"Auto-start not supported on {platform.system()}")
-
-    def _apply_linux_autostart(self, enabled: bool) -> None:
+            error_message = f"Auto-start not supported on {platform.system()}"
+            self.logger.warning(error_message)
+            return False, error_message
+            
+    def _apply_linux_autostart(self, enabled: bool) -> tuple[bool, str]:
         """
         Apply Linux XDG autostart configuration.
         
         Args:
             enabled: Whether to enable or disable auto-start
+            
+        Returns:
+            Tuple of (success: bool, error_message: str). error_message is empty on success.
         """
         import os
         
@@ -413,7 +426,8 @@ class SettingsManager:
         
         try:
             if enabled:
-                # Create autostart directory if it doesn't exist                os.makedirs(autostart_dir, exist_ok=True)
+                # Create autostart directory if it doesn't exist
+                os.makedirs(autostart_dir, exist_ok=True)
                 
                 # Check if the main desktop file exists
                 if os.path.exists(desktop_file):
@@ -451,29 +465,34 @@ Keywords=accessibility;dwell;click;motor;disability;
                     with open(autostart_file, 'w', encoding='utf-8') as f:
                         f.write(autostart_content)
                     self.logger.info(f"Auto-start enabled: created {autostart_file} with executable: {executable_path}")
+                return True, ""
             else:
                 # Remove autostart file
                 if os.path.exists(autostart_file):
                     os.remove(autostart_file)
                     self.logger.info(f"Auto-start disabled: removed {autostart_file}")
-                    
+                return True, ""
         except Exception as e:
+            error_message = f"Failed to configure auto-start: {str(e)}"
             self.logger.error(f"Error applying auto-start setting: {e}", exc_info=True)
+            return False, error_message
 
-    def _apply_windows_autostart(self, enabled: bool) -> None:
+    def _apply_windows_autostart(self, enabled: bool) -> tuple[bool, str]:
         """
         Apply Windows auto-start configuration using Task Scheduler.
         Creates a scheduled task with highest privileges for optimal accessibility support.
         
         Args:
             enabled: Whether to enable or disable auto-start
+            
+        Returns:
+            Tuple of (success: bool, error_message: str). error_message is empty on success.
         """
         import os
         import sys
         import subprocess
         
         task_name = "Dwellpy Accessibility Tool"
-        
         try:
             if enabled:
                 # Get the executable path
@@ -494,37 +513,69 @@ Keywords=accessibility;dwell;click;motor;disability;
                     '/rl', 'highest',  # Run with highest privileges
                     '/f'  # Force create (overwrites existing)
                 ]
-                
+
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 
                 if result.returncode == 0:
                     self.logger.info(f"Auto-start enabled: created scheduled task '{task_name}' with executable: {executable_path}")
+                    return True, ""
                 else:
-                    self.logger.error(f"Failed to create scheduled task: {result.stderr}")
+                    error_message = result.stderr.strip()
+                    # Check for access denied or permission errors
+                    if any(keyword in error_message.lower() for keyword in ['access denied', 'access is denied', 'insufficient privileges', 'not have permission']):
+                        user_message = "Failed to enable auto-start due to insufficient permissions.\n\nPlease run Dwellpy as Administrator to configure auto-start."
+                        self.logger.error(f"Failed to create scheduled task due to insufficient permissions. Please run Dwellpy as Administrator to enable auto-start. Error: {error_message}")
+                        return False, user_message
+                    else:
+                        user_message = f"Failed to enable auto-start.\n\nError details: {error_message}"
+                        self.logger.error(f"Failed to create scheduled task: {error_message}")
+                        return False, user_message
             else:
                 # Remove the scheduled task
                 cmd = ['schtasks', '/delete', '/tn', task_name, '/f']
-                
+
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 
                 if result.returncode == 0:
                     self.logger.info(f"Auto-start disabled: removed scheduled task '{task_name}'")
+                    return True, ""
                 else:
+                    error_message = result.stderr.strip()
                     # Task might not exist, which is fine
-                    if "cannot find" in result.stderr.lower() or "not found" in result.stderr.lower():
+                    if "cannot find" in error_message.lower() or "not found" in error_message.lower():
                         self.logger.info(f"Auto-start disabled: scheduled task '{task_name}' was not found (already disabled)")
+                        return True, ""  # Not an error if task doesn't exist
+                    elif any(keyword in error_message.lower() for keyword in ['access denied', 'access is denied', 'insufficient privileges', 'not have permission']):
+                        user_message = "Failed to disable auto-start due to insufficient permissions.\n\nPlease run Dwellpy as Administrator to configure auto-start."
+                        self.logger.error(f"Failed to remove scheduled task due to insufficient permissions. Please run Dwellpy as Administrator to disable auto-start. Error: {error_message}")
+                        return False, user_message
                     else:
-                        self.logger.error(f"Failed to remove scheduled task: {result.stderr}")
+                        user_message = f"Failed to disable auto-start.\n\nError details: {error_message}"
+                        self.logger.error(f"Failed to remove scheduled task: {error_message}")
+                        return False, user_message
+        except PermissionError as e:
+            user_message = "Permission denied when configuring auto-start.\n\nPlease run Dwellpy as Administrator to modify scheduled tasks."
+            self.logger.error(f"Permission denied when configuring Windows auto-start. Please run Dwellpy as Administrator to modify scheduled tasks. Error: {e}")
+            return False, user_message
+        except subprocess.CalledProcessError as e:
+            user_message = "Failed to execute scheduled task command.\n\nYou may need to run Dwellpy as Administrator."
+            self.logger.error(f"Failed to execute Windows scheduled task command. You may need to run Dwellpy as Administrator. Error: {e}")
+            return False, user_message
         except Exception as e:
+            user_message = f"An unexpected error occurred while configuring auto-start.\n\nError details: {str(e)}"
             self.logger.error(f"Error applying Windows auto-start setting: {e}", exc_info=True)
+            return False, user_message
 
-    def _apply_macos_autostart(self, enabled: bool) -> None:
+    def _apply_macos_autostart(self, enabled: bool) -> tuple[bool, str]:
         """
         Apply macOS auto-start configuration using launchd.
         Creates a Launch Agent plist file for user login.
         
         Args:
             enabled: Whether to enable or disable auto-start
+            
+        Returns:
+            Tuple of (success: bool, error_message: str). error_message is empty on success.
         """
         import os
         import sys

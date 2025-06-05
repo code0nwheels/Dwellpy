@@ -622,7 +622,6 @@ class DwellClickerUI:
             
             # Move window to the adjusted position
             self.window.move(new_x, new_y)
-            
         except Exception:
             # If there's any error, keep the window at its current position
             pass
@@ -651,7 +650,18 @@ class DwellClickerUI:
         
         # Enable/disable scroll widget based on setting and active state
         should_be_active = self.is_active and scroll_enabled
-        self.scroll_widget.set_active(should_be_active)
+        
+        # Set the widget's active state, but respect the widget appearance delay
+        # Instead of immediately showing the widget, let the movement detection system handle visibility
+        if should_be_active != self.scroll_widget.is_active:
+            if should_be_active:
+                # When enabling, don't show immediately - set active state but keep hidden
+                # The movement detection system will show it after the configured delay
+                self.scroll_widget.is_active = True
+                # Don't call show() here - let _show_widgets_for_movement() handle it
+            else:
+                # When disabling, immediately hide
+                self.scroll_widget.set_active(False)
         
         # Update button states to reflect scroll setting changes
         self.update_button_states()
@@ -776,11 +786,6 @@ class DwellClickerUI:
         
         # Don't contract if cursor is over window
         if self.is_cursor_over_window:
-            return
-        
-        # Don't contract if settings dialog is open
-        if (self.settings_manager.settings_dialog and 
-            self.settings_manager.settings_dialog.isVisible()):
             return
         
         self.is_contracted = True
@@ -1339,9 +1344,13 @@ class DwellClickerUI:
             self.button_manager.clear_hover()
         
         self.update_button_states()
-        
-        # Reset movement state when toggling
-        self.widgets_hidden_for_movement = False
+          # Reset movement state when toggling - start with widgets hidden to respect appearance delay
+        if self.is_active:
+            # When activating, start with widgets hidden so they appear after the configured delay
+            self.widgets_hidden_for_movement = True
+        else:
+            # When deactivating, widgets should be hidden anyway
+            self.widgets_hidden_for_movement = False
         
         # Update contracted button text if UI is contracted
         self.update_contracted_button_state()
@@ -1351,19 +1360,6 @@ class DwellClickerUI:
         
         # Apply menu settings which will show/hide widget based on active state
         self.apply_menu_settings()
-        
-        if self.is_active:
-            # Force immediate position update when becoming active
-            if (self.settings_manager.get_setting('scroll_enabled', True) or 
-                self.settings_manager.get_setting('menu_enabled', True)):
-                try:
-                    from pynput.mouse import Controller
-                    mouse = Controller()
-                    pos = mouse.position
-                    self.update_scroll_widget_position(pos)
-                    self.update_menu_widget_position(pos)
-                except Exception as e:
-                    pass
     
     def set_mode(self, mode):
         """Set click mode with improved temporary/default behavior."""
@@ -2062,7 +2058,7 @@ class DwellClickerUI:
         except Exception:
             # Fallback to horizontal if there's any error
             return 'horizontal'
-
+    
     def apply_menu_settings(self):
         """Apply menu widget settings from the settings manager."""
         if not self.settings_manager:
@@ -2084,7 +2080,18 @@ class DwellClickerUI:
         
         # Enable/disable menu widget based on setting and active state
         should_be_active = self.is_active and menu_enabled
-        self.menu_widget.set_active(should_be_active)
+        
+        # Set the widget's active state, but respect the widget appearance delay
+        # Instead of immediately showing the widget, let the movement detection system handle visibility
+        if should_be_active != self.menu_widget.is_active:
+            if should_be_active:
+                # When enabling, don't show immediately - set active state but keep hidden
+                # The movement detection system will show it after the configured delay
+                self.menu_widget.is_active = True
+                # Don't call show() here - let _show_widgets_for_movement() handle it
+            else:
+                # When disabling, immediately hide
+                self.menu_widget.set_active(False)
         
         # Update button states to reflect menu setting changes
         self.update_button_states()
