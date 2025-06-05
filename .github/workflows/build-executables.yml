@@ -320,46 +320,45 @@ jobs:
         run: |
           cd dist
           
-          version="${{ steps.get-version-unix.outputs.version }}"
-          
-          # Handle macOS app bundle and DMG
+          version="${{ steps.get-version-unix.outputs.version }}"          # Handle macOS DMG only - enforce DMG-only uploads for macOS
           if [[ "${{ matrix.target }}" == "macos-x64" ]]; then
-            # Check for DMG first (preferred)
+            # Check for DMG (required for macOS distribution)
             if [ -f "dwellpy-installer.dmg" ]; then
               dmg_name="dwellpy-installer-$version-${{ matrix.target }}.dmg"
               echo "Renaming dwellpy-installer.dmg to $dmg_name"
               mv "dwellpy-installer.dmg" "$dmg_name"
               echo "ARTIFACT_NAME=$dmg_name" >> $GITHUB_ENV
-              echo "ADDITIONAL_ARTIFACTS=" >> $GITHUB_ENV
+              echo "Successfully prepared DMG: $dmg_name"
             else
-              echo "Warning: DMG not found, checking for app bundle..."
-            fi
-            
-            # Also handle app bundle if present
-            if [ -d "Dwellpy.app" ]; then
-              app_name="Dwellpy-$version-${{ matrix.target }}.app"
-              echo "Renaming Dwellpy.app to $app_name"
-              mv "Dwellpy.app" "$app_name"
-              
-              if [ -z "$ARTIFACT_NAME" ]; then
-                echo "ARTIFACT_NAME=$app_name" >> $GITHUB_ENV
-              else
-                echo "ADDITIONAL_ARTIFACTS=$app_name" >> $GITHUB_ENV
-              fi
-            fi
-            
-            # Handle standalone executable if no app bundle
-            if [ -z "$ARTIFACT_NAME" ]; then
-              for file in *; do
-                if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]] && [[ "$file" != *.app ]]; then
-                  new_name="dwellpy-$version-${{ matrix.target }}"
-                  echo "Renaming $file to $new_name"
-                  mv "$file" "$new_name"
-                  chmod +x "$new_name"
-                  echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
-                  break
+              echo "ERROR: DMG not found! macOS builds must create DMG installers."
+              echo "The build script should automatically create DMG from app bundle."
+              echo "Available files in dist:"
+              ls -la
+              echo ""
+              echo "Checking if app bundle exists for DMG creation:"
+              if [ -d "Dwellpy.app" ]; then
+                echo "App bundle found - trying to create DMG manually..."
+                cd ..
+                if [ -f "utils/create_macos_dmg.py" ]; then
+                  python utils/create_macos_dmg.py
+                  cd dist
+                  if [ -f "dwellpy-installer.dmg" ]; then
+                    dmg_name="dwellpy-installer-$version-${{ matrix.target }}.dmg"
+                    echo "DMG created successfully, renaming to $dmg_name"
+                    mv "dwellpy-installer.dmg" "$dmg_name"
+                    echo "ARTIFACT_NAME=$dmg_name" >> $GITHUB_ENV
+                  else
+                    echo "DMG creation failed"
+                    exit 1
+                  fi
+                else
+                  echo "DMG creation script not found"
+                  exit 1
                 fi
-              done
+              else
+                echo "No app bundle found either - build may have failed"
+                exit 1
+              fi
             fi
           else
             # Linux: Handle executable
@@ -427,3 +426,37 @@ jobs:
           rm -rf build/* || true
           rm -rf dwellpy/__pycache__/* || true
           rm -f dwellpy/*.spec || true
+
+      - name: Set up macOS DMG creation tools
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
+        shell: bash
+        run: |
+          echo "Checking macOS DMG creation tools..."
+          which hdiutil || echo "hdiutil not found"
+          which iconutil || echo "iconutil not found"
+          
+          # Ensure Xcode Command Line Tools are available
+          xcode-select --print-path || echo "Xcode Command Line Tools may not be installed"
+          
+          echo "macOS version:"
+          sw_vers
+
+      - name: Debug macOS build output
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
+        shell: bash
+        run: |
+          echo "=== macOS Build Debug ==="
+          echo "Contents of dist directory:"
+          ls -la dist/ || echo "dist/ directory not found"
+          
+          echo "Looking for app bundle:"
+          find . -name "*.app" -type d 2>/dev/null || echo "No .app bundles found"
+          
+          echo "Looking for DMG files:"
+          find . -name "*.dmg" -type f 2>/dev/null || echo "No .dmg files found"
+          
+          echo "Checking if DMG creation script exists:"
+          ls -la utils/create_macos_dmg.py || echo "DMG creation script not found"
+          
+          echo "Looking for any Dwellpy files:"
+          find . -name "*wellpy*" -type f 2>/dev/null || echo "No Dwellpy files found"
