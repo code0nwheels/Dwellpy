@@ -407,6 +407,7 @@ jobs:
           # Add other architecture mappings if needed, e.g.:
           # elif [ "$arch" == "arm64" ]; then
           #   debian_arch="arm64"
+
           cat > debbuild/DEBIAN/control <<EOF
           Package: dwellpy
           Version: $version

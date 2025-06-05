@@ -5,105 +5,108 @@ This guide will help you install and run Dwellpy on Linux.
 ## System Requirements
 
 - Linux distribution with X11 (Wayland support coming soon)
-- Python 3.9 or newer (for pip installation)
+- Python 3.9 or newer (if using the install script or pip)
 - Internet connection for downloads
 
-## Method 1: Standalone Executables (Easiest)
+## Method 1: Debian Package (.deb) Installation (Recommended for Debian/Ubuntu/Mint)
 
-Download and run the executable for your architecture - no installation required:
+If you are using a Debian-based distribution (like Debian, Ubuntu, Linux Mint, Pop!_OS, etc.), the recommended way to install Dwellpy is using the `.deb` package.
 
-### For x64 Systems (Most Common)
-1. Go to the [latest releases page](https://github.com/code0nwheels/dwellpy/releases/latest)
-2. Download the x64 executable (look for `dwellpy-*-linux-debian-x64`)
-3. Open a terminal and navigate to Downloads: `cd ~/Downloads`
-4. **Rename and organize** (recommended):
-   ```bash
-   # Rename the file
-   mv dwellpy-*-linux-debian-x64 Dwellpy
-   
-   # Move to a proper location
-   sudo mkdir -p /opt/dwellpy
-   sudo mv Dwellpy /opt/dwellpy/
-   sudo chmod +x /opt/dwellpy/Dwellpy
-   
-   # Create a symlink for easy access
-   sudo ln -sf /opt/dwellpy/Dwellpy /usr/local/bin/dwellpy
-      ```
-5. Run: `dwellpy` (or `/opt/dwellpy/Dwellpy`)
+1.  Go to the [latest releases page](https://github.com/code0nwheels/dwellpy/releases/latest).
+2.  Download the `.deb` file for your system's architecture.
+    *   For **x64 (amd64)** systems (most common), download `dwellpy-*-linux-debian-x64.deb`.
+    *   For **ARM64** systems, download `dwellpy-*-linux-debian-arm64.deb`.
+3.  Open a terminal and navigate to the directory where you downloaded the file (e.g., `cd ~/Downloads`).
+4.  Install the package using `dpkg`. Replace `dwellpy-version-architecture.deb` with the actual filename:
+    ```bash
+    sudo dpkg -i dwellpy-version-architecture.deb
+    ```
+    For example:
+    ```bash
+    sudo dpkg -i dwellpy-0.9.1-linux-debian-x64.deb
+    ```
+5.  If you encounter any dependency errors, run the following command to fix them. This command will also install Dwellpy if `dpkg` failed due to missing dependencies.
+    ```bash
+    sudo apt-get update && sudo apt-get install -f
+    ```
+6.  Once installed, you can run Dwellpy by typing `dwellpy` in your terminal or finding it in your application menu.
 
-### For ARM64 Systems (Raspberry Pi, Apple Silicon, etc.)
-1. Go to the [latest releases page](https://github.com/code0nwheels/dwellpy/releases/latest)
-2. Download the ARM64 executable (look for `dwellpy-*-linux-debian-arm64`)
-3. Open a terminal and navigate to Downloads: `cd ~/Downloads`
-4. **Rename and organize** (recommended):
-   ```bash
-   # Rename the file
-   mv dwellpy-*-linux-debian-arm64 Dwellpy
-   
-   # Move to a proper location
-   sudo mkdir -p /opt/dwellpy
-   sudo mv Dwellpy /opt/dwellpy/
-   sudo chmod +x /opt/dwellpy/Dwellpy
-   
-   # Create a symlink for easy access
-   sudo ln -sf /opt/dwellpy/Dwellpy /usr/local/bin/dwellpy
-   ```
-5. Run: `./dwellpy-*-linux-debian-arm64`
+**Note on Architectures:** The `.deb` package for `x64` is built with the architecture `amd64` in its control file to ensure compatibility with `dpkg`. Similarly, `arm64` is used for ARM64 systems.
 
-### Quick Installation Script
-For easier access, you can install the executable system-wide:
+### Updating Dwellpy (Installed via .deb)
 
-```bash
-# For x64 systems - replace * with actual version number
-curl -L https://github.com/code0nwheels/dwellpy/releases/latest/download/dwellpy-*-linux-debian-x64 -o dwellpy
-chmod +x dwellpy
-sudo mv dwellpy /usr/local/bin/
+To update Dwellpy if you installed it using the `.deb` package:
 
-# For ARM64 systems - replace * with actual version number  
-curl -L https://github.com/code0nwheels/dwellpy/releases/latest/download/dwellpy-*-linux-debian-arm64 -o dwellpy
-chmod +x dwellpy
-sudo mv dwellpy /usr/local/bin/
-```
+1.  Go to the [latest releases page](https://github.com/code0nwheels/dwellpy/releases/latest) and download the new `.deb` file for your architecture.
+2.  Open a terminal and navigate to the directory where you downloaded the new version.
+3.  Install the new package. This will typically upgrade the existing installation.
+    ```bash
+    sudo dpkg -i dwellpy-new-version-architecture.deb
+    ```
+    Replace `dwellpy-new-version-architecture.deb` with the actual filename of the new version.
+4.  If you encounter dependency issues, or to ensure all dependencies are correct, run:
+    ```bash
+    sudo apt-get update && sudo apt-get install -f
+    ```
 
-Then run with just: `dwellpy`
+Alternatively, if Dwellpy was installed and its dependencies were resolved with `apt` (e.g., after `sudo apt-get install -f`), you might be able to upgrade using `apt` directly if you've added a PPA or if the package is in a configured repository (though this guide currently focuses on direct .deb installation):
+    ```bash
+    # sudo apt-get update
+    # sudo apt-get install --only-upgrade dwellpy
+    ```
+    For direct .deb file downloads, the `dpkg -i` method is the most straightforward for upgrading.
 
-## Method 2: Automated Install Script (Recommended for pip users)
+### Uninstalling Dwellpy (Installed via .deb)
 
-The easiest way to install Dwellpy via pip is using our automated install script:
+To uninstall Dwellpy if you installed it using the `.deb` package:
+
+1.  Open a terminal.
+2.  Use the following command to remove the package:
+    ```bash
+    sudo apt-get remove dwellpy
+    ```
+3.  If you also want to remove any system-wide configuration files that were installed with the package (though Dwellpy primarily stores user-specific settings in the user's home directory), you can use:
+    ```bash
+    sudo apt-get purge dwellpy
+    ```
+    For most users, `sudo apt-get remove dwellpy` is sufficient.
+
+## Method 2: Automated Install Script (Recommended for Other Distributions or Script-Based Setup)
+
+For other Linux distributions, or if you prefer a script-based setup that handles dependencies and creates a desktop entry, you can use our automated install script. This script installs Dwellpy using pip and sets up the environment.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-install.sh | bash
 ```
 
 This script will:
-- Detect your Linux distribution automatically
-- Install Python 3 and git if needed
-- Download and install Dwellpy from source
-- Create a launcher script in `~/.local/bin/dwellpy`
-- Add the launcher to your PATH
-- Create a desktop menu entry (appears in Applications menu)
-- Optionally set up autostart (asks for your preference)
-- Check for X11/Wayland compatibility
-- Detect desktop environment and optimize setup
+- Detect your Linux distribution.
+- Install Python 3 and pip if needed.
+- Install Dwellpy and its dependencies using pip.
+- Create a launcher script (usually in `~/.local/bin/dwellpy`).
+- Attempt to add the launcher to your PATH.
+- Create a desktop menu entry (Dwellpy should appear in your Applications menu).
+- Optionally set up autostart (it will ask for your preference).
+- Check for X11/Wayland compatibility.
 
-### Supported Distributions (X11 ONLY)
-- Ubuntu/Debian/Pop!_OS/Linux Mint
+### Supported Distributions by Script (X11 ONLY)
+The script aims to support a wide range of distributions, including:
+- Ubuntu/Debian/Pop!_OS/Linux Mint (though the .deb package is preferred here)
 - Fedora
 - CentOS/RHEL/Rocky Linux/AlmaLinux
 - Arch Linux/Manjaro
 - openSUSE
 
-### Installation Features
-The automated installer provides:
-- **Desktop Integration**: Dwellpy appears in your Applications menu
-- **Optional Auto-start**: Choose whether Dwellpy starts automatically when you log in
-- **Enhanced Launcher**: Improved startup script with GUI environment detection
-- **Comprehensive Logging**: Installation and runtime logs for troubleshooting
+If your distribution is not listed, the script might still work, especially if it's based on one of the above.
 
-After installation completes, you can:
+### Installation Features via Script
+- **Desktop Integration**: Dwellpy appears in your Applications menu.
+- **Optional Auto-start**: Choose whether Dwellpy starts automatically when you log in.
+- **Environment Setup**: Handles Python, pip, and PATH adjustments.
+
+After installation completes, you can typically:
 - Start from command line: `dwellpy`
-- Start from Applications menu: Look for "Dwellpy" in Accessibility or System Tools
-- Start automatically: If you chose auto-start during installation
+- Start from Applications menu: Look for "Dwellpy".
 
 ## Method 3: Manual Installation (Advanced Users)
 
@@ -111,11 +114,14 @@ After installation completes, you can:
 
 | Method | Pros | Cons |
 |--------|------|------|
-| **Standalone Executable** | No dependencies, instant startup, works on any Linux | Larger file size (~68 MB), architecture-specific |
-| **Automated Script** | Full desktop integration, auto-start option, automatic updates | Requires Python, distribution-specific |
-| **Manual pip install** | Lightweight, latest features, easy updates | No desktop integration, requires Python knowledge |
+| **Debian Package (.deb)** | System-wide installation, dependency handling via `apt`, integrates with package manager, desktop entry. | Primarily for Debian-based systems (Ubuntu, Mint, etc.). |
+| **Automated Install Script** | Handles dependencies, full desktop integration, auto-start option, works on many distributions. | Requires Python & pip, relies on script compatibility with your system. |
+| **Manual pip install** | Lightweight, latest features directly from PyPI, fine-grained control. | No automatic desktop integration or auto-start setup, requires Python & pip knowledge, PATH management might be needed. |
 
-**Recommendation**: Use standalone executables for simplicity, or the automated script for full desktop integration.
+**Recommendation**:
+- For **Debian-based systems (Ubuntu, Mint, etc.)**: Use the **Debian Package (.deb)** for the best integration.
+- For **other Linux distributions**: Use the **Automated Install Script**.
+- For **advanced users** who prefer manual control or are on an unsupported distribution: Use **Manual pip install**.
 
 ## Manual Installation (Alternative)
 
