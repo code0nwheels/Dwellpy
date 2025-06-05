@@ -153,7 +153,7 @@ jobs:
           echo "DISPLAY=:99" >> $GITHUB_ENV
           Xvfb :99 -screen 0 1024x768x24 &
           sleep 3
-
+          
       - name: Set up Python (Windows/macOS)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'windows-') || startsWith(matrix.target, 'macos-'))
         uses: actions/setup-python@v5
@@ -320,7 +320,8 @@ jobs:
         run: |
           cd dist
           
-          version="${{ steps.get-version-unix.outputs.version }}"          # Handle macOS DMG only - enforce DMG-only uploads for macOS
+          version="${{ steps.get-version-unix.outputs.version }}"
+          # Handle macOS DMG only - enforce DMG-only uploads for macOS
           if [[ "${{ matrix.target }}" == "macos-x64" ]]; then
             # Check for DMG (required for macOS distribution)
             if [ -f "dwellpy-installer.dmg" ]; then
@@ -426,37 +427,3 @@ jobs:
           rm -rf build/* || true
           rm -rf dwellpy/__pycache__/* || true
           rm -f dwellpy/*.spec || true
-
-      - name: Set up macOS DMG creation tools
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
-        shell: bash
-        run: |
-          echo "Checking macOS DMG creation tools..."
-          which hdiutil || echo "hdiutil not found"
-          which iconutil || echo "iconutil not found"
-          
-          # Ensure Xcode Command Line Tools are available
-          xcode-select --print-path || echo "Xcode Command Line Tools may not be installed"
-          
-          echo "macOS version:"
-          sw_vers
-
-      - name: Debug macOS build output
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
-        shell: bash
-        run: |
-          echo "=== macOS Build Debug ==="
-          echo "Contents of dist directory:"
-          ls -la dist/ || echo "dist/ directory not found"
-          
-          echo "Looking for app bundle:"
-          find . -name "*.app" -type d 2>/dev/null || echo "No .app bundles found"
-          
-          echo "Looking for DMG files:"
-          find . -name "*.dmg" -type f 2>/dev/null || echo "No .dmg files found"
-          
-          echo "Checking if DMG creation script exists:"
-          ls -la utils/create_macos_dmg.py || echo "DMG creation script not found"
-          
-          echo "Looking for any Dwellpy files:"
-          find . -name "*wellpy*" -type f 2>/dev/null || echo "No Dwellpy files found"
