@@ -341,6 +341,22 @@ jobs:
           echo "No renaming needed for macOS, DMG will be created from default output."
           ls -la dist/
 
+      - name: Rename DMG with tag (macOS)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
+        shell: bash
+        run: |
+          version="${{ steps.get-version-unix.outputs.version }}"
+          for file in dist/dwellpy-installer*.dmg; do
+            if [[ -f "$file" ]]; then
+              new_name="dist/dwellpy-installer-$version-macos-x64.dmg"
+              echo "Renaming $file to $new_name"
+              mv "$file" "$new_name"
+              echo "ARTIFACT_NAME=$(basename $new_name)" >> $GITHUB_ENV
+              break
+            fi
+          done
+          ls -la dist/
+
       - name: Upload to release (Windows)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
         uses: softprops/action-gh-release@v2
