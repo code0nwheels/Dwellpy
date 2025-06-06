@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.3](https://github.com/code0nwheels/Dwellpy/compare/v0.9.2...v0.9.3) (2025-06-06)
+
+
+### Bug Fixes
+
+* **ci:** resolve Linux build automation issues ([b62d55a](https://github.com/code0nwheels/Dwellpy/commit/b62d55a6ad43c7c2f9d24949e846929a870f509c))
+
 ## [0.9.2](https://github.com/code0nwheels/Dwellpy/compare/v0.9.1...v0.9.2) (2025-06-06)
 
 
