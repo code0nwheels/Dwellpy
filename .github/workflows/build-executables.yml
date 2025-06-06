@@ -173,7 +173,7 @@ jobs:
         run: |
           if (Test-Path "requirements.txt") {
             python -m pip install -r requirements.txt
-            python -m pip install pyinstaller
+            python -m pip install pyinstaller pywin32
           } else {
             Write-Host "Warning: requirements.txt not found in dwellpy/"
             python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput pyinstaller
