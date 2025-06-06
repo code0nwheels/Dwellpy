@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/code0nwheels/Dwellpy/compare/v0.9.1...v0.9.2) (2025-06-06)
+
+
+### Bug Fixes
+
+* implement VBScript for silent Windows auto-start with proper quote escaping ([6e34019](https://github.com/code0nwheels/Dwellpy/commit/6e34019345cc99d5fff730ebf7610078975aee8f))
+
 ## [0.9.1](https://github.com/code0nwheels/Dwellpy/compare/v0.9.0...v0.9.1) (2025-06-05)
 
 

@@ -32,14 +32,13 @@ jobs:
           echo "Release created: ${{ steps.release.outputs.release_created }}"
           echo "Tag name: ${{ steps.release.outputs.tag_name }}"
           echo "Upload URL: ${{ steps.release.outputs.upload_url }}"
-
   build-executables:
     name: Build Executables
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
     strategy:
       matrix:
-        target: [windows-x64, linux-x64, macos-x64]
+        target: [windows-x64, linux-debian-x64, macos-x64]
     uses: ./.github/workflows/build-executables.yml
     with:
       target: ${{ matrix.target }}

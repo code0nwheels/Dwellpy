@@ -99,7 +99,7 @@ jobs:
             echo "should_run=false" >> $GITHUB_OUTPUT
             echo "Skipping ${{ matrix.target }}"
           fi
-        if: matrix.target != 'windows-x64' && matrix.target != 'windows-arm64'
+        if: ${{ !startsWith(matrix.target, 'windows-') }}
 
       - name: Set should run output
         id: final-check
@@ -120,7 +120,7 @@ jobs:
           else
             echo "should_run=false" >> $GITHUB_OUTPUT
           fi
-        if: matrix.target != 'windows-x64' && matrix.target != 'windows-arm64'
+        if: ${{ !startsWith(matrix.target, 'windows-') }}
 
       - name: Checkout repository
         if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
@@ -173,7 +173,7 @@ jobs:
         run: |
           if (Test-Path "requirements.txt") {
             python -m pip install -r requirements.txt
-            python -m pip install pyinstaller
+            python -m pip install pyinstaller pywin32
           } else {
             Write-Host "Warning: requirements.txt not found in dwellpy/"
             python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput pyinstaller
