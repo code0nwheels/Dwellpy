@@ -70,7 +70,7 @@ class ScrollWidget(QWidget):
         # Position lock state
         self.is_locked = False  # Whether widget is locked in position
         self.lock_threshold = 140  # Distance to lock (must be greater than offset_distance)
-        self.unlock_threshold = 200  # Distance to resume following
+        self.unlock_threshold = 150  # Distance to resume following
         
         # Movement tracking to prevent false hover detection
         self.last_move_time = 0

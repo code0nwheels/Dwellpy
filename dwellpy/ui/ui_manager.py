@@ -1659,7 +1659,7 @@ class DwellClickerUI:
             
             # Use lock thresholds similar to individual widgets
             lock_threshold = 120
-            unlock_threshold = 180
+            unlock_threshold = 150
             
             # Check if either widget is close enough to lock both
             should_lock = (scroll_distance < lock_threshold or menu_distance < lock_threshold)
