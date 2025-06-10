@@ -255,6 +255,9 @@ class DwellClickerUI:
         
         # Apply widget appearance settings
         self.apply_widget_appearance_settings()
+        
+        # Apply widget unlock threshold settings
+        self.apply_widget_unlock_threshold_settings()
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
@@ -1659,7 +1662,7 @@ class DwellClickerUI:
             
             # Use lock thresholds similar to individual widgets
             lock_threshold = 120
-            unlock_threshold = 150
+            unlock_threshold = self.settings_manager.get_setting('widget_unlock_threshold', 150)
             
             # Check if either widget is close enough to lock both
             should_lock = (scroll_distance < lock_threshold or menu_distance < lock_threshold)
@@ -2143,6 +2146,21 @@ class DwellClickerUI:
         
         # Update the movement detector with the new delay
         self.cursor_movement_detector.set_dwell_delay(appearance_delay)
+    
+    def apply_widget_unlock_threshold_settings(self):
+        """Apply widget unlock threshold settings to all widgets."""
+        if not self.settings_manager:
+            return
+            
+        threshold = self.settings_manager.get_setting('widget_unlock_threshold', 150)
+        
+        # Update threshold in scroll widget
+        if hasattr(self, 'scroll_widget') and self.scroll_widget:
+            self.scroll_widget.unlock_threshold = threshold
+            
+        # Update threshold in menu widget
+        if hasattr(self, 'menu_widget') and self.menu_widget:
+            self.menu_widget.unlock_threshold = threshold
         
         # Sync movement threshold with dwell detection move_limit
         if hasattr(self, 'dwell_detector') and self.dwell_detector:

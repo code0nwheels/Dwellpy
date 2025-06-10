@@ -81,7 +81,7 @@ class MenuWidget(QWidget):
         # Position lock state - keeping existing lock logic for accessibility
         self.is_locked = False  # Whether widget is locked in position
         self.lock_threshold = 120  # Distance to lock
-        self.unlock_threshold = 150  # Distance to resume following
+        self.unlock_threshold = 180  # Distance to resume following (will be set by settings)
         
         # Movement tracking to prevent false hover detection
         self.last_move_time = 0

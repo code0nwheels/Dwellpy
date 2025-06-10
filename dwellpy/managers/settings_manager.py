@@ -12,7 +12,8 @@ from ..config.constants import (
 	MIN_DWELL_TIME, MAX_DWELL_TIME,
 	MIN_TRANSPARENCY, MAX_TRANSPARENCY,
 	EXPANSION_DIRECTIONS,
-	WIDGET_APPEARANCE_DELAY_MIN, WIDGET_APPEARANCE_DELAY_MAX
+	WIDGET_APPEARANCE_DELAY_MIN, WIDGET_APPEARANCE_DELAY_MAX,
+	WIDGET_UNLOCK_THRESHOLD_MIN, WIDGET_UNLOCK_THRESHOLD_MAX
 )
 from ..utils.helpers import get_settings_file_path, get_screen_center, clamp_value
 from ..ui.dialogs.settings_dialog import SettingsDialog
@@ -789,3 +790,23 @@ Keywords=accessibility;dwell;click;motor;disability;
 			self.ui_manager.apply_widget_appearance_settings()
 		
 		self.logger.debug(f"Widget appearance delay updated to: {clamped_delay} seconds")
+	
+	def update_widget_unlock_threshold(self, threshold: int) -> None:
+		"""
+		Update widget unlock threshold setting.
+		
+		Args:
+			threshold: Distance in pixels cursor must move from widget before it starts following again
+		"""
+		# Import constants for validation
+		from ..config.constants import WIDGET_UNLOCK_THRESHOLD_MIN, WIDGET_UNLOCK_THRESHOLD_MAX
+		
+		# Clamp threshold between min and max values
+		clamped_threshold = max(WIDGET_UNLOCK_THRESHOLD_MIN, min(WIDGET_UNLOCK_THRESHOLD_MAX, threshold))
+		self.settings['widget_unlock_threshold'] = clamped_threshold
+		
+		# Apply threshold change immediately if UI manager is available
+		if self.ui_manager:
+			self.ui_manager.apply_widget_unlock_threshold_settings()
+		
+		self.logger.debug(f"Widget unlock threshold updated to: {clamped_threshold} pixels")
