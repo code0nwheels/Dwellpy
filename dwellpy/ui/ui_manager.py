@@ -1582,8 +1582,8 @@ class DwellClickerUI:
                 # Just handle hover detection here
                 pass
             else:
-                # Normal positioning if scroll is disabled
-                self.menu_widget.update_position(cursor_pos)
+                # Normal positioning if scroll is disabled, with a 20px offset
+                self.menu_widget.update_position(cursor_pos, y_offset=20)
             
             # Check for hover on menu widget
             hover = self.menu_widget.check_hover(cursor_pos)
