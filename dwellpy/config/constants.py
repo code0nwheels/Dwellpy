@@ -67,6 +67,11 @@ WIDGET_APPEARANCE_DELAY_MIN = 0.1      # Minimum widget appearance delay (second
 WIDGET_APPEARANCE_DELAY_MAX = 1.0      # Maximum widget appearance delay (seconds)  
 WIDGET_APPEARANCE_DELAY_DEFAULT = 0.2  # Default widget appearance delay
 
+# Widget Unlock Threshold Constants
+WIDGET_UNLOCK_THRESHOLD_MIN = 100      # Minimum unlock threshold (pixels)
+WIDGET_UNLOCK_THRESHOLD_MAX = 300      # Maximum unlock threshold (pixels)
+WIDGET_UNLOCK_THRESHOLD_DEFAULT = 150  # Default unlock threshold
+
 # Color Scheme - Dark Theme
 class Colors:
     # Primary colors
@@ -184,6 +189,7 @@ DEFAULT_SETTINGS = {
     'menu_opacity_base': MENU_OPACITY_BASE,
     'menu_opacity_hover': MENU_OPACITY_HOVER,
     'widget_appearance_delay': WIDGET_APPEARANCE_DELAY_DEFAULT,
+    'widget_unlock_threshold': WIDGET_UNLOCK_THRESHOLD_DEFAULT,
     'contract_ui_enabled': False,
     'expansion_direction': DEFAULT_EXPANSION_DIRECTION,
     'click_color_left': '#00e676',

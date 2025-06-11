@@ -96,7 +96,7 @@ class MenuWidget(QWidget):
         # Position lock state - keeping existing lock logic for accessibility
         self.is_locked = False  # Whether widget is locked in position
         self.lock_threshold = 120  # Distance to lock
-        self.unlock_threshold = 180  # Distance to resume following
+        self.unlock_threshold = 180  # Distance to resume following (will be set by settings)
         
         # Movement tracking to prevent false hover detection
         self.last_move_time = 0
@@ -476,7 +476,7 @@ class MenuWidget(QWidget):
         self.move(position[0], position[1])
         self.last_widget_pos = position
     
-    def update_position(self, cursor_pos, coordinated_mode=False):
+    def update_position(self, cursor_pos, coordinated_mode=False, y_offset=0):
         """Update widget position relative to cursor, with optional coordinated mode."""
         if not self.is_active:
             return
@@ -534,7 +534,7 @@ class MenuWidget(QWidget):
             # Position widget so hamburger icon is centered under cursor
             widget_size = self.expanded_size if self.is_expanded else self.hamburger_size
             new_x = int(cursor_x - widget_size // 2)
-            new_y = int(cursor_y - widget_size // 2)
+            new_y = int(cursor_y - widget_size // 2) + y_offset
             
             # Check if widget actually needs to move
             if self.last_widget_pos is not None:
@@ -567,7 +567,7 @@ class MenuWidget(QWidget):
                 # Immediately update to new position centered under cursor
                 widget_size = self.expanded_size if self.is_expanded else self.hamburger_size
                 new_x = int(cursor_x - widget_size // 2)
-                new_y = int(cursor_y - widget_size // 2)
+                new_y = int(cursor_y - widget_size // 2) + y_offset
                 
                 # Check for screen bounds and adjust position if necessary
                 off_screen_info = self._detect_off_screen_position(QPoint(new_x, new_y), self.size())

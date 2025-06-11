@@ -256,6 +256,9 @@ class DwellClickerUI:
         
         # Apply widget appearance settings
         self.apply_widget_appearance_settings()
+        
+        # Apply widget unlock threshold settings
+        self.apply_widget_unlock_threshold_settings()
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
@@ -1511,8 +1514,23 @@ class DwellClickerUI:
                 # Coordinated positioning mode
                 self._update_coordinated_widget_positions(cursor_pos)
             else:
-                # Normal positioning if menu is disabled
-                self.scroll_widget.update_position(cursor_pos)
+                # Normal positioning if menu is disabled, but still check if menu is expanded
+                menu_expanded = hasattr(self.menu_widget, 'is_expanded') and self.menu_widget.is_expanded
+                scroll_activated = self.scroll_hover is not None
+                
+                # Hide scroll widget if menu is expanded and scroll is not activated
+                if menu_expanded and not scroll_activated:
+                    if self.scroll_widget.isVisible():
+                        self.scroll_widget.hide()
+                else:
+                    # Show and position scroll widget normally
+                    if not self.scroll_widget.isVisible():
+                        self.scroll_widget.show()
+                        self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
+                        # Only raise on non-macOS platforms to prevent focus stealing
+                        if sys.platform != "darwin":
+                            self.scroll_widget.raise_()
+                    self.scroll_widget.update_position(cursor_pos)
             
             # Check for hover on scroll widget
             hover = self.scroll_widget.check_hover(cursor_pos)
@@ -1559,8 +1577,8 @@ class DwellClickerUI:
                 # Just handle hover detection here
                 pass
             else:
-                # Normal positioning if scroll is disabled
-                self.menu_widget.update_position(cursor_pos)
+                # Normal positioning if scroll is disabled, with a 20px offset
+                self.menu_widget.update_position(cursor_pos, y_offset=20)
             
             # Check for hover on menu widget
             hover = self.menu_widget.check_hover(cursor_pos)
@@ -1602,6 +1620,28 @@ class DwellClickerUI:
         if not hasattr(self, '_coordinated_locked'):
             self._coordinated_locked = False
         
+        # Check if menu widget is expanded and scroll widget should be hidden
+        menu_expanded = hasattr(self.menu_widget, 'is_expanded') and self.menu_widget.is_expanded
+        scroll_activated = self.scroll_hover is not None
+        
+        # Hide scroll widget if menu is expanded and scroll is not activated
+        if menu_expanded and not scroll_activated:
+            if self.scroll_widget.isVisible():
+                self.scroll_widget.hide()
+            # Only position menu widget in this case
+            self.menu_widget.update_position(cursor_pos, coordinated_mode=True)
+            return
+        
+        # Show scroll widget if it should be visible (menu not expanded or scroll is activated)
+        scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+        if scroll_enabled and self.is_active and not self.widgets_hidden_for_movement:
+            if not self.scroll_widget.isVisible():
+                self.scroll_widget.show()
+                self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
+                # Only raise on non-macOS platforms to prevent focus stealing
+                if sys.platform != "darwin":
+                    self.scroll_widget.raise_()
+        
         # Check if widgets should be locked based on cursor proximity
         # Only check if widgets are visible and have been positioned
         if self.scroll_widget.isVisible() and self.menu_widget.isVisible():
@@ -1617,7 +1657,7 @@ class DwellClickerUI:
             
             # Use lock thresholds similar to individual widgets
             lock_threshold = 120
-            unlock_threshold = 180
+            unlock_threshold = self.settings_manager.get_setting('widget_unlock_threshold', 150)
             
             # Check if either widget is close enough to lock both
             should_lock = (scroll_distance < lock_threshold or menu_distance < lock_threshold)
@@ -2101,6 +2141,21 @@ class DwellClickerUI:
         
         # Update the movement detector with the new delay
         self.cursor_movement_detector.set_dwell_delay(appearance_delay)
+    
+    def apply_widget_unlock_threshold_settings(self):
+        """Apply widget unlock threshold settings to all widgets."""
+        if not self.settings_manager:
+            return
+            
+        threshold = self.settings_manager.get_setting('widget_unlock_threshold', 150)
+        
+        # Update threshold in scroll widget
+        if hasattr(self, 'scroll_widget') and self.scroll_widget:
+            self.scroll_widget.unlock_threshold = threshold
+            
+        # Update threshold in menu widget
+        if hasattr(self, 'menu_widget') and self.menu_widget:
+            self.menu_widget.unlock_threshold = threshold
         
         # Sync movement threshold with dwell detection move_limit
         if hasattr(self, 'dwell_detector') and self.dwell_detector:

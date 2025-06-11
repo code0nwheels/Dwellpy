@@ -130,6 +130,8 @@ This section controls visual indicators to show where and what type of clicks ar
 
 The Scroll tab contains settings for the floating scroll widget and menu widget appearance.
 
+**Note on Widget Behavior**: The scroll and menu widgets are designed to work together. When the menu widget expands (by hovering over the hamburger icon), the scroll widget will automatically hide to reduce clutter, unless you are actively hovering over the scroll widget itself. It will reappear when the menu widget contracts.
+
 ### Scroll Widget
 This section controls a floating scroll widget that appears near your cursor for easy scrolling.
 
@@ -164,6 +166,20 @@ This section controls a floating scroll widget that appears near your cursor for
 - **Increase delay**: If widgets appear too often during normal computer use
 - **Decrease delay**: If you want widgets to be more responsive when you stop moving the cursor
 - **Default (0.2s)**: Good balance for most users
+
+#### Widget Unlock Threshold (100px - 300px)
+**What it does**: Controls the distance (in pixels) your cursor needs to move away from a widget before it "unlocks" and starts following the cursor again.
+
+**Scale**: 100px = unlocks with a small movement, 300px = requires a larger movement to unlock.
+
+**Recommended values**:
+- **100px - 150px**: Widgets feel more "attached" to the cursor and follow it readily. Good for users who prefer responsive widgets.
+- **150px - 200px**: A balanced setting that prevents accidental movement while still being easy to reposition (default: 150px).
+- **200px - 300px**: Widgets are more "sticky" and stay in place until you make a very deliberate movement. Good for users who find the widgets move too often.
+
+**When to adjust**:
+- **Increase threshold**: If you find the widgets move too easily when you're trying to interact with them.
+- **Decrease threshold**: If the widgets feel sluggish or hard to move.
 
 ## General Tab
 
