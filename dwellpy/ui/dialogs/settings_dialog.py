@@ -141,6 +141,21 @@ class SettingsDialog(QDialog):
         self.widget_delay_plus_repeat = QTimer()
         self.widget_delay_plus_repeat.timeout.connect(self.on_hover_plus_widget_delay)
         
+        # Widget unlock threshold timers
+        self.unlock_threshold_minus_timer = QTimer()
+        self.unlock_threshold_minus_timer.setSingleShot(True)
+        self.unlock_threshold_minus_timer.timeout.connect(self.start_minus_unlock_threshold_repeat)
+        
+        self.unlock_threshold_plus_timer = QTimer()
+        self.unlock_threshold_plus_timer.setSingleShot(True)
+        self.unlock_threshold_plus_timer.timeout.connect(self.start_plus_unlock_threshold_repeat)
+        
+        self.unlock_threshold_minus_repeat = QTimer()
+        self.unlock_threshold_minus_repeat.timeout.connect(self.on_hover_minus_unlock_threshold)
+        
+        self.unlock_threshold_plus_repeat = QTimer()
+        self.unlock_threshold_plus_repeat.timeout.connect(self.on_hover_plus_unlock_threshold)
+        
     def setup_ui(self):
         """Setup the dialog UI with left-side wide tabs for dwell-friendly navigation."""
         # Use dynamic sizing instead of fixed size for cross-platform compatibility
@@ -677,6 +692,59 @@ class SettingsDialog(QDialog):
         widget_delay_layout.addWidget(self.widget_delay_value)
         
         layout.addWidget(widget_delay_frame)
+        
+        # Widget Unlock Threshold
+        unlock_threshold_label = QLabel("Widget Unlock Threshold:")
+        unlock_threshold_label.setFont(QFont("Helvetica Neue", 11))
+        unlock_threshold_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        layout.addWidget(unlock_threshold_label)
+        
+        # Description
+        unlock_desc = QLabel("Distance (in pixels) cursor must move from widget before it starts following again")
+        unlock_desc.setFont(QFont("Helvetica Neue", 9))
+        unlock_desc.setStyleSheet(f"color: #999999; margin-bottom: 8px;")
+        unlock_desc.setWordWrap(True)
+        layout.addWidget(unlock_desc)
+        
+        # Controls frame
+        unlock_threshold_frame = QFrame()
+        unlock_threshold_layout = QHBoxLayout(unlock_threshold_frame)
+        unlock_threshold_layout.setContentsMargins(0, 0, 0, 0)
+        unlock_threshold_layout.setSpacing(5)
+        
+        # Minus button
+        unlock_threshold_minus_btn = self.create_adjustment_button("-")
+        unlock_threshold_minus_btn.enterEvent = lambda e: self.on_enter_minus_unlock_threshold()
+        unlock_threshold_minus_btn.leaveEvent = lambda e: self.on_leave_minus_unlock_threshold()
+        unlock_threshold_layout.addWidget(unlock_threshold_minus_btn)
+        
+        # Slider (10-30, representing 100-300 pixels)
+        self.unlock_threshold_slider = QSlider(Qt.Orientation.Horizontal)
+        self.unlock_threshold_slider.setRange(10, 30)
+        # Convert current threshold (100-300) to slider value (10-30)
+        current_threshold = self.settings_manager.get_setting('widget_unlock_threshold', 150)
+        slider_value = current_threshold // 10
+        self.unlock_threshold_slider.setValue(max(10, min(30, slider_value)))
+        self.unlock_threshold_slider.setStyleSheet(self.get_slider_style())
+        unlock_threshold_layout.addWidget(self.unlock_threshold_slider)
+        
+        # Plus button
+        unlock_threshold_plus_btn = self.create_adjustment_button("+")
+        unlock_threshold_plus_btn.enterEvent = lambda e: self.on_enter_plus_unlock_threshold()
+        unlock_threshold_plus_btn.leaveEvent = lambda e: self.on_leave_plus_unlock_threshold()
+        unlock_threshold_layout.addWidget(unlock_threshold_plus_btn)
+        
+        # Value label
+        threshold_pixels = self.unlock_threshold_slider.value() * 10
+        self.unlock_threshold_value = QLabel(f"{threshold_pixels}px")
+        self.unlock_threshold_value.setStyleSheet(f"""
+            {self._get_scaled_font_style(13, "bold")}
+            color: {Colors.TEXT_COLOR};
+        """)
+        self.unlock_threshold_value.setFixedWidth(50)
+        unlock_threshold_layout.addWidget(self.unlock_threshold_value)
+        
+        layout.addWidget(unlock_threshold_frame)
     
     def create_active_state_section(self, layout):
         """Create default active state section."""
@@ -1001,6 +1069,7 @@ class SettingsDialog(QDialog):
         self.contract_ui_check.stateChanged.connect(self.on_contract_ui_toggle)
         self.expansion_button_group.buttonClicked.connect(self.on_expansion_direction_toggle)
         self.widget_delay_slider.valueChanged.connect(self.update_widget_delay_value)
+        self.unlock_threshold_slider.valueChanged.connect(self.update_unlock_threshold_value)
     
     # Value update methods
     def update_move_limit_value(self, value):
@@ -1036,6 +1105,12 @@ class SettingsDialog(QDialog):
         delay_seconds = value / 10.0
         self.widget_delay_value.setText(f"{delay_seconds:.1f}s")
         self.settings_manager.update_widget_appearance_delay(delay_seconds)
+    
+    def update_unlock_threshold_value(self, value):
+        """Update unlock threshold display value."""
+        threshold_pixels = value * 10
+        self.unlock_threshold_value.setText(f"{threshold_pixels}px")
+        self.settings_manager.update_widget_unlock_threshold(threshold_pixels)
 
     def on_scroll_toggle(self, state):
         """Handle scroll widget checkbox toggle."""
@@ -1165,6 +1240,24 @@ class SettingsDialog(QDialog):
         self.widget_delay_plus_timer.stop()
         self.widget_delay_plus_repeat.stop()
     
+    def on_enter_minus_unlock_threshold(self):
+        """Start minus unlock threshold timer on hover."""
+        self.unlock_threshold_minus_timer.start(500)
+    
+    def on_leave_minus_unlock_threshold(self):
+        """Stop minus unlock threshold timer on leave."""
+        self.unlock_threshold_minus_timer.stop()
+        self.unlock_threshold_minus_repeat.stop()
+    
+    def on_enter_plus_unlock_threshold(self):
+        """Start plus unlock threshold timer on hover."""
+        self.unlock_threshold_plus_timer.start(500)
+    
+    def on_leave_plus_unlock_threshold(self):
+        """Stop plus unlock threshold timer on leave."""
+        self.unlock_threshold_plus_timer.stop()
+        self.unlock_threshold_plus_repeat.stop()
+    
     # Timer start methods that begin the repeat action
     def start_minus_move_repeat(self):
         self.on_hover_minus_move_limit()  # First action
@@ -1205,6 +1298,14 @@ class SettingsDialog(QDialog):
     def start_plus_widget_delay_repeat(self):
         self.on_hover_plus_widget_delay()
         self.widget_delay_plus_repeat.start(500)
+    
+    def start_minus_unlock_threshold_repeat(self):
+        self.on_hover_minus_unlock_threshold()
+        self.unlock_threshold_minus_repeat.start(500)
+        
+    def start_plus_unlock_threshold_repeat(self):
+        self.on_hover_plus_unlock_threshold()
+        self.unlock_threshold_plus_repeat.start(500)
     
     # The actual value adjustment methods
     def on_hover_minus_move_limit(self):
@@ -1257,6 +1358,16 @@ class SettingsDialog(QDialog):
         if current < self.widget_delay_slider.maximum():
             self.widget_delay_slider.setValue(current + 1)
     
+    def on_hover_minus_unlock_threshold(self):
+        current = self.unlock_threshold_slider.value()
+        if current > self.unlock_threshold_slider.minimum():
+            self.unlock_threshold_slider.setValue(current - 1)
+        
+    def on_hover_plus_unlock_threshold(self):
+        current = self.unlock_threshold_slider.value()
+        if current < self.unlock_threshold_slider.maximum():
+            self.unlock_threshold_slider.setValue(current + 1)
+    
     def accept(self):
         """Handle dialog acceptance."""
         # Stop all timers
@@ -1266,11 +1377,13 @@ class SettingsDialog(QDialog):
             self.transparency_minus_timer, self.transparency_plus_timer,
             self.scroll_speed_minus_timer, self.scroll_speed_plus_timer,
             self.widget_delay_minus_timer, self.widget_delay_plus_timer,
+            self.unlock_threshold_minus_timer, self.unlock_threshold_plus_timer,
             self.move_minus_repeat, self.move_plus_repeat, 
             self.time_minus_repeat, self.time_plus_repeat,
             self.transparency_minus_repeat, self.transparency_plus_repeat,
             self.scroll_speed_minus_repeat, self.scroll_speed_plus_repeat,
-            self.widget_delay_minus_repeat, self.widget_delay_plus_repeat
+            self.widget_delay_minus_repeat, self.widget_delay_plus_repeat,
+            self.unlock_threshold_minus_repeat, self.unlock_threshold_plus_repeat
         ]
         
         for timer in timers_to_stop:
