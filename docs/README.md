@@ -14,6 +14,18 @@ Built for users with motor disabilities who use head trackers, eye-tracking syst
 
 ### For End Users
 
+**Option 1: Installers and Executables (Easiest)**
+
+Download the installer or executable for your platform:
+
+- **Windows**: Download the installer from [latest releases](https://github.com/code0nwheels/dwellpy/releases/latest) - look for `dwellpy-installer-*-windows-x64.exe`
+- **macOS**: Download from [latest releases](https://github.com/code0nwheels/dwellpy/releases/latest) - look for `dwellpy-*-macos.dmg` or `dwellpy-*-macos-x64`
+- **Linux**: For Debian-based systems (Ubuntu, Mint, etc.), download the `.deb` package from [latest releases](https://github.com/code0nwheels/dwellpy/releases/latest) (e.g., `dwellpy-*-linux-debian-x64.deb`). For other distributions, or for a scripted setup, see the [Linux Setup Guide](https://github.com/code0nwheels/dwellpy/wiki/Linux-Setup).
+
+The Windows installer provides a professional installation experience with Start Menu integration and automatic shortcuts. For macOS, the DMG offers a standard installation. For Linux, the .deb package integrates with your system's package manager. See [setup guides](https://github.com/code0nwheels/dwellpy/wiki) for detailed platform-specific instructions.
+
+**Option 2: Package Managers**
+
 **Linux (Automated Install):**
 ```bash
 curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linux-install.sh | bash
@@ -29,8 +41,6 @@ curl -sSL https://raw.githubusercontent.com/code0nwheels/dwellpy/main/utils/linu
 pip install dwellpy
 dwellpy
 ```
-
-*Standalone executables coming soon for easier installation.*
 
 **Need help?** Check the [setup guides](https://github.com/code0nwheels/dwellpy/wiki) for your operating system.
 

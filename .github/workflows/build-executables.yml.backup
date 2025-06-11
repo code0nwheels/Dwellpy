@@ -99,7 +99,7 @@ jobs:
             echo "should_run=false" >> $GITHUB_OUTPUT
             echo "Skipping ${{ matrix.target }}"
           fi
-        if: ${{ !startsWith(matrix.target, 'windows-') }}
+        if: matrix.target != 'windows-x64' && matrix.target != 'windows-arm64'
 
       - name: Set should run output
         id: final-check
@@ -120,7 +120,7 @@ jobs:
           else
             echo "should_run=false" >> $GITHUB_OUTPUT
           fi
-        if: ${{ !startsWith(matrix.target, 'windows-') }}
+        if: matrix.target != 'windows-x64' && matrix.target != 'windows-arm64'
 
       - name: Checkout repository
         if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
@@ -153,7 +153,7 @@ jobs:
           echo "DISPLAY=:99" >> $GITHUB_ENV
           Xvfb :99 -screen 0 1024x768x24 &
           sleep 3
-          
+
       - name: Set up Python (Windows/macOS)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'windows-') || startsWith(matrix.target, 'macos-'))
         uses: actions/setup-python@v5
@@ -173,7 +173,7 @@ jobs:
         run: |
           if (Test-Path "requirements.txt") {
             python -m pip install -r requirements.txt
-            python -m pip install pyinstaller pywin32
+            python -m pip install pyinstaller
           } else {
             Write-Host "Warning: requirements.txt not found in dwellpy/"
             python -m pip install PyQt6 PyQt6-Qt6 PyQt6-sip pynput pyinstaller
@@ -295,140 +295,96 @@ jobs:
         run: |
           Set-Location dist
           
-          # For Windows, we expect the build script to create the installer
-          # Look for the installer file created by the Windows post-build process
-          $installerFiles = Get-ChildItem -Name "*installer*.exe"
-          if ($installerFiles) {
-            foreach ($file in $installerFiles) {
-              Write-Host "Found installer: $file"
-              echo "ARTIFACT_NAME=$file" >> $env:GITHUB_ENV
-              break
-            }
-          } else {
-            Write-Host "Warning: No installer found in dist directory"
-            # List all files to help debug
-            Write-Host "Available files:"
-            Get-ChildItem | Format-Table
-          }
+          $files = Get-ChildItem -Name "*.exe"
+          foreach ($file in $files) {
+            $version = "${{ steps.get-version.outputs.version }}"
+            $newName = "dwellpy-$version-${{ matrix.target }}.exe"
+            
+            Write-Host "Renaming $file to $newName"
+            Rename-Item $file $newName
+            
+            echo "ARTIFACT_NAME=$newName" >> $env:GITHUB_ENV
+            break          }
           
           Write-Host "Final dist contents:"
           Get-ChildItem | Format-Table
 
       - name: Prepare release artifact (Unix)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-'))
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && (startsWith(matrix.target, 'linux-') || startsWith(matrix.target, 'macos-'))
         shell: bash
         run: |
           cd dist
-          # Find the executable
-          for file in *; do
-            if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]]; then
-              version="${{ steps.get-version-unix.outputs.version }}"
-              new_name="dwellpy-$version-${{ matrix.target }}"
-              echo "Renaming $file to $new_name"
-              mv "$file" "$new_name"
-              chmod +x "$new_name"
-              echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
-              break
+          
+          version="${{ steps.get-version-unix.outputs.version }}"
+          
+          # Handle macOS app bundle and DMG
+          if [[ "${{ matrix.target }}" == "macos-x64" ]]; then
+            # Check for DMG first (preferred)
+            if [ -f "dwellpy-installer.dmg" ]; then
+              dmg_name="dwellpy-installer-$version-${{ matrix.target }}.dmg"
+              echo "Renaming dwellpy-installer.dmg to $dmg_name"
+              mv "dwellpy-installer.dmg" "$dmg_name"
+              echo "ARTIFACT_NAME=$dmg_name" >> $GITHUB_ENV
+              echo "ADDITIONAL_ARTIFACTS=" >> $GITHUB_ENV
+            else
+              echo "Warning: DMG not found, checking for app bundle..."
             fi
-          done
+            
+            # Also handle app bundle if present
+            if [ -d "Dwellpy.app" ]; then
+              app_name="Dwellpy-$version-${{ matrix.target }}.app"
+              echo "Renaming Dwellpy.app to $app_name"
+              mv "Dwellpy.app" "$app_name"
+              
+              if [ -z "$ARTIFACT_NAME" ]; then
+                echo "ARTIFACT_NAME=$app_name" >> $GITHUB_ENV
+              else
+                echo "ADDITIONAL_ARTIFACTS=$app_name" >> $GITHUB_ENV
+              fi
+            fi
+            
+            # Handle standalone executable if no app bundle
+            if [ -z "$ARTIFACT_NAME" ]; then
+              for file in *; do
+                if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]] && [[ "$file" != *.app ]]; then
+                  new_name="dwellpy-$version-${{ matrix.target }}"
+                  echo "Renaming $file to $new_name"
+                  mv "$file" "$new_name"
+                  chmod +x "$new_name"
+                  echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
+                  break
+                fi
+              done
+            fi
+          else
+            # Linux: Handle executable
+            for file in *; do
+              if [ -f "$file" ] && [ -x "$file" ] && [[ "$file" != *.* ]]; then
+                new_name="dwellpy-$version-${{ matrix.target }}"
+                
+                echo "Renaming $file to $new_name"
+                mv "$file" "$new_name"
+                chmod +x "$new_name"
+                  echo "ARTIFACT_NAME=$new_name" >> $GITHUB_ENV
+                break
+              fi
+            done
+          fi
+          
           echo "Final dist contents:"
           ls -la
 
-      - name: Prepare release artifact (macOS)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
-        shell: bash
-        run: |
-          echo "No renaming needed for macOS, DMG will be created from default output."
-          ls -la dist/
-
-      - name: Rename DMG with tag (macOS)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
-        shell: bash
-        run: |
-          version="${{ steps.get-version-unix.outputs.version }}"
-          for file in dist/dwellpy-installer*.dmg; do
-            if [[ -f "$file" ]]; then
-              new_name="dist/dwellpy-installer-$version-macos-x64.dmg"
-              echo "Renaming $file to $new_name"
-              mv "$file" "$new_name"
-              echo "ARTIFACT_NAME=$(basename $new_name)" >> $GITHUB_ENV
-              break
-            fi
-          done
-          ls -la dist/
-
-      - name: Upload to release (Windows)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
+      - name: Upload to release
+        if: steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name }}
-          files: dist/*installer*.exe
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload to release (macOS)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'macos-')
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.tag_name }}
-          files: dist/*.dmg
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Package as .deb (Linux)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
-        shell: bash
-        run: |
-          version="${{ steps.get-version-unix.outputs.version }}"
-          arch="${{ matrix.arch }}"
-          executable_name="dwellpy-$version-${{ matrix.target }}" # This is the renamed executable from "Prepare release artifact (Unix)"
-          deb_file_name="dwellpy-$version-${{ matrix.target }}.deb"
-
-          echo "Preparing to package .deb. Looking for executable: dist/$executable_name"
-          echo "Current contents of dist/ directory:"
-          ls -la dist/
-
-          if [ ! -f "dist/$executable_name" ]; then
-            echo "Error: Executable dist/$executable_name not found for .deb packaging!"
-            exit 1
-          fi
-
-          mkdir -p debbuild/DEBIAN
-          mkdir -p debbuild/usr/local/bin
-          cp "dist/$executable_name" debbuild/usr/local/bin/dwellpy
-          chmod 755 debbuild/usr/local/bin/dwellpy
-          
-          debian_arch=$arch
-          if [ "$arch" == "x64" ]; then
-            debian_arch="amd64"
-          fi
-          # Add other architecture mappings if needed, e.g.:
-          # elif [ "$arch" == "arm64" ]; then
-          #   debian_arch="arm64"
-
-          cat > debbuild/DEBIAN/control <<EOF
-          Package: dwellpy
-          Version: $version
-          Section: utils
-          Priority: optional
-          Architecture: $debian_arch
-          Maintainer: Dwellpy Team code0nwheels@proton.me
-          Description: Dwellpy - Dwell clicking accessibility tool
-          EOF
-          
-          dpkg-deb --build debbuild "dist/$deb_file_name"
-          echo "Successfully created .deb package: dist/$deb_file_name"
-          echo "ARTIFACT_NAME=$deb_file_name" >> $GITHUB_ENV # For the build summary
-
-      - name: Upload to release (Linux)
-        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'linux-')
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.tag_name }}
-          files: dist/*.deb # Uploads the .deb file
-          fail_on_unmatched_files: true
+          files: |
+            dist/dwellpy-*-linux-debian-x64
+            dist/dwellpy-*-linux-debian-arm64
+            dist/dwellpy-*-windows-x64.exe
+            dist/dwellpy-installer-*-macos-x64.dmg
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -451,9 +407,15 @@ jobs:
           echo "- **Version**: ${{ steps.get-version-unix.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target**: ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Architecture**: ${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Distro**: ${{ matrix.distro || 'macOS' }}" >> $GITHUB_STEP_SUMMARY          echo "- **Python**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Distro**: ${{ matrix.distro || 'macOS' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Python**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Runner**: ${{ matrix.runner }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Artifact**: ${ARTIFACT_NAME:-'Not found'}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Artifact**: ${ARTIFACT_NAME:-'Not found'}" >> $GITHUB_STEP_SUMMARY      - name: Install NSIS (Windows)
+        if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')
+        run: |
+          Write-Host "Installing NSIS..."
+          choco install nsis -y
+          Write-Host "NSIS installed successfully"
 
       - name: Clean up (Windows)
         if: (steps.final-check.outputs.should_run == 'true' || steps.final-check-unix.outputs.should_run == 'true') && startsWith(matrix.target, 'windows-')

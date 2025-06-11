@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.10.0](https://github.com/code0nwheels/Dwellpy/compare/v0.9.2...v0.10.0) (2025-06-11)
+
+
+### Features
+
+* add setting for widget unlock threshold ([eeb5a88](https://github.com/code0nwheels/Dwellpy/commit/eeb5a88b096c3fc4397b209d4a8cebe9ef53a73e))
+* Standardize widget behavior and add unlock threshold setting ([773f235](https://github.com/code0nwheels/Dwellpy/commit/773f235984106a0696d840f2a5c44d8db6adf8da))
+
+
+### Bug Fixes
+
+* **ci:** resolve Linux build automation issues ([b62d55a](https://github.com/code0nwheels/Dwellpy/commit/b62d55a6ad43c7c2f9d24949e846929a870f509c))
+* hide scroll widget when menu widget expands ([a42c6b7](https://github.com/code0nwheels/Dwellpy/commit/a42c6b7bc14bb50e91167e8b02d3ecf43490a4ed))
+* reduce widget unlock thresholds to 150px for better responsiveness ([2126cbc](https://github.com/code0nwheels/Dwellpy/commit/2126cbc25597484940dc0d568a63c6952460d8f2))
+* **widget-positioning:** ensure consistent menu widget positioning and locking ([e1a1069](https://github.com/code0nwheels/Dwellpy/commit/e1a1069a28fb3df175124173a85daba5f236b446))
+
+## [0.9.2](https://github.com/code0nwheels/Dwellpy/compare/v0.9.1...v0.9.2) (2025-06-06)
+
+
+### Bug Fixes
+
+* implement VBScript for silent Windows auto-start with proper quote escaping ([6e34019](https://github.com/code0nwheels/Dwellpy/commit/6e34019345cc99d5fff730ebf7610078975aee8f))
+
+## [0.9.1](https://github.com/code0nwheels/Dwellpy/compare/v0.9.0...v0.9.1) (2025-06-05)
+
+
+### Bug Fixes
+
+* resolve widget delay and auto-start error handling ([3a59e1e](https://github.com/code0nwheels/Dwellpy/commit/3a59e1e91b861d32469ddc50601f5bee93fcda5d))
+* respect widget appearance delay when activating Dwellpy ([6d9ab71](https://github.com/code0nwheels/Dwellpy/commit/6d9ab71efd47e7032938166f353c98324d192e83))
+* **ui:** add user-facing error dialogs for Windows auto-start configuration failures ([75f2523](https://github.com/code0nwheels/Dwellpy/commit/75f2523354fc5d585a2f1cc06b15525015de5e1b))
+
+## [0.9.0](https://github.com/code0nwheels/Dwellpy/compare/v0.8.0...v0.9.0) (2025-06-03)
+
+
+### Features
+
+* trigger release for menu widget and recent improvements ([505da13](https://github.com/code0nwheels/Dwellpy/commit/505da13b515cbe7cf9292a46e5f91b9893a2004b))
+
 ## [0.8.0](https://github.com/code0nwheels/Dwellpy/compare/v0.7.1...v0.8.0) (2025-06-02)
 
 

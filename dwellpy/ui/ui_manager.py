@@ -255,6 +255,9 @@ class DwellClickerUI:
         
         # Apply widget appearance settings
         self.apply_widget_appearance_settings()
+        
+        # Apply widget unlock threshold settings
+        self.apply_widget_unlock_threshold_settings()
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
@@ -622,7 +625,6 @@ class DwellClickerUI:
             
             # Move window to the adjusted position
             self.window.move(new_x, new_y)
-            
         except Exception:
             # If there's any error, keep the window at its current position
             pass
@@ -651,7 +653,18 @@ class DwellClickerUI:
         
         # Enable/disable scroll widget based on setting and active state
         should_be_active = self.is_active and scroll_enabled
-        self.scroll_widget.set_active(should_be_active)
+        
+        # Set the widget's active state, but respect the widget appearance delay
+        # Instead of immediately showing the widget, let the movement detection system handle visibility
+        if should_be_active != self.scroll_widget.is_active:
+            if should_be_active:
+                # When enabling, don't show immediately - set active state but keep hidden
+                # The movement detection system will show it after the configured delay
+                self.scroll_widget.is_active = True
+                # Don't call show() here - let _show_widgets_for_movement() handle it
+            else:
+                # When disabling, immediately hide
+                self.scroll_widget.set_active(False)
         
         # Update button states to reflect scroll setting changes
         self.update_button_states()
@@ -776,11 +789,6 @@ class DwellClickerUI:
         
         # Don't contract if cursor is over window
         if self.is_cursor_over_window:
-            return
-        
-        # Don't contract if settings dialog is open
-        if (self.settings_manager.settings_dialog and 
-            self.settings_manager.settings_dialog.isVisible()):
             return
         
         self.is_contracted = True
@@ -1339,9 +1347,13 @@ class DwellClickerUI:
             self.button_manager.clear_hover()
         
         self.update_button_states()
-        
-        # Reset movement state when toggling
-        self.widgets_hidden_for_movement = False
+          # Reset movement state when toggling - start with widgets hidden to respect appearance delay
+        if self.is_active:
+            # When activating, start with widgets hidden so they appear after the configured delay
+            self.widgets_hidden_for_movement = True
+        else:
+            # When deactivating, widgets should be hidden anyway
+            self.widgets_hidden_for_movement = False
         
         # Update contracted button text if UI is contracted
         self.update_contracted_button_state()
@@ -1351,19 +1363,6 @@ class DwellClickerUI:
         
         # Apply menu settings which will show/hide widget based on active state
         self.apply_menu_settings()
-        
-        if self.is_active:
-            # Force immediate position update when becoming active
-            if (self.settings_manager.get_setting('scroll_enabled', True) or 
-                self.settings_manager.get_setting('menu_enabled', True)):
-                try:
-                    from pynput.mouse import Controller
-                    mouse = Controller()
-                    pos = mouse.position
-                    self.update_scroll_widget_position(pos)
-                    self.update_menu_widget_position(pos)
-                except Exception as e:
-                    pass
     
     def set_mode(self, mode):
         """Set click mode with improved temporary/default behavior."""
@@ -1520,8 +1519,23 @@ class DwellClickerUI:
                 # Coordinated positioning mode
                 self._update_coordinated_widget_positions(cursor_pos)
             else:
-                # Normal positioning if menu is disabled
-                self.scroll_widget.update_position(cursor_pos)
+                # Normal positioning if menu is disabled, but still check if menu is expanded
+                menu_expanded = hasattr(self.menu_widget, 'is_expanded') and self.menu_widget.is_expanded
+                scroll_activated = self.scroll_hover is not None
+                
+                # Hide scroll widget if menu is expanded and scroll is not activated
+                if menu_expanded and not scroll_activated:
+                    if self.scroll_widget.isVisible():
+                        self.scroll_widget.hide()
+                else:
+                    # Show and position scroll widget normally
+                    if not self.scroll_widget.isVisible():
+                        self.scroll_widget.show()
+                        self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
+                        # Only raise on non-macOS platforms to prevent focus stealing
+                        if sys.platform != "darwin":
+                            self.scroll_widget.raise_()
+                    self.scroll_widget.update_position(cursor_pos)
             
             # Check for hover on scroll widget
             hover = self.scroll_widget.check_hover(cursor_pos)
@@ -1568,8 +1582,8 @@ class DwellClickerUI:
                 # Just handle hover detection here
                 pass
             else:
-                # Normal positioning if scroll is disabled
-                self.menu_widget.update_position(cursor_pos)
+                # Normal positioning if scroll is disabled, with a 20px offset
+                self.menu_widget.update_position(cursor_pos, y_offset=20)
             
             # Check for hover on menu widget
             hover = self.menu_widget.check_hover(cursor_pos)
@@ -1611,6 +1625,28 @@ class DwellClickerUI:
         if not hasattr(self, '_coordinated_locked'):
             self._coordinated_locked = False
         
+        # Check if menu widget is expanded and scroll widget should be hidden
+        menu_expanded = hasattr(self.menu_widget, 'is_expanded') and self.menu_widget.is_expanded
+        scroll_activated = self.scroll_hover is not None
+        
+        # Hide scroll widget if menu is expanded and scroll is not activated
+        if menu_expanded and not scroll_activated:
+            if self.scroll_widget.isVisible():
+                self.scroll_widget.hide()
+            # Only position menu widget in this case
+            self.menu_widget.update_position(cursor_pos, coordinated_mode=True)
+            return
+        
+        # Show scroll widget if it should be visible (menu not expanded or scroll is activated)
+        scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+        if scroll_enabled and self.is_active and not self.widgets_hidden_for_movement:
+            if not self.scroll_widget.isVisible():
+                self.scroll_widget.show()
+                self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
+                # Only raise on non-macOS platforms to prevent focus stealing
+                if sys.platform != "darwin":
+                    self.scroll_widget.raise_()
+        
         # Check if widgets should be locked based on cursor proximity
         # Only check if widgets are visible and have been positioned
         if self.scroll_widget.isVisible() and self.menu_widget.isVisible():
@@ -1626,7 +1662,7 @@ class DwellClickerUI:
             
             # Use lock thresholds similar to individual widgets
             lock_threshold = 120
-            unlock_threshold = 180
+            unlock_threshold = self.settings_manager.get_setting('widget_unlock_threshold', 150)
             
             # Check if either widget is close enough to lock both
             should_lock = (scroll_distance < lock_threshold or menu_distance < lock_threshold)
@@ -2062,7 +2098,7 @@ class DwellClickerUI:
         except Exception:
             # Fallback to horizontal if there's any error
             return 'horizontal'
-
+    
     def apply_menu_settings(self):
         """Apply menu widget settings from the settings manager."""
         if not self.settings_manager:
@@ -2084,7 +2120,18 @@ class DwellClickerUI:
         
         # Enable/disable menu widget based on setting and active state
         should_be_active = self.is_active and menu_enabled
-        self.menu_widget.set_active(should_be_active)
+        
+        # Set the widget's active state, but respect the widget appearance delay
+        # Instead of immediately showing the widget, let the movement detection system handle visibility
+        if should_be_active != self.menu_widget.is_active:
+            if should_be_active:
+                # When enabling, don't show immediately - set active state but keep hidden
+                # The movement detection system will show it after the configured delay
+                self.menu_widget.is_active = True
+                # Don't call show() here - let _show_widgets_for_movement() handle it
+            else:
+                # When disabling, immediately hide
+                self.menu_widget.set_active(False)
         
         # Update button states to reflect menu setting changes
         self.update_button_states()
@@ -2099,6 +2146,21 @@ class DwellClickerUI:
         
         # Update the movement detector with the new delay
         self.cursor_movement_detector.set_dwell_delay(appearance_delay)
+    
+    def apply_widget_unlock_threshold_settings(self):
+        """Apply widget unlock threshold settings to all widgets."""
+        if not self.settings_manager:
+            return
+            
+        threshold = self.settings_manager.get_setting('widget_unlock_threshold', 150)
+        
+        # Update threshold in scroll widget
+        if hasattr(self, 'scroll_widget') and self.scroll_widget:
+            self.scroll_widget.unlock_threshold = threshold
+            
+        # Update threshold in menu widget
+        if hasattr(self, 'menu_widget') and self.menu_widget:
+            self.menu_widget.unlock_threshold = threshold
         
         # Sync movement threshold with dwell detection move_limit
         if hasattr(self, 'dwell_detector') and self.dwell_detector:

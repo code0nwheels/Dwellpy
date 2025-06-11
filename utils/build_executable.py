@@ -99,7 +99,7 @@ def create_spec_file():
     #uac_uiaccess=True,"""
             icon_line = "    icon='dwellpy/assets/icons/Dwellpy.ico',"
             macos_app_bundle = ""
-            print("   Adding Windows UAC flags for mouse control")
+            #print("   Adding Windows UAC flags for mouse control")
             print("   Using Windows .ico icon")
         elif platform.system().lower() == 'darwin':  # macOS
             # macOS - no UAC, different icon handling, create app bundle
@@ -137,12 +137,25 @@ app = BUNDLE(
     info_plist={{
         'NSPrincipalClass': 'NSApplication',
         'NSAppleScriptEnabled': False,
+        'NSHighResolutionCapable': True,
+        'LSMinimumSystemVersion': '10.14.0',
+        'LSUIElement': True,
+        'NSAppleEventsUsageDescription': 'Dwellpy needs accessibility permissions to monitor mouse movements and provide dwell clicking functionality.',
+        'NSAccessibilityUsageDescription': 'Dwellpy requires accessibility permissions to detect mouse hover events and perform clicks for users with motor disabilities.',
+        'LSApplicationCategoryType': 'public.app-category.utilities',
         'CFBundleDocumentTypes': [
             {{
                 'CFBundleTypeName': 'Dwellpy Settings',
                 'CFBundleTypeIconFile': '{icon_file}',
                 'LSItemContentTypes': ['public.json'],
-                'LSHandlerRank': 'Owner'
+                'LSHandlerRank': 'Owner',
+                'CFBundleTypeRole': 'Editor'
+            }}
+        ],
+        'CFBundleURLTypes': [
+            {{
+                'CFBundleURLName': 'com.dwellpy.settings',
+                'CFBundleURLSchemes': ['dwellpy']
             }}
         ]
     }},
@@ -155,10 +168,16 @@ app = BUNDLE(
     exe,
     name='Dwellpy.app',
     bundle_identifier='com.dwellpy.dwellpy',
-    info_plist={
+    info_plist={{
         'NSPrincipalClass': 'NSApplication',
         'NSAppleScriptEnabled': False,
-    },
+        'NSHighResolutionCapable': True,
+        'LSMinimumSystemVersion': '10.14.0',
+        'LSUIElement': True,
+        'NSAppleEventsUsageDescription': 'Dwellpy needs accessibility permissions to monitor mouse movements and provide dwell clicking functionality.',
+        'NSAccessibilityUsageDescription': 'Dwellpy requires accessibility permissions to detect mouse hover events and perform clicks for users with motor disabilities.',
+        'LSApplicationCategoryType': 'public.app-category.utilities',
+    }},
 )"""
             
             print("   Configured for macOS (no UAC flags)")
@@ -473,6 +492,62 @@ def create_installer_info():
     
     print("   Created BUILD_INFO.md")
 
+def macos_post_build():
+    """Handle macOS-specific post-build actions."""
+    if platform.system().lower() != 'darwin':
+        return True  # Skip on non-macOS
+
+    print("macOS post-build actions...")
+    # Always attempt to run the DMG script if the one-file executable exists
+    onefile_exe = Path('dist/Dwellpy')
+    if onefile_exe.exists():
+        print("    One-file executable found; running DMG script")
+        dmg_script = Path('utils/create_macos_dmg.py')
+        if dmg_script.exists():
+            result = subprocess.run([sys.executable, str(dmg_script)], cwd=Path.cwd())
+            if result.returncode == 0:
+                print("    DMG created successfully")
+            else:
+                print("   ! DMG creation failed (continuing anyway)")
+                return True  # Don't fail the build for DMG issues
+        else:
+            print("   ! DMG script not found")
+    else:
+        print("   ! No one-file executable found in dist/")
+    return True
+
+def windows_post_build():
+    """Handle Windows-specific post-build actions."""
+    if not is_windows():
+        return True  # Skip on non-Windows
+    
+    print("Windows post-build actions...")
+    
+    # Check if we have an executable
+    exe_path = Path('dist/Dwellpy.exe')
+    if exe_path.exists():
+        print("    Executable found")
+        
+        # Automatically create Windows installer
+        print("   Creating NSIS installer...")
+        installer_script = Path('utils/create_windows_installer.py')
+        if installer_script.exists():
+            result = subprocess.run([
+                sys.executable, str(installer_script)
+            ], cwd=Path.cwd())
+            
+            if result.returncode == 0:
+                print("    Windows installer created successfully")
+            else:
+                print("   ! Installer creation failed (continuing anyway)")
+                return True  # Don't fail the build for installer issues
+        else:
+            print("   ! Windows installer script not found")
+    else:
+        print("   ! No executable found")
+    
+    return True
+
 def main():
     """Main build process."""
     print("Building Dwellpy Executable")
@@ -500,6 +575,8 @@ def main():
         ("Build executable", build_executable),
         ("Test executable", test_executable),
         ("Create build info", create_installer_info),
+        ("macOS post-build actions", macos_post_build),
+        ("Windows post-build actions", windows_post_build),
     ]
     
     for step_name, step_func in steps:
@@ -520,8 +597,8 @@ def main():
     print(f"\nYour executable is in: dist/")
     print("See BUILD_INFO.md for distribution instructions")
     
-    if is_windows():
-        print("Windows UAC flags included for mouse control access")
+    #if is_windows():
+        #print("Windows UAC flags included for mouse control access")
 
 if __name__ == "__main__":
     main()
