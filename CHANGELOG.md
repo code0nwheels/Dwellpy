@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.10.0](https://github.com/code0nwheels/Dwellpy/compare/v0.9.2...v0.10.0) (2025-06-11)
+
+
+### Features
+
+* add setting for widget unlock threshold ([eeb5a88](https://github.com/code0nwheels/Dwellpy/commit/eeb5a88b096c3fc4397b209d4a8cebe9ef53a73e))
+* Standardize widget behavior and add unlock threshold setting ([773f235](https://github.com/code0nwheels/Dwellpy/commit/773f235984106a0696d840f2a5c44d8db6adf8da))
+
+
+### Bug Fixes
+
+* **ci:** resolve Linux build automation issues ([b62d55a](https://github.com/code0nwheels/Dwellpy/commit/b62d55a6ad43c7c2f9d24949e846929a870f509c))
+* hide scroll widget when menu widget expands ([a42c6b7](https://github.com/code0nwheels/Dwellpy/commit/a42c6b7bc14bb50e91167e8b02d3ecf43490a4ed))
+* reduce widget unlock thresholds to 150px for better responsiveness ([2126cbc](https://github.com/code0nwheels/Dwellpy/commit/2126cbc25597484940dc0d568a63c6952460d8f2))
+* **widget-positioning:** ensure consistent menu widget positioning and locking ([e1a1069](https://github.com/code0nwheels/Dwellpy/commit/e1a1069a28fb3df175124173a85daba5f236b446))
+
 ## [0.9.2](https://github.com/code0nwheels/Dwellpy/compare/v0.9.1...v0.9.2) (2025-06-06)
 
 
