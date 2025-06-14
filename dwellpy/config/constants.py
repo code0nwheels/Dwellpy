@@ -56,7 +56,9 @@ DEFAULT_EXPANSION_DIRECTION = 'auto'  # Default expansion direction
 SCREEN_EDGE_MARGIN = 50        # Margin from screen edge for expansion decisions
 
 # Menu Widget Constants
-MENU_WIDGET_SIZE = 30
+MENU_ITEM_SIZE_MIN = 25  # Minimum size for menu items (pixels)
+MENU_ITEM_SIZE_MAX = 55  # Maximum size for menu items (pixels)
+MENU_ITEM_SIZE_DEFAULT = 35 # Default size for menu items (pixels)
 MENU_WIDGET_OFFSET = 100  # Distance from cursor
 MENU_WIDGET_ANGLE = -45  # Bottom-right position
 MENU_OPACITY_BASE = 80  # Base opacity percentage
@@ -188,6 +190,7 @@ DEFAULT_SETTINGS = {
     'menu_angle': MENU_WIDGET_ANGLE,
     'menu_opacity_base': MENU_OPACITY_BASE,
     'menu_opacity_hover': MENU_OPACITY_HOVER,
+    'menu_item_size': MENU_ITEM_SIZE_DEFAULT,
     'widget_appearance_delay': WIDGET_APPEARANCE_DELAY_DEFAULT,
     'widget_unlock_threshold': WIDGET_UNLOCK_THRESHOLD_DEFAULT,
     'contract_ui_enabled': False,
@@ -214,10 +217,3 @@ BUTTON_IDS = {
     'MOVE': 'MOVE',
     'EXIT': 'EXIT'
 }
-
-# Menu Widget Constants
-MENU_WIDGET_SIZE = 30
-MENU_WIDGET_OFFSET = 100  # Distance from cursor
-MENU_WIDGET_ANGLE = -45  # Bottom-right position
-MENU_OPACITY_BASE = 80  # Base opacity percentage
-MENU_OPACITY_HOVER = 95

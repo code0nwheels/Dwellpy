@@ -250,7 +250,7 @@ class DwellClickerUI:
         # Apply scroll widget settings AFTER setting the active state
         self.apply_scroll_settings()
         
-        # Apply menu widget settings AFTER setting the active state
+        # Apply menu widget settings
         self.apply_menu_settings()
         
         # Apply widget appearance settings
@@ -2042,105 +2042,64 @@ class DwellClickerUI:
             self.menu_dwell_triggered = False
 
     def determine_expansion_direction(self):
-        """Determine the best expansion direction based on window position and user preference."""
-        if not self.settings_manager:
-            return 'horizontal'
+        """Determine expansion direction based on settings and window position."""
+        # This can be called to dynamically update based on current conditions
+        # For now, it respects the user's setting first.
         
-        user_preference = self.settings_manager.get_setting('expansion_direction', DEFAULT_EXPANSION_DIRECTION)
+        # Get user preference
+        preferred_direction = self.settings_manager.get_setting('expansion_direction', DEFAULT_EXPANSION_DIRECTION)
         
-        # If user has a specific preference (not auto), use it
-        if user_preference != 'auto':
-            return user_preference
-        
-        # Auto mode - determine best direction based on screen position
-        try:
-            from PyQt6.QtGui import QGuiApplication
+        if preferred_direction != 'auto':
+            self.current_expansion_direction = preferred_direction
+            return preferred_direction
             
-            # Get current window position and screen geometry
-            window_pos = self.window.pos()
-            window_size = self.window.size()
-            screen = QGuiApplication.primaryScreen().geometry()
+        # If set to 'auto', determine based on window position
+        if self.window:
+            window_rect = self.window.geometry()
+            screen_geometry = self.window.screen().availableGeometry()
             
-            # Calculate available space in each direction
-            space_right = screen.width() - (window_pos.x() + window_size.width())
-            space_bottom = screen.height() - (window_pos.y() + window_size.height())
-            space_left = window_pos.x()
-            space_top = window_pos.y()
+            # Check if closer to left/right or top/bottom edges
+            is_closer_to_vertical_edge = (window_rect.left() < screen_geometry.center().x())
             
-            # Calculate required space for full UI
-            total_buttons = len(self.buttons)
-            horizontal_space_needed = (total_buttons * BUTTON_SIZE[0] + 
-                                     (total_buttons - 1) * LAYOUT_SPACING + 
-                                     LAYOUT_MARGIN * 2) - CONTRACT_BUTTON_SIZE[0]
-            vertical_space_needed = (total_buttons * BUTTON_SIZE[1] + 
-                                   (total_buttons - 1) * LAYOUT_SPACING + 
-                                   LAYOUT_MARGIN * 2) - CONTRACT_BUTTON_SIZE[1]
-            
-            # Check if horizontal expansion is possible
-            horizontal_possible = (space_right >= horizontal_space_needed + SCREEN_EDGE_MARGIN or 
-                                 space_left >= horizontal_space_needed + SCREEN_EDGE_MARGIN)
-            
-            # Check if vertical expansion is possible
-            vertical_possible = (space_bottom >= vertical_space_needed + SCREEN_EDGE_MARGIN or 
-                               space_top >= vertical_space_needed + SCREEN_EDGE_MARGIN)
-            
-            # Prefer horizontal if both are possible (traditional UI layout)
-            if horizontal_possible:
-                return 'horizontal'
-            elif vertical_possible:
-                return 'vertical'
+            if is_closer_to_vertical_edge:
+                # Closer to left or right edge, so expand vertically
+                self.current_expansion_direction = 'vertical'
             else:
-                # If neither fits perfectly, choose the one with more space
-                max_horizontal = max(space_right, space_left)
-                max_vertical = max(space_bottom, space_top)
-                return 'horizontal' if max_horizontal >= max_vertical else 'vertical'
-                
-        except Exception:
-            # Fallback to horizontal if there's any error
-            return 'horizontal'
-    
+                # Closer to top or bottom edge, so expand horizontally
+                self.current_expansion_direction = 'horizontal'
+        else:
+            self.current_expansion_direction = DEFAULT_EXPANSION_DIRECTION
+
+        return self.current_expansion_direction
+
+    def update_menu_item_size(self, size: int):
+        """Update the size of the menu items."""
+        if self.menu_widget:
+            self.menu_widget.set_item_size(size)
+
     def apply_menu_settings(self):
-        """Apply menu widget settings from the settings manager."""
+        """Apply menu-related settings."""
         if not self.settings_manager:
             return
-        
-        # Get menu settings
-        menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
-        menu_offset = self.settings_manager.get_setting('menu_offset', 100)
-        menu_angle = self.settings_manager.get_setting('menu_angle', -45)
-        menu_opacity_base = self.settings_manager.get_setting('menu_opacity_base', 80)
-        menu_opacity_hover = self.settings_manager.get_setting('menu_opacity_hover', 95)
-        
-        # Apply settings to menu widget
-        self.menu_widget.set_offset(distance=menu_offset, angle=menu_angle)
-        self.menu_widget.set_opacity(
-            base=menu_opacity_base,
-            hover=menu_opacity_hover
-        )
-        
-        # Enable/disable menu widget based on setting and active state
-        should_be_active = self.is_active and menu_enabled
-        
-        # Set the widget's active state, but respect the widget appearance delay
-        # Instead of immediately showing the widget, let the movement detection system handle visibility
-        if should_be_active != self.menu_widget.is_active:
-            if should_be_active:
-                # When enabling, don't show immediately - set active state but keep hidden
-                # The movement detection system will show it after the configured delay
-                self.menu_widget.is_active = True
-                # Don't call show() here - let _show_widgets_for_movement() handle it
-            else:
-                # When disabling, immediately hide
-                self.menu_widget.set_active(False)
-        
-        # Update button states to reflect menu setting changes
-        self.update_button_states()
+
+        is_enabled = self.settings_manager.get_setting('menu_widget_enabled', True)
+        self.menu_widget.set_active(is_enabled)
+
+        # Update item size
+        item_size = self.settings_manager.get_setting('menu_item_size', 50) # default 50
+        if self.menu_widget:
+            self.menu_widget.set_item_size(item_size)
+
+        # Update opacity
+        base_opacity = self.settings_manager.get_setting('menu_opacity_base', 80)
+        hover_opacity = self.settings_manager.get_setting('menu_opacity_hover', 95)
+        self.menu_widget.set_opacity(base=base_opacity, hover=hover_opacity)
 
     def apply_widget_appearance_settings(self):
         """Apply widget appearance settings from the settings manager."""
         if not self.settings_manager:
             return
-        
+            
         # Get widget appearance delay setting
         appearance_delay = self.settings_manager.get_setting('widget_appearance_delay', 0.2)
         
