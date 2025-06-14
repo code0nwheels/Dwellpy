@@ -7,7 +7,7 @@ from PyQt6.QtGui import QFont, QColor, QIcon
 import os
 
 try:
-    from ...config.constants import Colors, BORDER_RADIUS, Fonts
+    from ...config.constants import Colors, BORDER_RADIUS, Fonts, MENU_ITEM_SIZE_MIN, MENU_ITEM_SIZE_MAX
     from ...utils.helpers import center_window, format_time_display, format_percentage_display, get_asset_path
     from ...__init__ import __version__
 except ImportError:
@@ -156,6 +156,21 @@ class SettingsDialog(QDialog):
         self.unlock_threshold_plus_repeat = QTimer()
         self.unlock_threshold_plus_repeat.timeout.connect(self.on_hover_plus_unlock_threshold)
         
+        # Menu item size timers
+        self.menu_size_minus_timer = QTimer()
+        self.menu_size_minus_timer.setSingleShot(True)
+        self.menu_size_minus_timer.timeout.connect(self.start_minus_menu_size_repeat)
+        
+        self.menu_size_plus_timer = QTimer()
+        self.menu_size_plus_timer.setSingleShot(True)
+        self.menu_size_plus_timer.timeout.connect(self.start_plus_menu_size_repeat)
+        
+        self.menu_size_minus_repeat = QTimer()
+        self.menu_size_minus_repeat.timeout.connect(self.on_hover_minus_menu_size)
+        
+        self.menu_size_plus_repeat = QTimer()
+        self.menu_size_plus_repeat.timeout.connect(self.on_hover_plus_menu_size)
+        
     def setup_ui(self):
         """Setup the dialog UI with left-side wide tabs for dwell-friendly navigation."""
         # Use dynamic sizing instead of fixed size for cross-platform compatibility
@@ -243,6 +258,7 @@ class SettingsDialog(QDialog):
         self.create_dwell_movement_tab()
         self.create_visual_feedback_tab()
         self.create_scroll_widget_tab()
+        self.create_menu_widget_tab()
         self.create_general_tab()
         
         # OK button
@@ -359,7 +375,26 @@ class SettingsDialog(QDialog):
         layout.addStretch()
         
         self.tab_widget.addTab(tab, "Scroll")
-    
+
+    def create_menu_widget_tab(self):
+        """Create menu widget settings tab."""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(20)
+        
+        # Menu Item Size Section
+        menu_header = self.create_section_header("Menu Item Size",
+                                                "Adjust the size of the circular menu items")
+        layout.addWidget(menu_header)
+        
+        self.create_menu_item_size_section(layout)
+        
+        # Add stretch to push content to the top
+        layout.addStretch()
+        
+        self.tab_widget.addTab(tab, "Menu")
+
     def create_general_tab(self):
         """Create general tab."""
         tab = QWidget()
@@ -746,6 +781,46 @@ class SettingsDialog(QDialog):
         
         layout.addWidget(unlock_threshold_frame)
     
+    def create_menu_item_size_section(self, layout):
+        """Create the menu item size settings section."""
+        # Section header
+        header_frame = self.create_section_header(
+            "Menu Item Size",
+            "Adjust the size of the circular menu items."
+        )
+        layout.addWidget(header_frame)
+
+        # Slider with plus/minus buttons
+        size_layout = QHBoxLayout()
+        
+        # Minus button
+        self.menu_size_minus_button = self.create_adjustment_button("-")
+        self.menu_size_minus_button.enterEvent = lambda e: self.on_enter_minus_menu_size()
+        self.menu_size_minus_button.leaveEvent = lambda e: self.on_leave_minus_menu_size()
+        size_layout.addWidget(self.menu_size_minus_button)
+        
+        # Slider
+        self.menu_size_slider = QSlider(Qt.Orientation.Horizontal)
+        self.menu_size_slider.setRange(MENU_ITEM_SIZE_MIN, MENU_ITEM_SIZE_MAX)
+        self.menu_size_slider.setValue(self.settings_manager.get_setting('menu_item_size'))
+        self.menu_size_slider.setStyleSheet(self.get_slider_style())
+        size_layout.addWidget(self.menu_size_slider)
+        
+        # Plus button
+        self.menu_size_plus_button = self.create_adjustment_button("+")
+        self.menu_size_plus_button.enterEvent = lambda e: self.on_enter_plus_menu_size()
+        self.menu_size_plus_button.leaveEvent = lambda e: self.on_leave_plus_menu_size()
+        size_layout.addWidget(self.menu_size_plus_button)
+        
+        # Value label
+        self.menu_size_value_label = QLabel()
+        self.menu_size_value_label.setMinimumWidth(50)
+        self.menu_size_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.update_menu_size_value(self.menu_size_slider.value())
+        size_layout.addWidget(self.menu_size_value_label)
+        
+        layout.addLayout(size_layout)
+    
     def create_active_state_section(self, layout):
         """Create default active state section."""
         active_frame = QFrame()
@@ -1070,6 +1145,7 @@ class SettingsDialog(QDialog):
         self.expansion_button_group.buttonClicked.connect(self.on_expansion_direction_toggle)
         self.widget_delay_slider.valueChanged.connect(self.update_widget_delay_value)
         self.unlock_threshold_slider.valueChanged.connect(self.update_unlock_threshold_value)
+        self.menu_size_slider.valueChanged.connect(self.update_menu_size_value)
     
     # Value update methods
     def update_move_limit_value(self, value):
@@ -1111,6 +1187,11 @@ class SettingsDialog(QDialog):
         threshold_pixels = value * 10
         self.unlock_threshold_value.setText(f"{threshold_pixels}px")
         self.settings_manager.update_widget_unlock_threshold(threshold_pixels)
+
+    def update_menu_size_value(self, value):
+        """Update menu item size display value."""
+        self.menu_size_value_label.setText(f"{value}px")
+        self.settings_manager.update_menu_item_size(value)
 
     def on_scroll_toggle(self, state):
         """Handle scroll widget checkbox toggle."""
@@ -1258,6 +1339,24 @@ class SettingsDialog(QDialog):
         self.unlock_threshold_plus_timer.stop()
         self.unlock_threshold_plus_repeat.stop()
     
+    def on_enter_minus_menu_size(self):
+        """Start minus menu size timer on hover."""
+        self.menu_size_minus_timer.start(500)
+    
+    def on_leave_minus_menu_size(self):
+        """Stop minus menu size timer on leave."""
+        self.menu_size_minus_timer.stop()
+        self.menu_size_minus_repeat.stop()
+    
+    def on_enter_plus_menu_size(self):
+        """Start plus menu size timer on hover."""
+        self.menu_size_plus_timer.start(500)
+    
+    def on_leave_plus_menu_size(self):
+        """Stop plus menu size timer on leave."""
+        self.menu_size_plus_timer.stop()
+        self.menu_size_plus_repeat.stop()
+    
     # Timer start methods that begin the repeat action
     def start_minus_move_repeat(self):
         self.on_hover_minus_move_limit()  # First action
@@ -1306,6 +1405,14 @@ class SettingsDialog(QDialog):
     def start_plus_unlock_threshold_repeat(self):
         self.on_hover_plus_unlock_threshold()
         self.unlock_threshold_plus_repeat.start(500)
+    
+    def start_minus_menu_size_repeat(self):
+        self.on_hover_minus_menu_size()
+        self.menu_size_minus_repeat.start(500)
+    
+    def start_plus_menu_size_repeat(self):
+        self.on_hover_plus_menu_size()
+        self.menu_size_plus_repeat.start(500)
     
     # The actual value adjustment methods
     def on_hover_minus_move_limit(self):
@@ -1368,6 +1475,16 @@ class SettingsDialog(QDialog):
         if current < self.unlock_threshold_slider.maximum():
             self.unlock_threshold_slider.setValue(current + 1)
     
+    def on_hover_minus_menu_size(self):
+        current = self.menu_size_slider.value()
+        if current > self.menu_size_slider.minimum():
+            self.menu_size_slider.setValue(current - 1)
+        
+    def on_hover_plus_menu_size(self):
+        current = self.menu_size_slider.value()
+        if current < self.menu_size_slider.maximum():
+            self.menu_size_slider.setValue(current + 1)
+    
     def accept(self):
         """Handle dialog acceptance."""
         # Stop all timers
@@ -1378,12 +1495,14 @@ class SettingsDialog(QDialog):
             self.scroll_speed_minus_timer, self.scroll_speed_plus_timer,
             self.widget_delay_minus_timer, self.widget_delay_plus_timer,
             self.unlock_threshold_minus_timer, self.unlock_threshold_plus_timer,
+            self.menu_size_minus_timer, self.menu_size_plus_timer,
             self.move_minus_repeat, self.move_plus_repeat, 
             self.time_minus_repeat, self.time_plus_repeat,
             self.transparency_minus_repeat, self.transparency_plus_repeat,
             self.scroll_speed_minus_repeat, self.scroll_speed_plus_repeat,
             self.widget_delay_minus_repeat, self.widget_delay_plus_repeat,
-            self.unlock_threshold_minus_repeat, self.unlock_threshold_plus_repeat
+            self.unlock_threshold_minus_repeat, self.unlock_threshold_plus_repeat,
+            self.menu_size_minus_repeat, self.menu_size_plus_repeat
         ]
         
         for timer in timers_to_stop:

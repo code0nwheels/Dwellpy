@@ -13,7 +13,8 @@ from ..config.constants import (
 	MIN_TRANSPARENCY, MAX_TRANSPARENCY,
 	EXPANSION_DIRECTIONS,
 	WIDGET_APPEARANCE_DELAY_MIN, WIDGET_APPEARANCE_DELAY_MAX,
-	WIDGET_UNLOCK_THRESHOLD_MIN, WIDGET_UNLOCK_THRESHOLD_MAX
+	WIDGET_UNLOCK_THRESHOLD_MIN, WIDGET_UNLOCK_THRESHOLD_MAX,
+	MENU_ITEM_SIZE_MIN, MENU_ITEM_SIZE_MAX
 )
 from ..utils.helpers import get_settings_file_path, get_screen_center, clamp_value
 from ..ui.dialogs.settings_dialog import SettingsDialog
@@ -807,6 +808,22 @@ Keywords=accessibility;dwell;click;motor;disability;
 		
 		# Apply threshold change immediately if UI manager is available
 		if self.ui_manager:
-			self.ui_manager.apply_widget_unlock_threshold_settings()
+			self.ui_manager.set_unlock_threshold(clamped_threshold)
 		
-		self.logger.debug(f"Widget unlock threshold updated to: {clamped_threshold} pixels")
+		self.logger.debug(f"Unlock threshold updated to: {clamped_threshold}px")
+
+	def update_menu_item_size(self, size: int) -> None:
+		"""
+		Update menu item size setting and apply immediately.
+		
+		Args:
+			size: New menu item size in pixels
+		"""
+		clamped_size = clamp_value(size, MENU_ITEM_SIZE_MIN, MENU_ITEM_SIZE_MAX)
+		self.settings['menu_item_size'] = clamped_size
+		
+		# Apply size change immediately if UI manager is available
+		if self.ui_manager:
+			self.ui_manager.update_menu_item_size(clamped_size)
+		
+		self.logger.info(f"Menu item size updated to: {clamped_size}px")

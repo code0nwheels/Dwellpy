@@ -65,8 +65,6 @@ class MenuWidget(QWidget):
         
         # Widget configuration - redesigned for circular layout around hamburger icon
         self.hamburger_size = 30  # Size of the hamburger icon
-        self.circle_radius = 60  # Radius of the circular menu layout from hamburger center
-        self.expanded_size = 200  # Size of the expanded widget (smaller since we're centering on hamburger)
         self.offset_distance = 100  # Distance from cursor for hamburger icon
         self.offset_angle = -45  # Angle in degrees (bottom-right by default)
         self.min_safe_distance = 50  # Minimum distance to keep widget away from cursor
@@ -111,7 +109,9 @@ class MenuWidget(QWidget):
         ]
         
         # Layout configuration - circular layout around hamburger icon
-        self.item_size = 35  # Size of each circular menu item
+        self.item_size = 35
+        self.set_item_size(self.item_size)  # Initialize dynamic sizes
+        
         self.cursor_in_widget = QPoint(0, 0)  # Cursor position relative to widget
         
         # Animation state for radial expansion
@@ -292,7 +292,7 @@ class MenuWidget(QWidget):
         text_color = QColor(item_color) if is_hovered or self._is_item_active_state(item) else QColor(255, 255, 255)
         text_color.setAlpha(min(255, base_alpha + 55))  # Ensure text is visible
         painter.setPen(QPen(text_color))
-        painter.setFont(QFont("Helvetica Neue", 8, QFont.Weight.Bold))
+        painter.setFont(QFont("Helvetica Neue", 9, QFont.Weight.Bold))
         painter.drawText(item_rect, Qt.AlignmentFlag.AlignCenter, item['label'])
     
     def _get_item_state_color(self, item):
@@ -795,3 +795,17 @@ class MenuWidget(QWidget):
             adjusted_y = screen_geometry.bottom() - widget_size.height()
         
         return QPoint(adjusted_x, adjusted_y)
+
+    def set_item_size(self, size):
+        """Set the size of menu items and dynamically adjust layout."""
+        self.item_size = size
+        
+        # Dynamically calculate radius and expanded size based on item size
+        # These multipliers are derived from design choices for good aesthetics
+        self.circle_radius = int(self.item_size * 1.7)
+        self.expanded_size = int(2 * self.circle_radius + self.item_size * 1.2)
+        
+        # If the menu is already expanded, we need to resize it
+        if self.is_expanded:
+            self.setFixedSize(self.expanded_size, self.expanded_size)
+            self.update()
