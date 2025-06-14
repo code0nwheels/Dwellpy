@@ -142,6 +142,24 @@ This section controls a floating scroll widget that appears near your cursor for
 
 **When to disable**: When using on-screen keyboards or other tools that might conflict.
 
+### Menu Widget
+This section controls the appearance and behavior of the hamburger menu widget.
+
+#### Menu Item Size (30-100 pixels)
+**What it does**: Controls the size of menu items in the expanded hamburger menu.
+
+**Scale**: 30 = smallest items, 100 = largest items
+
+**Recommended values**:
+- **30-50**: Compact menu for smaller screens or when space is limited
+- **50-70**: Standard size for most users (default: 50)
+- **70-100**: Larger items for better visibility or accessibility needs
+
+**When to adjust**:
+- **Increase size**: If menu items are hard to see or click
+- **Decrease size**: If the menu takes up too much screen space
+- **Default (50)**: Good balance for most users
+
 #### Scroll Speed (1-10)
 **What it does**: Controls how fast scrolling happens when you hover over the scroll arrows.
 
