@@ -2197,3 +2197,8 @@ class DwellClickerUI:
         # This is more forgiving for small movements during interaction
         movement_threshold = 8  # pixels - increased threshold for more forgiveness
         return current_distance > last_distance + movement_threshold
+
+    def update_menu_item_size(self, size):
+        """Update the menu item size."""
+        if self.menu_widget:
+            self.menu_widget.set_item_size(size)

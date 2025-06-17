@@ -131,20 +131,13 @@ class MenuWidget(QWidget):
         self.target_expanded = False
         
     def _setup_ui(self):
-        """Setup the widget UI."""        # Platform-specific window flags for better macOS compatibility
-        if sys.platform == "darwin":  # macOS
-            self.setWindowFlags(
-                Qt.WindowType.FramelessWindowHint |
-                Qt.WindowType.WindowStaysOnTopHint
-            )
-        else:
-            # Windows/Linux flags
-            self.setWindowFlags(
-                Qt.WindowType.FramelessWindowHint |
-                Qt.WindowType.WindowStaysOnTopHint |
-                Qt.WindowType.Tool |  # Prevents taskbar icon
-                Qt.WindowType.WindowTransparentForInput  # Click-through by default
-            )
+        """Setup the widget UI."""
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            #Qt.WindowType.Tool |  # Prevents taskbar icon
+            Qt.WindowType.WindowTransparentForInput  # Click-through by default
+        )
         
         # Make widget transparent
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
