@@ -250,7 +250,7 @@ class DwellClickerUI:
         # Apply scroll widget settings AFTER setting the active state
         self.apply_scroll_settings()
         
-        # Apply menu widget settings
+        # Apply menu widget settings AFTER setting the active state
         self.apply_menu_settings()
         
         # Apply widget appearance settings
@@ -1409,19 +1409,22 @@ class DwellClickerUI:
     
     def process_dwell_event(self, center):
         """Process a dwell event with scroll and menu widget support."""
-        # Don't process regular dwell events if we're over scroll widget
+        # Handle scroll widget dwell
         if self.scroll_hover:
-            # The scrolling is handled by update_scroll_widget_position
+            if not self.scroll_widget.is_scrolling:
+                self.scroll_widget.start_scrolling(self.scroll_hover)
             return
-        else:
-            # Stop scrolling if we've moved away
-            if self.scroll_widget.is_scrolling:
-                self.scroll_widget.stop_scrolling()
 
-        # Don't process regular dwell events if we're over menu widget
+        # Handle menu widget dwell selection
         if self.menu_hover and self.menu_hover not in ['hamburger', 'expanded']:
-            # The menu selection is handled by update_menu_widget_position
+            self.menu_widget.trigger_menu_item(self.menu_hover)
+            # After triggering, reset hover to prevent immediate re-triggering
+            self.menu_hover = None
             return
+
+        # Stop scrolling if we've moved away from the scroll widget
+        if self.scroll_widget.is_scrolling:
+            self.scroll_widget.stop_scrolling()
 
         # Get current hover button from button manager
         current_hover = self.button_manager.get_current_hover()
@@ -1505,110 +1508,55 @@ class DwellClickerUI:
         self.update_contracted_button_state()
 
     def update_scroll_widget_position(self, cursor_pos):
-        """Update scroll widget position to follow cursor with coordinated positioning."""
+        """Update scroll widget position to follow cursor and track hover state."""
         # Only update if scroll widget is enabled
         if not self.settings_manager.get_setting('scroll_enabled', True):
             return
         
         # Continue with position updates only if widgets should be visible
         if self.is_active and not self.widgets_hidden_for_movement:
-            # Check if both widgets are enabled for coordinated positioning
             menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
             
             if menu_enabled:
-                # Coordinated positioning mode
                 self._update_coordinated_widget_positions(cursor_pos)
             else:
-                # Normal positioning if menu is disabled, but still check if menu is expanded
                 menu_expanded = hasattr(self.menu_widget, 'is_expanded') and self.menu_widget.is_expanded
                 scroll_activated = self.scroll_hover is not None
                 
-                # Hide scroll widget if menu is expanded and scroll is not activated
                 if menu_expanded and not scroll_activated:
                     if self.scroll_widget.isVisible():
                         self.scroll_widget.hide()
                 else:
-                    # Show and position scroll widget normally
                     if not self.scroll_widget.isVisible():
                         self.scroll_widget.show()
                         self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
-                        # Only raise on non-macOS platforms to prevent focus stealing
                         if sys.platform != "darwin":
                             self.scroll_widget.raise_()
                     self.scroll_widget.update_position(cursor_pos)
             
-            # Check for hover on scroll widget
-            hover = self.scroll_widget.check_hover(cursor_pos)
-            
-            # Track hover state changes
-            if hover != self.scroll_hover:
-                # Stop any existing scrolling when changing hover state
+            # Check for hover on scroll widget and update the state
+            new_hover = self.scroll_widget.check_hover(cursor_pos)
+            if new_hover != self.scroll_hover:
                 if self.scroll_widget.is_scrolling:
                     self.scroll_widget.stop_scrolling()
-                
-                self.scroll_hover = hover
-                
-                if hover:
-                    # Started hovering (either from None or from a different direction)
-                    self.scroll_dwell_start_time = time.time()
-                    self.scroll_dwell_triggered = False
-                else:
-                    # Stopped hovering completely
-                    self.scroll_dwell_start_time = None
-                    self.scroll_dwell_triggered = False
-            
-            # Check if dwell complete
-            if hover and self.scroll_dwell_start_time and not self.scroll_dwell_triggered:
-                hover_duration = time.time() - self.scroll_dwell_start_time
-                
-                # Check if dwell complete
-                if hover_duration >= self.dwell_detector.dwell_time:
-                    self.scroll_widget.start_scrolling(hover)
-                    self.scroll_dwell_triggered = True
+                self.scroll_hover = new_hover
 
     def update_menu_widget_position(self, cursor_pos):
-        """Update menu widget position to follow cursor with coordinated positioning."""
+        """Update menu widget position to follow cursor and track hover state."""
         # Only update if menu widget is enabled
         if not self.settings_manager.get_setting('menu_enabled', True):
             return
         
         # Only continue if widgets are not hidden for movement
         if self.is_active and not self.widgets_hidden_for_movement:
-            # Check if both widgets are enabled for coordinated positioning
             scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
             
-            if scroll_enabled:
-                # Coordinated positioning is handled by update_scroll_widget_position
-                # Just handle hover detection here
-                pass
-            else:
+            if not scroll_enabled:
                 # Normal positioning if scroll is disabled, with a 20px offset
                 self.menu_widget.update_position(cursor_pos, y_offset=20)
             
-            # Check for hover on menu widget
-            hover = self.menu_widget.check_hover(cursor_pos)
-            
-            # Track hover state changes
-            if hover != self.menu_hover:
-                self.menu_hover = hover
-                
-                if hover and hover not in ['hamburger', 'expanded']:
-                    # Started hovering over a specific menu item
-                    self.menu_dwell_start_time = time.time()
-                    self.menu_dwell_triggered = False
-                else:
-                    # Stopped hovering over specific menu item or just over hamburger/expanded area
-                    self.menu_dwell_start_time = None
-                    self.menu_dwell_triggered = False
-            
-            # Check if dwell complete for menu item selection
-            if (hover and hover not in ['hamburger', 'expanded'] and 
-                self.menu_dwell_start_time and not self.menu_dwell_triggered):
-                hover_duration = time.time() - self.menu_dwell_start_time
-                  # Check if dwell complete
-                if hover_duration >= self.dwell_detector.dwell_time:
-                    self.menu_widget.trigger_menu_item(hover)
-                    self.menu_dwell_triggered = True
+            # Check for hover on menu widget and update state
+            self.menu_hover = self.menu_widget.check_hover(cursor_pos)
 
     def _update_coordinated_widget_positions(self, cursor_pos):
         """Update both widgets with coordinated positioning and off-screen stacking detection."""
@@ -2042,64 +1990,105 @@ class DwellClickerUI:
             self.menu_dwell_triggered = False
 
     def determine_expansion_direction(self):
-        """Determine expansion direction based on settings and window position."""
-        # This can be called to dynamically update based on current conditions
-        # For now, it respects the user's setting first.
+        """Determine the best expansion direction based on window position and user preference."""
+        if not self.settings_manager:
+            return 'horizontal'
         
-        # Get user preference
-        preferred_direction = self.settings_manager.get_setting('expansion_direction', DEFAULT_EXPANSION_DIRECTION)
+        user_preference = self.settings_manager.get_setting('expansion_direction', DEFAULT_EXPANSION_DIRECTION)
         
-        if preferred_direction != 'auto':
-            self.current_expansion_direction = preferred_direction
-            return preferred_direction
+        # If user has a specific preference (not auto), use it
+        if user_preference != 'auto':
+            return user_preference
+        
+        # Auto mode - determine best direction based on screen position
+        try:
+            from PyQt6.QtGui import QGuiApplication
             
-        # If set to 'auto', determine based on window position
-        if self.window:
-            window_rect = self.window.geometry()
-            screen_geometry = self.window.screen().availableGeometry()
+            # Get current window position and screen geometry
+            window_pos = self.window.pos()
+            window_size = self.window.size()
+            screen = QGuiApplication.primaryScreen().geometry()
             
-            # Check if closer to left/right or top/bottom edges
-            is_closer_to_vertical_edge = (window_rect.left() < screen_geometry.center().x())
+            # Calculate available space in each direction
+            space_right = screen.width() - (window_pos.x() + window_size.width())
+            space_bottom = screen.height() - (window_pos.y() + window_size.height())
+            space_left = window_pos.x()
+            space_top = window_pos.y()
             
-            if is_closer_to_vertical_edge:
-                # Closer to left or right edge, so expand vertically
-                self.current_expansion_direction = 'vertical'
+            # Calculate required space for full UI
+            total_buttons = len(self.buttons)
+            horizontal_space_needed = (total_buttons * BUTTON_SIZE[0] + 
+                                     (total_buttons - 1) * LAYOUT_SPACING + 
+                                     LAYOUT_MARGIN * 2) - CONTRACT_BUTTON_SIZE[0]
+            vertical_space_needed = (total_buttons * BUTTON_SIZE[1] + 
+                                   (total_buttons - 1) * LAYOUT_SPACING + 
+                                   LAYOUT_MARGIN * 2) - CONTRACT_BUTTON_SIZE[1]
+            
+            # Check if horizontal expansion is possible
+            horizontal_possible = (space_right >= horizontal_space_needed + SCREEN_EDGE_MARGIN or 
+                                 space_left >= horizontal_space_needed + SCREEN_EDGE_MARGIN)
+            
+            # Check if vertical expansion is possible
+            vertical_possible = (space_bottom >= vertical_space_needed + SCREEN_EDGE_MARGIN or 
+                               space_top >= vertical_space_needed + SCREEN_EDGE_MARGIN)
+            
+            # Prefer horizontal if both are possible (traditional UI layout)
+            if horizontal_possible:
+                return 'horizontal'
+            elif vertical_possible:
+                return 'vertical'
             else:
-                # Closer to top or bottom edge, so expand horizontally
-                self.current_expansion_direction = 'horizontal'
-        else:
-            self.current_expansion_direction = DEFAULT_EXPANSION_DIRECTION
-
-        return self.current_expansion_direction
-
-    def update_menu_item_size(self, size: int):
-        """Update the size of the menu items."""
-        if self.menu_widget:
-            self.menu_widget.set_item_size(size)
-
+                # If neither fits perfectly, choose the one with more space
+                max_horizontal = max(space_right, space_left)
+                max_vertical = max(space_bottom, space_top)
+                return 'horizontal' if max_horizontal >= max_vertical else 'vertical'
+                
+        except Exception:
+            # Fallback to horizontal if there's any error
+            return 'horizontal'
+    
     def apply_menu_settings(self):
-        """Apply menu-related settings."""
+        """Apply menu widget settings from the settings manager."""
         if not self.settings_manager:
             return
-
-        is_enabled = self.settings_manager.get_setting('menu_widget_enabled', True)
-        self.menu_widget.set_active(is_enabled)
-
-        # Update item size
-        item_size = self.settings_manager.get_setting('menu_item_size', 50) # default 50
-        if self.menu_widget:
-            self.menu_widget.set_item_size(item_size)
-
-        # Update opacity
-        base_opacity = self.settings_manager.get_setting('menu_opacity_base', 80)
-        hover_opacity = self.settings_manager.get_setting('menu_opacity_hover', 95)
-        self.menu_widget.set_opacity(base=base_opacity, hover=hover_opacity)
+        
+        # Get menu settings
+        menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
+        menu_offset = self.settings_manager.get_setting('menu_offset', 100)
+        menu_angle = self.settings_manager.get_setting('menu_angle', -45)
+        menu_opacity_base = self.settings_manager.get_setting('menu_opacity_base', 80)
+        menu_opacity_hover = self.settings_manager.get_setting('menu_opacity_hover', 95)
+        
+        # Apply settings to menu widget
+        self.menu_widget.set_offset(distance=menu_offset, angle=menu_angle)
+        self.menu_widget.set_opacity(
+            base=menu_opacity_base,
+            hover=menu_opacity_hover
+        )
+        
+        # Enable/disable menu widget based on setting and active state
+        should_be_active = self.is_active and menu_enabled
+        
+        # Set the widget's active state, but respect the widget appearance delay
+        # Instead of immediately showing the widget, let the movement detection system handle visibility
+        if should_be_active != self.menu_widget.is_active:
+            if should_be_active:
+                # When enabling, don't show immediately - set active state but keep hidden
+                # The movement detection system will show it after the configured delay
+                self.menu_widget.is_active = True
+                # Don't call show() here - let _show_widgets_for_movement() handle it
+            else:
+                # When disabling, immediately hide
+                self.menu_widget.set_active(False)
+        
+        # Update button states to reflect menu setting changes
+        self.update_button_states()
 
     def apply_widget_appearance_settings(self):
         """Apply widget appearance settings from the settings manager."""
         if not self.settings_manager:
             return
-            
+        
         # Get widget appearance delay setting
         appearance_delay = self.settings_manager.get_setting('widget_appearance_delay', 0.2)
         

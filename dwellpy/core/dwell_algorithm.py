@@ -40,9 +40,6 @@ class DwellDetector:
             if dx >= self.move_limit or dy >= self.move_limit:
                 self.waiting_for_exit = False
                 self.last_dwell_point = None
-            
-            # Don't increment counter while waiting for exit
-            # This effectively prevents new dwells until cursor moves
             return
         
         # Initialize last_position if this is the first update
@@ -51,7 +48,6 @@ class DwellDetector:
             return
         
         # Calculate absolute distance in X and Y directions separately
-        # This allows for more precise movement detection than euclidean distance
         dx = abs(position[0] - self.last_position[0])
         dy = abs(position[1] - self.last_position[1])
         
@@ -75,12 +71,8 @@ class DwellDetector:
                 - is_dwelling: Boolean indicating if dwell threshold was reached
                 - position: The position where dwelling occurred or None
         """
-        # Skip if we don't have a position yet
-        if self.last_position is None:
-            return False, None
-        
-        # Skip if we're waiting for cursor to exit previous dwell radius
-        if self.waiting_for_exit:
+        # Early exit conditions
+        if self.last_position is None or self.waiting_for_exit:
             return False, None
         
         # Check if counter has exceeded the threshold
