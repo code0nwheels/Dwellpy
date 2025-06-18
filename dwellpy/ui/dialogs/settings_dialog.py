@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                            QPushButton, QSlider, QCheckBox, QFrame, QComboBox, QColorDialog, QTabWidget, QWidget, QRadioButton, QButtonGroup, QMessageBox)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QColor, QIcon
+from PyQt6.QtGui import QFont, QColor, QIcon, QGuiApplication
 import os
 
 try:
@@ -56,6 +56,9 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.settings_manager = settings_manager
         self.button_manager = button_manager
+        
+        # For frameless window dragging
+        self.drag_pos = None
         
         # Initialize timers
         self.setup_timers()
@@ -173,9 +176,6 @@ class SettingsDialog(QDialog):
         
     def setup_ui(self):
         """Setup the dialog UI with left-side wide tabs for dwell-friendly navigation."""
-        # Use dynamic sizing instead of fixed size for cross-platform compatibility
-        self._setup_dynamic_sizing()
-        
         # Set window flags for frameless window
         self.setWindowFlags(
             Qt.WindowType.Dialog | 
@@ -220,7 +220,6 @@ class SettingsDialog(QDialog):
                 border-top-right-radius: 4px;
                 min-width: 100px;
                 min-height: 20px;
-                font-size: 10pt;
                 font-weight: bold;
             }}
             QTabBar[tabPosition="2"]::tab {{
@@ -252,6 +251,9 @@ class SettingsDialog(QDialog):
         # Create tab widget with top tabs and shorter names
         self.tab_widget = QTabWidget()
         self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)  # Top tabs
+        font = QFont("Arial", 10)
+        font.setBold(True)
+        self.tab_widget.setFont(font)
         main_layout.addWidget(self.tab_widget)
         
         # Create tabs
@@ -278,7 +280,8 @@ class SettingsDialog(QDialog):
           # Title label
         title_label = QLabel("Dwellpy Settings")
         title_label.setStyleSheet(f"""
-            {self._get_scaled_font_style(18, "bold")}
+            font-size: 18pt;
+            font-weight: bold;
             color: {Colors.TEXT_COLOR};
         """)
         title_layout.addWidget(title_label)
@@ -287,13 +290,14 @@ class SettingsDialog(QDialog):
         close_button = QPushButton("×")
         close_button.setFixedSize(24, 24)
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        font = QFont("Arial", 16)
+        font.setBold(True)
+        close_button.setFont(font)
         close_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: transparent;
                 color: {Colors.TEXT_COLOR};
                 border: none;
-                font-size: 16pt;
-                font-weight: bold;
             }}
             QPushButton:hover {{
                 color: #aaaaaa;
@@ -384,10 +388,6 @@ class SettingsDialog(QDialog):
         layout.setSpacing(20)
         
         # Menu Item Size Section
-        menu_header = self.create_section_header("Menu Item Size",
-                                                "Adjust the size of the circular menu items")
-        layout.addWidget(menu_header)
-        
         self.create_menu_item_size_section(layout)
         
         # Add stretch to push content to the top
@@ -424,8 +424,7 @@ class SettingsDialog(QDialog):
     def create_move_limit_section(self, layout):
         """Create move limit adjustment section."""        # Label
         move_label = QLabel("Move Limit (px):")
-        move_label.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(12)))
-        move_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        move_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(move_label)
         
         # Controls frame
@@ -435,7 +434,7 @@ class SettingsDialog(QDialog):
         move_layout.setSpacing(5)
         
         # Minus button
-        move_minus_btn = self.create_adjustment_button("-")
+        move_minus_btn = self.create_adjustment_button("◀")
         move_minus_btn.enterEvent = lambda e: self.on_enter_minus_move()
         move_minus_btn.leaveEvent = lambda e: self.on_leave_minus_move()
         move_layout.addWidget(move_minus_btn)
@@ -448,14 +447,13 @@ class SettingsDialog(QDialog):
         move_layout.addWidget(self.move_limit_slider)
         
         # Plus button
-        move_plus_btn = self.create_adjustment_button("+")
+        move_plus_btn = self.create_adjustment_button("▶")
         move_plus_btn.enterEvent = lambda e: self.on_enter_plus_move()
         move_plus_btn.leaveEvent = lambda e: self.on_leave_plus_move()
         move_layout.addWidget(move_plus_btn)
           # Value label
         self.move_limit_value = QLabel(str(self.settings_manager.get_setting('move_limit', 5)))
         self.move_limit_value.setStyleSheet(f"""
-            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.move_limit_value.setFixedWidth(30)
@@ -466,8 +464,7 @@ class SettingsDialog(QDialog):
     def create_dwell_time_section(self, layout):
         """Create dwell time adjustment section."""        # Label
         time_label = QLabel("Dwell Time (s):")
-        time_label.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(12)))
-        time_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        time_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(time_label)
         
         # Controls frame
@@ -477,7 +474,7 @@ class SettingsDialog(QDialog):
         time_layout.setSpacing(5)
         
         # Minus button
-        time_minus_btn = self.create_adjustment_button("-")
+        time_minus_btn = self.create_adjustment_button("◀")
         time_minus_btn.enterEvent = lambda e: self.on_enter_minus_time()
         time_minus_btn.leaveEvent = lambda e: self.on_leave_minus_time()
         time_layout.addWidget(time_minus_btn)
@@ -490,14 +487,13 @@ class SettingsDialog(QDialog):
         time_layout.addWidget(self.time_slider)
         
         # Plus button
-        time_plus_btn = self.create_adjustment_button("+")
+        time_plus_btn = self.create_adjustment_button("▶")
         time_plus_btn.enterEvent = lambda e: self.on_enter_plus_time()
         time_plus_btn.leaveEvent = lambda e: self.on_leave_plus_time()
         time_layout.addWidget(time_plus_btn)
           # Value label
         self.time_value = QLabel(format_time_display(self.settings_manager.get_setting('dwell_time', 1.0)))
         self.time_value.setStyleSheet(f"""
-            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.time_value.setFixedWidth(30)
@@ -514,15 +510,13 @@ class SettingsDialog(QDialog):
         transparency_enable_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.transparency_check = QCheckBox("Enable window transparency")
         self.transparency_check.setChecked(self.settings_manager.get_setting('transparency_enabled', False))
-        self.transparency_check.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(12)))
         self.transparency_check.setStyleSheet(self.get_checkbox_style())
         transparency_enable_layout.addWidget(self.transparency_check)
         
         layout.addWidget(transparency_enable_frame)
           # Transparency level label
         transparency_label = QLabel("Transparency (%):")
-        transparency_label.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(12)))
-        transparency_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        transparency_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(transparency_label)
         
         # Controls frame
@@ -532,7 +526,7 @@ class SettingsDialog(QDialog):
         transparency_layout.setSpacing(5)
         
         # Minus button
-        transparency_minus_btn = self.create_adjustment_button("-")
+        transparency_minus_btn = self.create_adjustment_button("◀")
         transparency_minus_btn.enterEvent = lambda e: self.on_enter_minus_transparency()
         transparency_minus_btn.leaveEvent = lambda e: self.on_leave_minus_transparency()
         transparency_layout.addWidget(transparency_minus_btn)
@@ -545,14 +539,13 @@ class SettingsDialog(QDialog):
         transparency_layout.addWidget(self.transparency_slider)
         
         # Plus button
-        transparency_plus_btn = self.create_adjustment_button("+")
+        transparency_plus_btn = self.create_adjustment_button("▶")
         transparency_plus_btn.enterEvent = lambda e: self.on_enter_plus_transparency()
         transparency_plus_btn.leaveEvent = lambda e: self.on_leave_plus_transparency()
         transparency_layout.addWidget(transparency_plus_btn)
           # Value label
         self.transparency_value = QLabel(format_percentage_display(self.settings_manager.get_setting('transparency_level', 70)))
         self.transparency_value.setStyleSheet(f"""
-            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.transparency_value.setFixedWidth(40)
@@ -570,7 +563,6 @@ class SettingsDialog(QDialog):
         
         self.visible_clicks_check = QCheckBox("Enable visible clicks")
         self.visible_clicks_check.setChecked(self.settings_manager.get_setting('visible_clicks_enabled', False))
-        self.visible_clicks_check.setFont(QFont("Helvetica Neue", 11))
         self.visible_clicks_check.setStyleSheet(self.get_checkbox_style())
         visible_clicks_layout.addWidget(self.visible_clicks_check)
         
@@ -580,8 +572,7 @@ class SettingsDialog(QDialog):
         """Create click colors customization section."""
         # Section title
         colors_label = QLabel("Click Colors:")
-        colors_label.setFont(QFont("Helvetica Neue", 11))
-        colors_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        colors_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(colors_label)
         
         # Default colors to use if not set in settings
@@ -626,7 +617,6 @@ class SettingsDialog(QDialog):
         
         self.scroll_check = QCheckBox("Enable scroll widget")
         self.scroll_check.setChecked(self.settings_manager.get_setting('scroll_enabled', True))
-        self.scroll_check.setFont(QFont("Helvetica Neue", 11))
         self.scroll_check.setStyleSheet(self.get_checkbox_style())
         scroll_enable_layout.addWidget(self.scroll_check)
         
@@ -634,8 +624,7 @@ class SettingsDialog(QDialog):
         
         # Scroll speed label
         scroll_speed_label = QLabel("Scroll Speed:")
-        scroll_speed_label.setFont(QFont("Helvetica Neue", 11))
-        scroll_speed_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        scroll_speed_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(scroll_speed_label)
         
         # Controls frame
@@ -645,7 +634,7 @@ class SettingsDialog(QDialog):
         scroll_speed_layout.setSpacing(5)
         
         # Minus button
-        scroll_speed_minus_btn = self.create_adjustment_button("-")
+        scroll_speed_minus_btn = self.create_adjustment_button("◀")
         scroll_speed_minus_btn.enterEvent = lambda e: self.on_enter_minus_scroll_speed()
         scroll_speed_minus_btn.leaveEvent = lambda e: self.on_leave_minus_scroll_speed()
         scroll_speed_layout.addWidget(scroll_speed_minus_btn)
@@ -661,14 +650,13 @@ class SettingsDialog(QDialog):
         scroll_speed_layout.addWidget(self.scroll_speed_slider)
         
         # Plus button
-        scroll_speed_plus_btn = self.create_adjustment_button("+")
+        scroll_speed_plus_btn = self.create_adjustment_button("▶")
         scroll_speed_plus_btn.enterEvent = lambda e: self.on_enter_plus_scroll_speed()
         scroll_speed_plus_btn.leaveEvent = lambda e: self.on_leave_plus_scroll_speed()
         scroll_speed_layout.addWidget(scroll_speed_plus_btn)
           # Value label
         self.scroll_speed_value = QLabel(str(self.scroll_speed_slider.value()))
         self.scroll_speed_value.setStyleSheet(f"""
-            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.scroll_speed_value.setFixedWidth(30)
@@ -678,14 +666,13 @@ class SettingsDialog(QDialog):
         
         # Widget Appearance Delay
         appearance_delay_label = QLabel("Widget Appearance Delay:")
-        appearance_delay_label.setFont(QFont("Helvetica Neue", 11))
-        appearance_delay_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        appearance_delay_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(appearance_delay_label)
         
-        # Description
-        delay_desc = QLabel("How long to wait after cursor stops moving before widgets appear")
-        delay_desc.setFont(QFont("Helvetica Neue", 9))
-        delay_desc.setStyleSheet(f"color: #999999; margin-bottom: 8px;")
+        # Description for widget delay
+        delay_desc = QLabel("Time before scroll widget appears")
+        delay_desc.setFont(QFont("Arial", 9))
+        delay_desc.setStyleSheet("color: #999999; margin-top: 8px;")
         delay_desc.setWordWrap(True)
         layout.addWidget(delay_desc)
         
@@ -696,7 +683,7 @@ class SettingsDialog(QDialog):
         widget_delay_layout.setSpacing(5)
         
         # Minus button
-        widget_delay_minus_btn = self.create_adjustment_button("-")
+        widget_delay_minus_btn = self.create_adjustment_button("◀")
         widget_delay_minus_btn.enterEvent = lambda e: self.on_enter_minus_widget_delay()
         widget_delay_minus_btn.leaveEvent = lambda e: self.on_leave_minus_widget_delay()
         widget_delay_layout.addWidget(widget_delay_minus_btn)
@@ -712,7 +699,7 @@ class SettingsDialog(QDialog):
         widget_delay_layout.addWidget(self.widget_delay_slider)
         
         # Plus button
-        widget_delay_plus_btn = self.create_adjustment_button("+")
+        widget_delay_plus_btn = self.create_adjustment_button("▶")
         widget_delay_plus_btn.enterEvent = lambda e: self.on_enter_plus_widget_delay()
         widget_delay_plus_btn.leaveEvent = lambda e: self.on_leave_plus_widget_delay()
         widget_delay_layout.addWidget(widget_delay_plus_btn)
@@ -720,7 +707,6 @@ class SettingsDialog(QDialog):
         delay_seconds = self.widget_delay_slider.value() / 10.0
         self.widget_delay_value = QLabel(f"{delay_seconds:.1f}s")
         self.widget_delay_value.setStyleSheet(f"""
-            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
         self.widget_delay_value.setFixedWidth(40)
@@ -730,13 +716,12 @@ class SettingsDialog(QDialog):
         
         # Widget Unlock Threshold
         unlock_threshold_label = QLabel("Widget Unlock Threshold:")
-        unlock_threshold_label.setFont(QFont("Helvetica Neue", 11))
-        unlock_threshold_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
+        unlock_threshold_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(unlock_threshold_label)
         
         # Description
         unlock_desc = QLabel("Distance (in pixels) cursor must move from widget before it starts following again")
-        unlock_desc.setFont(QFont("Helvetica Neue", 9))
+        unlock_desc.setFont(QFont("Arial", 9))
         unlock_desc.setStyleSheet(f"color: #999999; margin-bottom: 8px;")
         unlock_desc.setWordWrap(True)
         layout.addWidget(unlock_desc)
@@ -748,162 +733,156 @@ class SettingsDialog(QDialog):
         unlock_threshold_layout.setSpacing(5)
         
         # Minus button
-        unlock_threshold_minus_btn = self.create_adjustment_button("-")
+        unlock_threshold_minus_btn = self.create_adjustment_button("◀")
         unlock_threshold_minus_btn.enterEvent = lambda e: self.on_enter_minus_unlock_threshold()
         unlock_threshold_minus_btn.leaveEvent = lambda e: self.on_leave_minus_unlock_threshold()
         unlock_threshold_layout.addWidget(unlock_threshold_minus_btn)
         
-        # Slider (10-30, representing 100-300 pixels)
+        # Slider (10-100 pixels)
         self.unlock_threshold_slider = QSlider(Qt.Orientation.Horizontal)
-        self.unlock_threshold_slider.setRange(10, 30)
-        # Convert current threshold (100-300) to slider value (10-30)
-        current_threshold = self.settings_manager.get_setting('widget_unlock_threshold', 150)
-        slider_value = current_threshold // 10
-        self.unlock_threshold_slider.setValue(max(10, min(30, slider_value)))
+        self.unlock_threshold_slider.setRange(10, 100)
+        self.unlock_threshold_slider.setValue(self.settings_manager.get_setting('widget_unlock_threshold', 30))
         self.unlock_threshold_slider.setStyleSheet(self.get_slider_style())
         unlock_threshold_layout.addWidget(self.unlock_threshold_slider)
         
         # Plus button
-        unlock_threshold_plus_btn = self.create_adjustment_button("+")
+        unlock_threshold_plus_btn = self.create_adjustment_button("▶")
         unlock_threshold_plus_btn.enterEvent = lambda e: self.on_enter_plus_unlock_threshold()
         unlock_threshold_plus_btn.leaveEvent = lambda e: self.on_leave_plus_unlock_threshold()
         unlock_threshold_layout.addWidget(unlock_threshold_plus_btn)
-        
-        # Value label
-        threshold_pixels = self.unlock_threshold_slider.value() * 10
-        self.unlock_threshold_value = QLabel(f"{threshold_pixels}px")
+          # Value label
+        self.unlock_threshold_value = QLabel(f"{self.unlock_threshold_slider.value()}px")
         self.unlock_threshold_value.setStyleSheet(f"""
-            {self._get_scaled_font_style(13, "bold")}
             color: {Colors.TEXT_COLOR};
         """)
-        self.unlock_threshold_value.setFixedWidth(50)
+        self.unlock_threshold_value.setFixedWidth(40)
         unlock_threshold_layout.addWidget(self.unlock_threshold_value)
         
         layout.addWidget(unlock_threshold_frame)
-    
+
     def create_menu_item_size_section(self, layout):
-        """Create the menu item size settings section."""
-        # Section header
-        header_frame = self.create_section_header(
+        """Create menu item size adjustment section."""
+        # Header
+        menu_size_header = self.create_section_header(
             "Menu Item Size",
             "Adjust the size of the circular menu items."
         )
-        layout.addWidget(header_frame)
+        layout.addWidget(menu_size_header)
 
-        # Slider with plus/minus buttons
-        size_layout = QHBoxLayout()
-        
+        # Controls frame
+        size_frame = QFrame()
+        size_layout = QHBoxLayout(size_frame)
+        size_layout.setContentsMargins(0, 0, 0, 0)
+        size_layout.setSpacing(10)
+
         # Minus button
-        self.menu_size_minus_button = self.create_adjustment_button("-")
-        self.menu_size_minus_button.enterEvent = lambda e: self.on_enter_minus_menu_size()
-        self.menu_size_minus_button.leaveEvent = lambda e: self.on_leave_minus_menu_size()
-        size_layout.addWidget(self.menu_size_minus_button)
-        
-        # Slider
+        menu_size_minus_btn = self.create_adjustment_button("◀")
+        menu_size_minus_btn.enterEvent = lambda e: self.on_enter_minus_menu_size()
+        menu_size_minus_btn.leaveEvent = lambda e: self.on_leave_minus_menu_size()
+        size_layout.addWidget(menu_size_minus_btn)
+
+        # Slider for menu item size
         self.menu_size_slider = QSlider(Qt.Orientation.Horizontal)
         self.menu_size_slider.setRange(MENU_ITEM_SIZE_MIN, MENU_ITEM_SIZE_MAX)
-        self.menu_size_slider.setValue(self.settings_manager.get_setting('menu_item_size'))
+        self.menu_size_slider.setValue(self.settings_manager.get_setting('menu_item_size', 60))
         self.menu_size_slider.setStyleSheet(self.get_slider_style())
         size_layout.addWidget(self.menu_size_slider)
-        
+
         # Plus button
-        self.menu_size_plus_button = self.create_adjustment_button("+")
-        self.menu_size_plus_button.enterEvent = lambda e: self.on_enter_plus_menu_size()
-        self.menu_size_plus_button.leaveEvent = lambda e: self.on_leave_plus_menu_size()
-        size_layout.addWidget(self.menu_size_plus_button)
-        
+        menu_size_plus_btn = self.create_adjustment_button("▶")
+        menu_size_plus_btn.enterEvent = lambda e: self.on_enter_plus_menu_size()
+        menu_size_plus_btn.leaveEvent = lambda e: self.on_leave_plus_menu_size()
+        size_layout.addWidget(menu_size_plus_btn)
+
         # Value label
-        self.menu_size_value_label = QLabel()
-        self.menu_size_value_label.setMinimumWidth(50)
-        self.menu_size_value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.update_menu_size_value(self.menu_size_slider.value())
-        size_layout.addWidget(self.menu_size_value_label)
+        self.menu_size_value = QLabel(str(self.settings_manager.get_setting('menu_item_size', 60)))
+        self.menu_size_value.setStyleSheet(f"""
+            color: {Colors.TEXT_COLOR};
+        """)
+        self.menu_size_value.setFixedWidth(40)
+        size_layout.addWidget(self.menu_size_value)
         
-        layout.addLayout(size_layout)
+        layout.addWidget(size_frame)
     
     def create_active_state_section(self, layout):
         """Create default active state section."""
+        # Active on launch
         active_frame = QFrame()
         active_layout = QHBoxLayout(active_frame)
         active_layout.setContentsMargins(0, 0, 0, 0)
         active_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
-        self.active_check = QCheckBox("Start active on launch")
-        self.active_check.setChecked(self.settings_manager.get_setting('default_active', False))
-        self.active_check.setFont(QFont("Helvetica Neue", 11))
+        self.active_check = QCheckBox("Active on launch")
+        self.active_check.setChecked(self.settings_manager.get_setting('active_on_launch', True))
         self.active_check.setStyleSheet(self.get_checkbox_style())
         active_layout.addWidget(self.active_check)
         
         layout.addWidget(active_frame)
         
-        # Auto-start section
+        # Auto-start with system
         auto_start_frame = QFrame()
         auto_start_layout = QHBoxLayout(auto_start_frame)
         auto_start_layout.setContentsMargins(0, 0, 0, 0)
         auto_start_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
-        self.auto_start_check = QCheckBox("Auto-start on system login")
+        self.auto_start_check = QCheckBox("Automatically start with system")
         self.auto_start_check.setChecked(self.settings_manager.get_setting('auto_start_enabled', False))
-        self.auto_start_check.setFont(QFont("Helvetica Neue", 11))
         self.auto_start_check.setStyleSheet(self.get_checkbox_style())
         auto_start_layout.addWidget(self.auto_start_check)
         
+        # Warning for non-Windows systems
+        if os.name != 'nt':
+            warning_label = QLabel(" (May require manual setup on macOS/Linux)")
+            warning_label.setStyleSheet(f"color: #999999;")
+            auto_start_layout.addWidget(warning_label)
+
         layout.addWidget(auto_start_frame)
     
     def create_ui_contraction_section(self, layout):
-        """Create UI contraction section."""
+        """Create UI contraction settings section."""
         # Enable checkbox
-        contraction_frame = QFrame()
-        contraction_layout = QHBoxLayout(contraction_frame)
-        contraction_layout.setContentsMargins(0, 0, 0, 0)
-        contraction_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        contract_ui_frame = QFrame()
+        contract_ui_layout = QHBoxLayout(contract_ui_frame)
+        contract_ui_layout.setContentsMargins(0, 0, 0, 0)
+        contract_ui_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
-        self.contract_ui_check = QCheckBox("Contract UI when cursor is outside")
-        self.contract_ui_check.setChecked(self.settings_manager.get_setting('contract_ui_enabled', False))
-        self.contract_ui_check.setFont(QFont("Helvetica Neue", 11))
+        self.contract_ui_check = QCheckBox("Contract UI when idle")
+        self.contract_ui_check.setChecked(self.settings_manager.get_setting('contract_ui_enabled', True))
         self.contract_ui_check.setStyleSheet(self.get_checkbox_style())
-        contraction_layout.addWidget(self.contract_ui_check)
+        contract_ui_layout.addWidget(self.contract_ui_check)
         
-        layout.addWidget(contraction_frame)
+        layout.addWidget(contract_ui_frame)
         
-        # Expansion direction section with radio buttons
+        # Expansion direction section
         expansion_direction_frame = QFrame()
-        expansion_direction_layout = QVBoxLayout(expansion_direction_frame)
-        expansion_direction_layout.setContentsMargins(0, 0, 0, 0)
-        expansion_direction_layout.setSpacing(8)
+        expansion_direction_layout = QHBoxLayout(expansion_direction_frame)
+        expansion_direction_layout.setContentsMargins(20, 0, 0, 0) # Indent
         
-        # Label
-        expansion_label = QLabel("Expansion direction:")
-        expansion_label.setFont(QFont("Helvetica Neue", 11))
-        expansion_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
-        expansion_direction_layout.addWidget(expansion_label)
-        
-        # Create button group for radio buttons
-        self.expansion_button_group = QButtonGroup()
-        
-        # Radio buttons container
+        # Expansion direction
+        expansion_direction_label = QLabel("Expansion Direction:")
+        expansion_direction_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
+        expansion_direction_layout.addWidget(expansion_direction_label)
+
+        # Radio button container
         radio_container = QFrame()
         radio_layout = QVBoxLayout(radio_container)
-        radio_layout.setContentsMargins(20, 0, 0, 0)
-        radio_layout.setSpacing(4)
+        radio_layout.setContentsMargins(0,0,0,0)
+        self.expansion_button_group = QButtonGroup()
         
         # Auto radio button
-        self.expansion_auto_radio = QRadioButton("Auto (recommended)")
-        self.expansion_auto_radio.setFont(QFont("Helvetica Neue", 10))
+        self.expansion_auto_radio = QRadioButton("Auto (detects available space)")
         self.expansion_auto_radio.setStyleSheet(self.get_radio_style())
         self.expansion_button_group.addButton(self.expansion_auto_radio, 0)
         radio_layout.addWidget(self.expansion_auto_radio)
         
         # Horizontal radio button
         self.expansion_horizontal_radio = QRadioButton("Horizontal (left-to-right)")
-        self.expansion_horizontal_radio.setFont(QFont("Helvetica Neue", 10))
         self.expansion_horizontal_radio.setStyleSheet(self.get_radio_style())
         self.expansion_button_group.addButton(self.expansion_horizontal_radio, 1)
         radio_layout.addWidget(self.expansion_horizontal_radio)
         
         # Vertical radio button
         self.expansion_vertical_radio = QRadioButton("Vertical (top-to-bottom)")
-        self.expansion_vertical_radio.setFont(QFont("Helvetica Neue", 10))
         self.expansion_vertical_radio.setStyleSheet(self.get_radio_style())
         self.expansion_button_group.addButton(self.expansion_vertical_radio, 2)
         radio_layout.addWidget(self.expansion_vertical_radio)
@@ -922,18 +901,19 @@ class SettingsDialog(QDialog):
         layout.addWidget(expansion_direction_frame)
     
     def create_adjustment_button(self, text):
-        """Create a +/- adjustment button."""
+        """Create a styled adjustment button (e.g., for increment/decrement)."""
         button = QPushButton(text)
         button.setFixedSize(30, 30)  # Larger for dwell clicking
         button.setCursor(Qt.CursorShape.PointingHandCursor)
+        font = QFont("Arial", 12)
+        font.setBold(True)
+        button.setFont(font)
         button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.DARK_BUTTON_BG};
                 color: {Colors.TEXT_COLOR};
                 border: 1px solid {Colors.BORDER_COLOR};
                 border-radius: 15px;
-                font-weight: bold;
-                font-size: 14pt;
             }}
             QPushButton:hover {{
                 background-color: {Colors.BLUE_ACCENT};
@@ -956,7 +936,7 @@ class SettingsDialog(QDialog):
         
         # Label
         label = QLabel(display_name)
-        label.setFont(QFont("Helvetica Neue", 9))
+        label.setFont(QFont("Arial", 9))
         label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         btn_layout.addWidget(label)
@@ -1090,7 +1070,9 @@ class SettingsDialog(QDialog):
         ok_button = QPushButton("OK")
         ok_button.setFixedSize(250, 35)
         ok_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        ok_button.setFont(QFont("Helvetica Neue", self._get_scaled_font_size(13), QFont.Weight.Bold))
+        font = QFont("Arial", 13)
+        font.setBold(True)
+        ok_button.setFont(font)
         ok_button.setStyleSheet(f"""
             QPushButton {{
                 background-color: {Colors.BLUE_ACCENT};
@@ -1122,7 +1104,6 @@ class SettingsDialog(QDialog):
           # Version info
         version_label = QLabel(f"Dwellpy v{__version__}")
         version_label.setStyleSheet(f"""
-            {self._get_scaled_font_style(10)}
             color: #999999;
         """)
         version_label.setAlignment(Qt.AlignmentFlag.AlignRight)
@@ -1149,110 +1130,76 @@ class SettingsDialog(QDialog):
     
     # Value update methods
     def update_move_limit_value(self, value):
-        """Update move limit value and apply setting."""
         self.move_limit_value.setText(str(value))
-        self.settings_manager.update_move_limit(value)
 
     def update_time_value(self, value):
-        """Update dwell time value and apply setting."""
         seconds = value / 10.0
         self.time_value.setText(format_time_display(seconds))
-        self.settings_manager.update_dwell_time(seconds)
 
     def update_transparency_value(self, value):
-        """Update transparency value and apply setting."""
         self.transparency_value.setText(format_percentage_display(value))
-        self.settings_manager.update_transparency_level(value)
 
     def on_transparency_toggle(self, state):
-        """Handle transparency checkbox toggle."""
         is_enabled = state == 2  # Qt.CheckState.Checked is 2
-        self.settings_manager.update_transparency_enabled(is_enabled)
-
+        self.settings_manager.set_setting('transparency_enabled', is_enabled)
+        
     def update_scroll_speed_value(self, value):
-        """Update scroll speed value and apply setting."""
         self.scroll_speed_value.setText(str(value))
-        # Convert speed value to interval (1=200ms, 10=20ms)
         interval = 220 - (value * 20)
-        self.settings_manager.update_scroll_speed(interval)
+        self.settings_manager.set_setting('scroll_speed', interval)
 
     def update_widget_delay_value(self, value):
-        """Update widget appearance delay value and apply setting."""
         delay_seconds = value / 10.0
         self.widget_delay_value.setText(f"{delay_seconds:.1f}s")
-        self.settings_manager.update_widget_appearance_delay(delay_seconds)
-    
+
     def update_unlock_threshold_value(self, value):
-        """Update unlock threshold display value."""
-        threshold_pixels = value * 10
-        self.unlock_threshold_value.setText(f"{threshold_pixels}px")
-        self.settings_manager.update_widget_unlock_threshold(threshold_pixels)
+        self.unlock_threshold_value.setText(f"{value}px")
 
     def update_menu_size_value(self, value):
-        """Update menu item size display value."""
-        self.menu_size_value_label.setText(f"{value}px")
-        self.settings_manager.update_menu_item_size(value)
+        self.menu_size_value.setText(str(value))
 
     def on_scroll_toggle(self, state):
-        """Handle scroll widget checkbox toggle."""
-        is_enabled = state == 2  # Qt.CheckState.Checked is 2
-        self.settings_manager.update_scroll_enabled(is_enabled)
+        is_enabled = state == 2
+        self.settings_manager.set_setting('scroll_enabled', is_enabled)
 
     def on_visible_clicks_toggle(self, state):
-        """Handle visible clicks checkbox toggle."""
-        is_enabled = state == 2  # Qt.CheckState.Checked is 2
-        self.settings_manager.update_visible_clicks_enabled(is_enabled)
+        is_enabled = state == 2
+        self.settings_manager.set_setting('visible_clicks_enabled', is_enabled)
 
     def on_active_toggle(self, state):
-        """Handle active checkbox toggle."""
-        is_active = state == 2  # Qt.CheckState.Checked is 2
-        self.settings_manager.update_default_active(is_active)
+        is_active = state == 2
+        self.settings_manager.set_setting('active_on_launch', is_active)
 
     def on_contract_ui_toggle(self, state):
-        """Handle contract UI checkbox toggle."""
-        is_enabled = state == 2  # Qt.CheckState.Checked is 2
-        self.settings_manager.update_contract_ui_enabled(is_enabled)
+        is_enabled = state == 2
+        self.settings_manager.set_setting('contract_ui_enabled', is_enabled)
 
     def on_expansion_direction_toggle(self, button):
-        """Handle expansion direction radio button toggle."""
-        # Map button text to setting value
         if button == self.expansion_auto_radio:
             direction = 'auto'
         elif button == self.expansion_horizontal_radio:
             direction = 'horizontal'
-        elif button == self.expansion_vertical_radio:
-            direction = 'vertical'
         else:
-            direction = 'auto'  # fallback
-          # Update settings
-        self.settings_manager.update_expansion_direction(direction)
+            direction = 'vertical'
+        self.settings_manager.set_setting('expansion_direction', direction)
     
     def on_auto_start_toggle(self, state):
-        """Handle auto-start checkbox toggle."""
-        is_enabled = state == 2  # Qt.CheckState.Checked is 2
-        
-        # Call update_auto_start_enabled which returns (success, error_message)
+        is_enabled = state == 2
         success, error_message = self.settings_manager.update_auto_start_enabled(is_enabled)
-        
         if not success:
-            # Auto-start configuration failed - show error dialog
             msg_box = QMessageBox(self)
             msg_box.setIcon(QMessageBox.Icon.Critical)
             msg_box.setWindowTitle("Auto-start Configuration Error")
             msg_box.setText(error_message)
             msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-            
-            # Set the checkbox back to the opposite state since the operation failed
-            self.auto_start_check.blockSignals(True)  # Prevent recursive calls
+            self.auto_start_check.blockSignals(True)
             self.auto_start_check.setChecked(not is_enabled)
             self.auto_start_check.blockSignals(False)
-            
-            # Show the error dialog
             msg_box.exec()
     
     # Hover enter/leave methods for +/- buttons
     def on_enter_minus_move(self):
-        self.move_minus_timer.start(300)  # 300ms initial delay
+        self.move_minus_timer.start(300)
         
     def on_leave_minus_move(self):
         self.move_minus_timer.stop()
@@ -1322,306 +1269,228 @@ class SettingsDialog(QDialog):
         self.widget_delay_plus_repeat.stop()
     
     def on_enter_minus_unlock_threshold(self):
-        """Start minus unlock threshold timer on hover."""
-        self.unlock_threshold_minus_timer.start(500)
+        self.unlock_threshold_minus_timer.start(300)
     
     def on_leave_minus_unlock_threshold(self):
-        """Stop minus unlock threshold timer on leave."""
         self.unlock_threshold_minus_timer.stop()
         self.unlock_threshold_minus_repeat.stop()
     
     def on_enter_plus_unlock_threshold(self):
-        """Start plus unlock threshold timer on hover."""
-        self.unlock_threshold_plus_timer.start(500)
+        self.unlock_threshold_plus_timer.start(300)
     
     def on_leave_plus_unlock_threshold(self):
-        """Stop plus unlock threshold timer on leave."""
         self.unlock_threshold_plus_timer.stop()
         self.unlock_threshold_plus_repeat.stop()
     
     def on_enter_minus_menu_size(self):
-        """Start minus menu size timer on hover."""
-        self.menu_size_minus_timer.start(500)
+        self.menu_size_minus_timer.start(300)
     
     def on_leave_minus_menu_size(self):
-        """Stop minus menu size timer on leave."""
         self.menu_size_minus_timer.stop()
         self.menu_size_minus_repeat.stop()
     
     def on_enter_plus_menu_size(self):
-        """Start plus menu size timer on hover."""
-        self.menu_size_plus_timer.start(500)
+        self.menu_size_plus_timer.start(300)
     
     def on_leave_plus_menu_size(self):
-        """Stop plus menu size timer on leave."""
         self.menu_size_plus_timer.stop()
         self.menu_size_plus_repeat.stop()
     
-    # Timer start methods that begin the repeat action
+    # Timer start methods
     def start_minus_move_repeat(self):
-        self.on_hover_minus_move_limit()  # First action
-        self.move_minus_repeat.start(500)  # Then repeat every 500ms
+        self.on_hover_minus_move_limit()
+        self.move_minus_repeat.start(100)
         
     def start_plus_move_repeat(self):
         self.on_hover_plus_move_limit()
-        self.move_plus_repeat.start(500)
+        self.move_plus_repeat.start(100)
         
     def start_minus_time_repeat(self):
         self.on_hover_minus_dwell_time()
-        self.time_minus_repeat.start(500)
+        self.time_minus_repeat.start(100)
         
     def start_plus_time_repeat(self):
         self.on_hover_plus_dwell_time()
-        self.time_plus_repeat.start(500)
+        self.time_plus_repeat.start(100)
         
     def start_minus_transparency_repeat(self):
         self.on_hover_minus_transparency()
-        self.transparency_minus_repeat.start(500)
+        self.transparency_minus_repeat.start(100)
         
     def start_plus_transparency_repeat(self):
         self.on_hover_plus_transparency()
-        self.transparency_plus_repeat.start(500)
+        self.transparency_plus_repeat.start(100)
         
     def start_minus_scroll_speed_repeat(self):
         self.on_hover_minus_scroll_speed()
-        self.scroll_speed_minus_repeat.start(500)
+        self.scroll_speed_minus_repeat.start(100)
         
     def start_plus_scroll_speed_repeat(self):
         self.on_hover_plus_scroll_speed()
-        self.scroll_speed_plus_repeat.start(500)
+        self.scroll_speed_plus_repeat.start(100)
     
     def start_minus_widget_delay_repeat(self):
         self.on_hover_minus_widget_delay()
-        self.widget_delay_minus_repeat.start(500)
+        self.widget_delay_minus_repeat.start(100)
         
     def start_plus_widget_delay_repeat(self):
         self.on_hover_plus_widget_delay()
-        self.widget_delay_plus_repeat.start(500)
+        self.widget_delay_plus_repeat.start(100)
     
     def start_minus_unlock_threshold_repeat(self):
         self.on_hover_minus_unlock_threshold()
-        self.unlock_threshold_minus_repeat.start(500)
+        self.unlock_threshold_minus_repeat.start(100)
         
     def start_plus_unlock_threshold_repeat(self):
         self.on_hover_plus_unlock_threshold()
-        self.unlock_threshold_plus_repeat.start(500)
+        self.unlock_threshold_plus_repeat.start(100)
     
     def start_minus_menu_size_repeat(self):
         self.on_hover_minus_menu_size()
-        self.menu_size_minus_repeat.start(500)
+        self.menu_size_minus_repeat.start(100)
     
     def start_plus_menu_size_repeat(self):
         self.on_hover_plus_menu_size()
-        self.menu_size_plus_repeat.start(500)
+        self.menu_size_plus_repeat.start(100)
     
-    # The actual value adjustment methods
+    # Hover actions
     def on_hover_minus_move_limit(self):
-        current = self.move_limit_slider.value()
-        if current > self.move_limit_slider.minimum():
-            self.move_limit_slider.setValue(current - 1)
+        self.move_limit_slider.setValue(self.move_limit_slider.value() - 1)
         
     def on_hover_plus_move_limit(self):
-        current = self.move_limit_slider.value()
-        if current < self.move_limit_slider.maximum():
-            self.move_limit_slider.setValue(current + 1)
+        self.move_limit_slider.setValue(self.move_limit_slider.value() + 1)
         
     def on_hover_minus_dwell_time(self):
-        current = self.time_slider.value()
-        if current > self.time_slider.minimum():
-            self.time_slider.setValue(current - 1)
+        self.time_slider.setValue(self.time_slider.value() - 1)
         
     def on_hover_plus_dwell_time(self):
-        current = self.time_slider.value()
-        if current < self.time_slider.maximum():
-            self.time_slider.setValue(current + 1)
+        self.time_slider.setValue(self.time_slider.value() + 1)
         
     def on_hover_minus_transparency(self):
-        current = self.transparency_slider.value()
-        if current > self.transparency_slider.minimum():
-            self.transparency_slider.setValue(current - 5)  # Move by 5% steps
+        self.transparency_slider.setValue(self.transparency_slider.value() - 1)
         
     def on_hover_plus_transparency(self):
-        current = self.transparency_slider.value()
-        if current < self.transparency_slider.maximum():
-            self.transparency_slider.setValue(current + 5)
+        self.transparency_slider.setValue(self.transparency_slider.value() + 1)
         
     def on_hover_minus_scroll_speed(self):
-        current = self.scroll_speed_slider.value()
-        if current > self.scroll_speed_slider.minimum():
-            self.scroll_speed_slider.setValue(current - 1)
+        self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() - 1)
         
     def on_hover_plus_scroll_speed(self):
-        current = self.scroll_speed_slider.value()
-        if current < self.scroll_speed_slider.maximum():
-            self.scroll_speed_slider.setValue(current + 1)
+        self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() + 1)
     
     def on_hover_minus_widget_delay(self):
-        current = self.widget_delay_slider.value()
-        if current > self.widget_delay_slider.minimum():
-            self.widget_delay_slider.setValue(current - 1)
+        self.widget_delay_slider.setValue(self.widget_delay_slider.value() - 1)
         
     def on_hover_plus_widget_delay(self):
-        current = self.widget_delay_slider.value()
-        if current < self.widget_delay_slider.maximum():
-            self.widget_delay_slider.setValue(current + 1)
+        self.widget_delay_slider.setValue(self.widget_delay_slider.value() + 1)
     
     def on_hover_minus_unlock_threshold(self):
-        current = self.unlock_threshold_slider.value()
-        if current > self.unlock_threshold_slider.minimum():
-            self.unlock_threshold_slider.setValue(current - 1)
+        self.unlock_threshold_slider.setValue(self.unlock_threshold_slider.value() - 1)
         
     def on_hover_plus_unlock_threshold(self):
-        current = self.unlock_threshold_slider.value()
-        if current < self.unlock_threshold_slider.maximum():
-            self.unlock_threshold_slider.setValue(current + 1)
+        self.unlock_threshold_slider.setValue(self.unlock_threshold_slider.value() + 1)
     
     def on_hover_minus_menu_size(self):
-        current = self.menu_size_slider.value()
-        if current > self.menu_size_slider.minimum():
-            self.menu_size_slider.setValue(current - 1)
+        self.menu_size_slider.setValue(self.menu_size_slider.value() - 1)
         
     def on_hover_plus_menu_size(self):
-        current = self.menu_size_slider.value()
-        if current < self.menu_size_slider.maximum():
-            self.menu_size_slider.setValue(current + 1)
+        self.menu_size_slider.setValue(self.menu_size_slider.value() + 1)
     
     def accept(self):
         """Handle dialog acceptance."""
         # Stop all timers
         timers_to_stop = [
-            self.move_minus_timer, self.move_plus_timer, 
-            self.time_minus_timer, self.time_plus_timer,
-            self.transparency_minus_timer, self.transparency_plus_timer,
-            self.scroll_speed_minus_timer, self.scroll_speed_plus_timer,
-            self.widget_delay_minus_timer, self.widget_delay_plus_timer,
-            self.unlock_threshold_minus_timer, self.unlock_threshold_plus_timer,
-            self.menu_size_minus_timer, self.menu_size_plus_timer,
-            self.move_minus_repeat, self.move_plus_repeat, 
-            self.time_minus_repeat, self.time_plus_repeat,
-            self.transparency_minus_repeat, self.transparency_plus_repeat,
-            self.scroll_speed_minus_repeat, self.scroll_speed_plus_repeat,
-            self.widget_delay_minus_repeat, self.widget_delay_plus_repeat,
-            self.unlock_threshold_minus_repeat, self.unlock_threshold_plus_repeat,
-            self.menu_size_minus_repeat, self.menu_size_plus_repeat
+            self.move_minus_timer, self.move_plus_timer, self.time_minus_timer, self.time_plus_timer,
+            self.transparency_minus_timer, self.transparency_plus_timer, self.scroll_speed_minus_timer,
+            self.scroll_speed_plus_timer, self.widget_delay_minus_timer, self.widget_delay_plus_timer,
+            self.unlock_threshold_minus_timer, self.unlock_threshold_plus_timer, self.menu_size_minus_timer,
+            self.menu_size_plus_timer, self.move_minus_repeat, self.move_plus_repeat,
+            self.time_minus_repeat, self.time_plus_repeat, self.transparency_minus_repeat,
+            self.transparency_plus_repeat, self.scroll_speed_minus_repeat, self.scroll_speed_plus_repeat,
+            self.widget_delay_minus_repeat, self.widget_delay_plus_repeat, self.unlock_threshold_minus_repeat,
+            self.unlock_threshold_plus_repeat, self.menu_size_minus_repeat, self.menu_size_plus_repeat
         ]
-        
         for timer in timers_to_stop:
-            if timer:
+            if timer and timer.isActive():
                 timer.stop()
         
-        # Save settings
-        self.settings_manager.save_settings()        # Close dialog
+        # Save all settings at once
+        settings = {
+            'move_limit': self.move_limit_slider.value(),
+            'dwell_time': self.time_slider.value() / 10.0,
+            'transparency_enabled': self.transparency_check.isChecked(),
+            'transparency_level': self.transparency_slider.value(),
+            'scroll_enabled': self.scroll_check.isChecked(),
+            'scroll_speed': 220 - (self.scroll_speed_slider.value() * 20),
+            'widget_appearance_delay': self.widget_delay_slider.value() / 10.0,
+            'widget_unlock_threshold': self.unlock_threshold_slider.value(),
+            'menu_item_size': self.menu_size_slider.value(),
+            'visible_clicks_enabled': self.visible_clicks_check.isChecked(),
+            'active_on_launch': self.active_check.isChecked(),
+            'contract_ui_enabled': self.contract_ui_check.isChecked(),
+            'expansion_direction': self.expansion_button_group.checkedButton().text().split(' ')[0].lower()
+        }
+        for key, value in settings.items():
+            self.settings_manager.set_setting(key, value)
+
         super().accept()
 
     def create_section_header(self, title, description):
-        """Create a section header with title and description."""
+        """Create a styled section header with title and description."""
         header_frame = QFrame()
         header_layout = QVBoxLayout(header_frame)
-        header_layout.setContentsMargins(0, 10, 0, 10)
-        header_layout.setSpacing(5)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(2)
         
-        # Title label with DPI-aware font scaling
+        # Title
         title_label = QLabel(title)
         title_label.setStyleSheet(f"""
-            {self._get_scaled_font_style(14, "bold")}
+            font-size: 14pt;
+            font-weight: bold;
             color: {Colors.BLUE_ACCENT};
-            margin-bottom: 3px;
+            qproperty-alignment: 'AlignLeft';
         """)
         header_layout.addWidget(title_label)
         
-        # Description label with better height management and DPI-aware font
-        description_label = QLabel(description)
-        description_label.setStyleSheet(f"""
-            color: #aaaaaa; 
-            {self._get_scaled_font_style(10)}
-            margin-bottom: 8px;
-            line-height: 1.4;
-        """)
-        description_label.setWordWrap(True)
-        # Ensure the label can expand to show all text
-        description_label.setMinimumHeight(30)  # Increased minimum height for wrapped text
-        header_layout.addWidget(description_label)
+        # Description
+        desc_label = QLabel(description)
+        desc_label.setFont(QFont("Arial", 9))
+        desc_label.setStyleSheet("color: #999999; margin-bottom: 8px;")
+        desc_label.setWordWrap(True)
+        header_layout.addWidget(desc_label)
         
-        # Add subtle separator line
+        # Separator
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setStyleSheet(f"background-color: {Colors.BORDER_COLOR}; max-height: 1px; margin: 5px 0px;")
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setStyleSheet(f"background-color: {Colors.BORDER_COLOR};")
         header_layout.addWidget(separator)
         
         return header_frame
 
-    def _setup_dynamic_sizing(self):
-        """Setup platform-agnostic dynamic sizing using Qt's DPI awareness."""
-        from PyQt6.QtGui import QGuiApplication
-        from PyQt6.QtCore import QSize
-        
-        try:
-            app = QGuiApplication.instance()
-            if app:
-                primary_screen = app.primaryScreen()
-                screen_geometry = primary_screen.availableGeometry()
-                
-                # Use Qt's logical DPI for platform-agnostic scaling
-                logical_dpi = primary_screen.logicalDotsPerInch()
-                dpi_scale_factor = logical_dpi / 96.0  # 96 DPI is the standard baseline
-                
-                # Base size in logical pixels (designed for 96 DPI)
-                base_width = 580
-                base_height = 650
-                
-                # Apply DPI-aware scaling
-                scaled_width = int(base_width * dpi_scale_factor)
-                scaled_height = int(base_height * dpi_scale_factor)
-                
-                # Ensure dialog fits within screen bounds (leave 10% margin)
-                max_width = int(screen_geometry.width() * 0.9)
-                max_height = int(screen_geometry.height() * 0.9)
-                
-                final_width = min(scaled_width, max_width)
-                final_height = min(scaled_height, max_height)
-                
-                # Set reasonable minimum sizes to prevent UI cramping
-                min_width = int(520 * max(1.0, dpi_scale_factor * 0.8))
-                min_height = int(580 * max(1.0, dpi_scale_factor * 0.8))
-                
-                final_width = max(final_width, min_width)
-                final_height = max(final_height, min_height)
-                
-                # Use setFixedSize for consistent layout
-                self.setFixedSize(QSize(final_width, final_height))
-            else:
-                # Fallback if no app instance
-                self.setFixedSize(QSize(580, 650))
-        except Exception:
-            # Fallback sizing if anything fails
-            self.setFixedSize(QSize(580, 650))
-    
-    def _get_scaled_font_size(self, base_size):
-        """Get DPI-scaled font size for better cross-platform text display."""
-        try:
-            from PyQt6.QtGui import QGuiApplication
-            app = QGuiApplication.instance()
-            if app:
-                primary_screen = app.primaryScreen()
-                logical_dpi = primary_screen.logicalDotsPerInch()
-                dpi_scale_factor = logical_dpi / 96.0  # 96 DPI is standard
-                
-                # Apply font scaling with minimum and maximum bounds
-                scaled_size = max(8, min(24, int(base_size * dpi_scale_factor)))
-                return scaled_size
-            else:
-                return base_size
-        except Exception:
-            return base_size
+    def showEvent(self, event):
+        """Center the dialog when shown."""
+        super().showEvent(event)
+        center_window(self)
 
-    def _get_scaled_font_style(self, size, weight="normal", family=None):
-        """Get complete font style string with DPI-aware scaling."""
-        if family is None:
-            family = "'Helvetica Neue', Helvetica, Arial, sans-serif"
-        
-        scaled_size = self._get_scaled_font_size(size)
-        return f"""
-            font-family: {family};
-            font-size: {scaled_size}pt;
-            font-weight: {weight};
-        """
+    def mouseDoubleClickEvent(self, event):
+        """Center the window on double-click."""
+        super().mouseDoubleClickEvent(event)
+        center_window(self)
+
+    def mousePressEvent(self, event):
+        """Handle mouse press for dragging."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for dragging."""
+        if event.buttons() == Qt.MouseButton.LeftButton and self.drag_pos:
+            self.move(event.globalPosition().toPoint() - self.drag_pos)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release for dragging."""
+        self.drag_pos = None
+        event.accept()
