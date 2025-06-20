@@ -1131,13 +1131,16 @@ class SettingsDialog(QDialog):
     # Value update methods
     def update_move_limit_value(self, value):
         self.move_limit_value.setText(str(value))
+        self.settings_manager.set_setting('move_limit', value)
 
     def update_time_value(self, value):
         seconds = value / 10.0
         self.time_value.setText(format_time_display(seconds))
+        self.settings_manager.set_setting('dwell_time', seconds)
 
     def update_transparency_value(self, value):
         self.transparency_value.setText(format_percentage_display(value))
+        self.settings_manager.set_setting('transparency_level', value)
 
     def on_transparency_toggle(self, state):
         is_enabled = state == 2  # Qt.CheckState.Checked is 2
@@ -1151,12 +1154,15 @@ class SettingsDialog(QDialog):
     def update_widget_delay_value(self, value):
         delay_seconds = value / 10.0
         self.widget_delay_value.setText(f"{delay_seconds:.1f}s")
+        self.settings_manager.set_setting('widget_appearance_delay', delay_seconds)
 
     def update_unlock_threshold_value(self, value):
         self.unlock_threshold_value.setText(f"{value}px")
+        self.settings_manager.set_setting('widget_unlock_threshold', value)
 
     def update_menu_size_value(self, value):
         self.menu_size_value.setText(str(value))
+        self.settings_manager.set_setting('menu_item_size', value)
 
     def on_scroll_toggle(self, state):
         is_enabled = state == 2
@@ -1414,25 +1420,9 @@ class SettingsDialog(QDialog):
             if timer and timer.isActive():
                 timer.stop()
         
-        # Save all settings at once
-        settings = {
-            'move_limit': self.move_limit_slider.value(),
-            'dwell_time': self.time_slider.value() / 10.0,
-            'transparency_enabled': self.transparency_check.isChecked(),
-            'transparency_level': self.transparency_slider.value(),
-            'scroll_enabled': self.scroll_check.isChecked(),
-            'scroll_speed': 220 - (self.scroll_speed_slider.value() * 20),
-            'widget_appearance_delay': self.widget_delay_slider.value() / 10.0,
-            'widget_unlock_threshold': self.unlock_threshold_slider.value(),
-            'menu_item_size': self.menu_size_slider.value(),
-            'visible_clicks_enabled': self.visible_clicks_check.isChecked(),
-            'active_on_launch': self.active_check.isChecked(),
-            'contract_ui_enabled': self.contract_ui_check.isChecked(),
-            'expansion_direction': self.expansion_button_group.checkedButton().text().split(' ')[0].lower()
-        }
-        for key, value in settings.items():
-            self.settings_manager.set_setting(key, value)
-
+        # Settings are now applied immediately as they are changed.
+        # This method now just closes the dialog.
+        
         super().accept()
 
     def create_section_header(self, title, description):
