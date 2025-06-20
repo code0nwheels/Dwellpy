@@ -844,12 +844,12 @@ Keywords=accessibility;dwell;click;motor;disability;
 		clamped_threshold = max(WIDGET_UNLOCK_THRESHOLD_MIN, min(WIDGET_UNLOCK_THRESHOLD_MAX, threshold))
 		self.settings['widget_unlock_threshold'] = clamped_threshold
 		
-		# Apply threshold change immediately if UI manager is available
-		if self.ui_manager:
-			self.ui_manager.set_unlock_threshold(clamped_threshold)
+		# Apply immediately to UI manager if it exists
+		# if self.ui_manager:
+		# 	self.ui_manager.set_unlock_threshold(clamped_threshold)
 		
-		self.logger.debug(f"Unlock threshold updated to: {clamped_threshold}px")
-
+		self.logger.info(f"Widget unlock threshold updated to: {clamped_threshold}px")
+	
 	def update_menu_item_size(self, size: int) -> None:
 		"""
 		Update menu item size setting and apply immediately.

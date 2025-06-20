@@ -15,7 +15,8 @@ try:
     from ..config.constants import (
         Colors, BUTTON_SIZE, LAYOUT_MARGIN, LAYOUT_SPACING, BORDER_RADIUS, Fonts,
         CONTRACT_DELAY, EXPAND_DELAY, CONTRACT_BUTTON_SIZE, CONTRACT_BUTTON_TEXT,
-        EXPANSION_DIRECTIONS, DEFAULT_EXPANSION_DIRECTION, SCREEN_EDGE_MARGIN
+        EXPANSION_DIRECTIONS, DEFAULT_EXPANSION_DIRECTION, SCREEN_EDGE_MARGIN,
+        WIDGET_UNLOCK_THRESHOLD_DEFAULT
     )
     from ..utils.helpers import get_asset_path
 except ImportError:
@@ -46,6 +47,7 @@ except ImportError:
     EXPANSION_DIRECTIONS = ['auto', 'horizontal', 'vertical']
     DEFAULT_EXPANSION_DIRECTION = 'auto'
     SCREEN_EDGE_MARGIN = 50
+    WIDGET_UNLOCK_THRESHOLD_DEFAULT = 150
     
     def get_asset_path(asset_name):
         """Fallback get_asset_path function"""
@@ -215,6 +217,9 @@ class DwellClickerUI:
         initial_delay = 0.2  # Default delay, will be updated when settings manager connects
         self.cursor_movement_detector = CursorMovementDetector(dwell_delay=initial_delay)
         self.widgets_hidden_for_movement = False
+        
+        # Add a property to store the unlock threshold
+        self.widget_unlock_threshold = WIDGET_UNLOCK_THRESHOLD_DEFAULT
         
         # UI setup
         self.setup_ui()
@@ -2096,27 +2101,31 @@ class DwellClickerUI:
         self.cursor_movement_detector.set_dwell_delay(appearance_delay)
     
     def apply_widget_unlock_threshold_settings(self):
-        """Apply widget unlock threshold settings to all widgets."""
+        """Apply widget unlock threshold from settings."""
         if not self.settings_manager:
             return
-            
-        threshold = self.settings_manager.get_setting('widget_unlock_threshold', 150)
         
-        # Update threshold in scroll widget
-        if hasattr(self, 'scroll_widget') and self.scroll_widget:
-            self.scroll_widget.unlock_threshold = threshold
-            
-        # Update threshold in menu widget
-        if hasattr(self, 'menu_widget') and self.menu_widget:
-            self.menu_widget.unlock_threshold = threshold
-        
-        # Sync movement threshold with dwell detection move_limit
-        if hasattr(self, 'dwell_detector') and self.dwell_detector:
-            self.cursor_movement_detector.set_movement_threshold(self.dwell_detector.move_limit)
+        # Get settings with defaults
+        threshold = self.settings_manager.get_setting(
+            'widget_unlock_threshold', 
+            WIDGET_UNLOCK_THRESHOLD_DEFAULT
+        )
+        self.set_unlock_threshold(threshold)
+
+    def set_unlock_threshold(self, threshold: int):
+        """Set the widget unlock threshold."""
+        self.widget_unlock_threshold = threshold
 
     def _is_cursor_near_widgets(self, cursor_pos):
-        """Check if cursor is close enough to any widget to keep them visible."""
-        if not self.is_active:
+        """
+        Check if the cursor is near any of the main UI, scroll, or menu widgets.
+        This helps prevent widgets from immediately hiding if the user slightly
+        overshoots the target.
+        """
+        unlock_threshold = self.widget_unlock_threshold
+        
+        # If there's no movement history, we can't determine direction
+        if not self.cursor_movement_detector.movement_velocity_history:
             return False
             
         # Convert cursor position
@@ -2176,8 +2185,15 @@ class DwellClickerUI:
         return False
     
     def _is_cursor_clearly_moving_away_from_point(self, current_pos, target_point):
-        """Check if cursor is clearly moving away from a specific point (more forgiving than before)."""
-        if not hasattr(self.cursor_movement_detector, 'last_position') or self.cursor_movement_detector.last_position is None:
+        """
+        Check if the cursor is moving decisively away from a target point.
+        This helps prevent widgets from immediately hiding if the user slightly
+        overshoots the target.
+        """
+        unlock_threshold = self.widget_unlock_threshold
+        
+        # If there's no movement history, we can't determine direction
+        if not self.cursor_movement_detector.movement_velocity_history:
             return False
             
         # Convert positions
