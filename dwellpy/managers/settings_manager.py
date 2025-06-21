@@ -78,8 +78,42 @@ class SettingsManager:
 			value: Value to set
 		"""
 		old_value = self.settings.get(key)
+		if old_value == value:
+			return  # No change
+		
 		self.settings[key] = value
 		self.logger.debug(f"Setting changed: {key} = {value} (was: {old_value})")
+		
+		# Immediately apply and save the setting
+		self.apply_setting(key, value)
+		self.save_settings()
+	
+	def apply_setting(self, key: str, value: Any) -> None:
+		"""Apply a single setting immediately."""
+		apply_map = {
+			'move_limit': self.update_move_limit,
+			'dwell_time': self.update_dwell_time,
+			'transparency_enabled': self.update_transparency_enabled,
+			'transparency_level': self.update_transparency_level,
+			'scroll_enabled': self.update_scroll_enabled,
+			'scroll_speed': self.update_scroll_speed,
+			'visible_clicks_enabled': self.update_visible_clicks_enabled,
+			'active_on_launch': self.update_default_active,
+			'contract_ui_enabled': self.update_contract_ui_enabled,
+			'expansion_direction': self.update_expansion_direction,
+			'auto_start_enabled': lambda val: self.update_auto_start_enabled(val)[0],
+			'widget_appearance_delay': self.update_widget_appearance_delay,
+			'widget_unlock_threshold': self.update_widget_unlock_threshold,
+			'menu_item_size': self.update_menu_item_size,
+		}
+		
+		# Apply click colors immediately if UI manager is available
+		if key.startswith('click_color_') and self.ui_manager and hasattr(self.ui_manager, 'click_feedback'):
+			self.ui_manager.click_feedback.update_color(key.replace('click_color_', ''), value)
+			return
+		
+		if key in apply_map:
+			apply_map[key](value)
 	
 	def apply_detector_settings(self) -> None:
 		"""Apply current settings to the dwell detector."""
@@ -101,6 +135,10 @@ class SettingsManager:
 		self.dwell_detector.click_time = int(dwell_time / 0.1)
 		
 		self.logger.info(f"Applied settings to detector: move_limit={move_limit}px, dwell_time={dwell_time}s")
+		
+		# Also apply to the cursor movement detector in the UI manager if it exists
+		if self.ui_manager and hasattr(self.ui_manager, 'cursor_movement_detector'):
+			self.ui_manager.cursor_movement_detector.set_movement_threshold(move_limit)
 	
 	def get_settings_file_path(self) -> str:
 		"""Get the path to the settings file."""
@@ -806,12 +844,12 @@ Keywords=accessibility;dwell;click;motor;disability;
 		clamped_threshold = max(WIDGET_UNLOCK_THRESHOLD_MIN, min(WIDGET_UNLOCK_THRESHOLD_MAX, threshold))
 		self.settings['widget_unlock_threshold'] = clamped_threshold
 		
-		# Apply threshold change immediately if UI manager is available
-		if self.ui_manager:
-			self.ui_manager.set_unlock_threshold(clamped_threshold)
+		# Apply immediately to UI manager if it exists
+		# if self.ui_manager:
+		# 	self.ui_manager.set_unlock_threshold(clamped_threshold)
 		
-		self.logger.debug(f"Unlock threshold updated to: {clamped_threshold}px")
-
+		self.logger.info(f"Widget unlock threshold updated to: {clamped_threshold}px")
+	
 	def update_menu_item_size(self, size: int) -> None:
 		"""
 		Update menu item size setting and apply immediately.

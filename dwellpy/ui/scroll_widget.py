@@ -105,22 +105,13 @@ class ScrollWidget(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         
     def _setup_ui(self):
-        """Setup the widget UI."""        # Platform-specific window flags for better macOS compatibility
-        if sys.platform == "darwin":  # macOS
-            # macOS: Use minimal flags that actually work (based on testing)
-            # The blue widget test showed only these flags work reliably
-            self.setWindowFlags(
-                Qt.WindowType.FramelessWindowHint |
-                Qt.WindowType.WindowStaysOnTopHint
-            )
-        else:
-            # Windows/Linux flags (original behavior)
-            self.setWindowFlags(
-                Qt.WindowType.FramelessWindowHint |
-                Qt.WindowType.WindowStaysOnTopHint |
-                Qt.WindowType.Tool |  # Prevents taskbar icon
-                Qt.WindowType.WindowTransparentForInput  # Click-through by default
-            )
+        """Setup the widget UI."""
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            #Qt.WindowType.Tool |  # Prevents taskbar icon
+            Qt.WindowType.WindowTransparentForInput  # Click-through by default
+        )
         
         # Make widget transparent
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
