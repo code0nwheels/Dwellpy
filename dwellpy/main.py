@@ -245,15 +245,62 @@ class DwellpyApplication:
             self.button_manager,
             self.window_manager
         )
-        
-        # Create exit manager after UI is created
+          # Create exit manager after UI is created
         self.exit_manager = ExitManager(
-            self.settings_manager, 
+            self.settings_manager,
             self.button_manager,
             self.ui.window
         )
         
-        self.logger.info("UI components initialized successfully")
+        # Connect managers to UI
+        self.ui.connect_managers(self.settings_manager, self.exit_manager)
+        
+        # Register exit manager command with button manager
+        self.button_manager.register_command("EXIT", self.exit_manager.show_exit_dialog)
+        
+        # Register settings manager command with button manager
+        self.button_manager.register_command(
+            "SETUP", 
+            lambda: self.settings_manager.open_setup(
+                self.button_manager, 
+                self.ui.window
+            )
+        )
+        
+        # Setup input callback for position updates
+        self.input_manager.on_position_update = self._on_position_update
+        # Give input manager reference to UI for scroll widget updates
+        self.input_manager.ui_manager = self.ui
+        
+        # Configure adaptive polling
+        self._configure_adaptive_polling()
+        
+        self.logger.info("Component connections established")
+    
+    def _configure_adaptive_polling(self):
+        """Configure adaptive polling parameters from settings."""
+        # Default parameters
+        normal_interval = 100  # ms
+        idle_interval = 500    # ms
+        idle_threshold = 10    # frames
+        
+        # Check if we should use settings values
+        if self.settings_manager:
+            # Use settings if available, otherwise use defaults
+            normal_interval = self.settings_manager.get_setting('polling_normal_interval', normal_interval)
+            idle_interval = self.settings_manager.get_setting('polling_idle_interval', idle_interval)
+            idle_threshold = self.settings_manager.get_setting('polling_idle_threshold', idle_threshold)
+          # Configure the input manager with these settings
+        self.input_manager.configure_adaptive_polling(
+            normal_interval=normal_interval,
+            idle_interval=idle_interval,
+            idle_threshold=idle_threshold
+        )
+        
+        self.logger.debug(f"Configured adaptive polling: normal={normal_interval}ms, "
+                         f"idle={idle_interval}ms, threshold={idle_threshold} frames")
+        self.logger.debug(f"Configured adaptive polling: normal={normal_interval}ms, "
+                          f"idle={idle_interval}ms, threshold={idle_threshold} frames")
     
     def _connect_components(self) -> None:
         """Connect all application components together."""
