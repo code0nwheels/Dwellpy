@@ -70,110 +70,97 @@ class SettingsDialog(QDialog):
         self.connect_signals()
     
     def setup_timers(self):
-        """Initialize all hover timers."""
-        # Initial delay timers
-        self.move_minus_timer = QTimer()
-        self.move_minus_timer.setSingleShot(True)
-        self.move_minus_timer.timeout.connect(self.start_minus_move_repeat)
+        """Initialize hover timer with state machine."""
+        # Create a single hover timer
+        self.hover_timer = QTimer()
+        self.hover_timer.setSingleShot(True)
+        self.hover_timer.timeout.connect(self.process_hover_action)
         
-        self.move_plus_timer = QTimer()
-        self.move_plus_timer.setSingleShot(True)
-        self.move_plus_timer.timeout.connect(self.start_plus_move_repeat)
+        # Create a single repeat timer
+        self.repeat_timer = QTimer()
+        self.repeat_timer.timeout.connect(self.process_repeat_action)
         
-        self.time_minus_timer = QTimer()
-        self.time_minus_timer.setSingleShot(True)
-        self.time_minus_timer.timeout.connect(self.start_minus_time_repeat)
+        # Current hover action tracking
+        self.current_hover_action = None
+        self.current_hover_direction = None  # "minus" or "plus"
         
-        self.time_plus_timer = QTimer()
-        self.time_plus_timer.setSingleShot(True)
-        self.time_plus_timer.timeout.connect(self.start_plus_time_repeat)
+        # Initial delay and repeat intervals
+        self.hover_delay = 300  # ms before first action
+        self.repeat_interval = 100  # ms between repeated actions
         
-        self.transparency_minus_timer = QTimer()
-        self.transparency_minus_timer.setSingleShot(True)
-        self.transparency_minus_timer.timeout.connect(self.start_minus_transparency_repeat)
+    def process_hover_action(self):
+        """Process the hover action after the initial delay."""
+        if not self.current_hover_action or not self.current_hover_direction:
+            return
+            
+        # Perform the action once
+        self.perform_action(self.current_hover_action, self.current_hover_direction)
         
-        self.transparency_plus_timer = QTimer()
-        self.transparency_plus_timer.setSingleShot(True)
-        self.transparency_plus_timer.timeout.connect(self.start_plus_transparency_repeat)
+        # Start the repeat timer for continuous actions
+        self.repeat_timer.start(self.repeat_interval)
         
-        self.scroll_speed_minus_timer = QTimer()
-        self.scroll_speed_minus_timer.setSingleShot(True)
-        self.scroll_speed_minus_timer.timeout.connect(self.start_minus_scroll_speed_repeat)
+    def process_repeat_action(self):
+        """Process the repeated hover action."""
+        if not self.current_hover_action or not self.current_hover_direction:
+            self.repeat_timer.stop()
+            return
+            
+        # Perform the action repeatedly
+        self.perform_action(self.current_hover_action, self.current_hover_direction)
+    
+    def perform_action(self, action, direction):
+        """Perform the specified action in the specified direction."""
+        if action == "move_limit":
+            if direction == "minus":
+                self.move_limit_slider.setValue(self.move_limit_slider.value() - 1)
+            else:  # plus
+                self.move_limit_slider.setValue(self.move_limit_slider.value() + 1)
+        elif action == "dwell_time":
+            if direction == "minus":
+                self.time_slider.setValue(self.time_slider.value() - 1)
+            else:  # plus
+                self.time_slider.setValue(self.time_slider.value() + 1)
+        elif action == "transparency":
+            if direction == "minus":
+                self.transparency_slider.setValue(self.transparency_slider.value() - 1)
+            else:  # plus
+                self.transparency_slider.setValue(self.transparency_slider.value() + 1)
+        elif action == "scroll_speed":
+            if direction == "minus":
+                self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() - 1)
+            else:  # plus
+                self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() + 1)
+        elif action == "widget_delay":
+            if direction == "minus":
+                self.widget_delay_slider.setValue(self.widget_delay_slider.value() - 1)
+            else:  # plus
+                self.widget_delay_slider.setValue(self.widget_delay_slider.value() + 1)
+        elif action == "unlock_threshold":
+            if direction == "minus":
+                self.unlock_threshold_slider.setValue(self.unlock_threshold_slider.value() - 1)
+            else:  # plus
+                self.unlock_threshold_slider.setValue(self.unlock_threshold_slider.value() + 1)
+        elif action == "menu_size":
+            if direction == "minus":
+                self.menu_size_slider.setValue(self.menu_size_slider.value() - 1)
+            else:  # plus
+                self.menu_size_slider.setValue(self.menu_size_slider.value() + 1)
+    
+    def set_hover_action(self, action, direction):
+        """Set the current hover action and start the hover timer."""
+        self.current_hover_action = action
+        self.current_hover_direction = direction
+        self.hover_timer.start(self.hover_delay)
         
-        self.scroll_speed_plus_timer = QTimer()
-        self.scroll_speed_plus_timer.setSingleShot(True)
-        self.scroll_speed_plus_timer.timeout.connect(self.start_plus_scroll_speed_repeat)
-        
-        # Repeat timers
-        self.move_minus_repeat = QTimer()
-        self.move_minus_repeat.timeout.connect(self.on_hover_minus_move_limit)
-        
-        self.move_plus_repeat = QTimer()
-        self.move_plus_repeat.timeout.connect(self.on_hover_plus_move_limit)
-        
-        self.time_minus_repeat = QTimer()
-        self.time_minus_repeat.timeout.connect(self.on_hover_minus_dwell_time)
-        
-        self.time_plus_repeat = QTimer()
-        self.time_plus_repeat.timeout.connect(self.on_hover_plus_dwell_time)
-        
-        self.transparency_minus_repeat = QTimer()
-        self.transparency_minus_repeat.timeout.connect(self.on_hover_minus_transparency)
-        
-        self.transparency_plus_repeat = QTimer()
-        self.transparency_plus_repeat.timeout.connect(self.on_hover_plus_transparency)
-        
-        self.scroll_speed_minus_repeat = QTimer()
-        self.scroll_speed_minus_repeat.timeout.connect(self.on_hover_minus_scroll_speed)
-        
-        self.scroll_speed_plus_repeat = QTimer()
-        self.scroll_speed_plus_repeat.timeout.connect(self.on_hover_plus_scroll_speed)
-        
-        # Widget appearance delay timers
-        self.widget_delay_minus_timer = QTimer()
-        self.widget_delay_minus_timer.setSingleShot(True)
-        self.widget_delay_minus_timer.timeout.connect(self.start_minus_widget_delay_repeat)
-        
-        self.widget_delay_plus_timer = QTimer()
-        self.widget_delay_plus_timer.setSingleShot(True)
-        self.widget_delay_plus_timer.timeout.connect(self.start_plus_widget_delay_repeat)
-        
-        self.widget_delay_minus_repeat = QTimer()
-        self.widget_delay_minus_repeat.timeout.connect(self.on_hover_minus_widget_delay)
-        
-        self.widget_delay_plus_repeat = QTimer()
-        self.widget_delay_plus_repeat.timeout.connect(self.on_hover_plus_widget_delay)
-        
-        # Widget unlock threshold timers
-        self.unlock_threshold_minus_timer = QTimer()
-        self.unlock_threshold_minus_timer.setSingleShot(True)
-        self.unlock_threshold_minus_timer.timeout.connect(self.start_minus_unlock_threshold_repeat)
-        
-        self.unlock_threshold_plus_timer = QTimer()
-        self.unlock_threshold_plus_timer.setSingleShot(True)
-        self.unlock_threshold_plus_timer.timeout.connect(self.start_plus_unlock_threshold_repeat)
-        
-        self.unlock_threshold_minus_repeat = QTimer()
-        self.unlock_threshold_minus_repeat.timeout.connect(self.on_hover_minus_unlock_threshold)
-        
-        self.unlock_threshold_plus_repeat = QTimer()
-        self.unlock_threshold_plus_repeat.timeout.connect(self.on_hover_plus_unlock_threshold)
-        
-        # Menu item size timers
-        self.menu_size_minus_timer = QTimer()
-        self.menu_size_minus_timer.setSingleShot(True)
-        self.menu_size_minus_timer.timeout.connect(self.start_minus_menu_size_repeat)
-        
-        self.menu_size_plus_timer = QTimer()
-        self.menu_size_plus_timer.setSingleShot(True)
-        self.menu_size_plus_timer.timeout.connect(self.start_plus_menu_size_repeat)
-        
-        self.menu_size_minus_repeat = QTimer()
-        self.menu_size_minus_repeat.timeout.connect(self.on_hover_minus_menu_size)
-        
-        self.menu_size_plus_repeat = QTimer()
-        self.menu_size_plus_repeat.timeout.connect(self.on_hover_plus_menu_size)
-        
+    def clear_hover_action(self, action=None):
+        """Clear the current hover action and stop timers."""
+        # Only clear if it matches the provided action (or clear all if None)
+        if action is None or action == self.current_hover_action:
+            self.hover_timer.stop()
+            self.repeat_timer.stop()
+            self.current_hover_action = None
+            self.current_hover_direction = None
+    
     def setup_ui(self):
         """Setup the dialog UI with left-side wide tabs for dwell-friendly navigation."""
         # Set window flags for frameless window
@@ -277,7 +264,9 @@ class SettingsDialog(QDialog):
         title_frame = QFrame()
         title_layout = QHBoxLayout(title_frame)
         title_layout.setContentsMargins(0, 0, 0, 0)
-          # Title label
+        title_layout.setSpacing(0)
+        
+        # Title label
         title_label = QLabel("Dwellpy Settings")
         title_label.setStyleSheet(f"""
             font-size: 18pt;
@@ -1204,221 +1193,184 @@ class SettingsDialog(QDialog):
             msg_box.exec()
     
     # Hover enter/leave methods for +/- buttons
+    # ======== Hover event handlers using the state machine ========
     def on_enter_minus_move(self):
-        self.move_minus_timer.start(300)
+        self.set_hover_action("move_limit", "minus")
         
     def on_leave_minus_move(self):
-        self.move_minus_timer.stop()
-        self.move_minus_repeat.stop()
+        self.clear_hover_action("move_limit")
         
     def on_enter_plus_move(self):
-        self.move_plus_timer.start(300)
+        self.set_hover_action("move_limit", "plus")
         
     def on_leave_plus_move(self):
-        self.move_plus_timer.stop()
-        self.move_plus_repeat.stop()
+        self.clear_hover_action("move_limit")
         
     def on_enter_minus_time(self):
-        self.time_minus_timer.start(300)
+        self.set_hover_action("dwell_time", "minus")
         
     def on_leave_minus_time(self):
-        self.time_minus_timer.stop()
-        self.time_minus_repeat.stop()
+        self.clear_hover_action("dwell_time")
         
     def on_enter_plus_time(self):
-        self.time_plus_timer.start(300)
+        self.set_hover_action("dwell_time", "plus")
         
     def on_leave_plus_time(self):
-        self.time_plus_timer.stop()
-        self.time_plus_repeat.stop()
+        self.clear_hover_action("dwell_time")
         
     def on_enter_minus_transparency(self):
-        self.transparency_minus_timer.start(300)
+        self.set_hover_action("transparency", "minus")
         
     def on_leave_minus_transparency(self):
-        self.transparency_minus_timer.stop()
-        self.transparency_minus_repeat.stop()
+        self.clear_hover_action("transparency")
         
     def on_enter_plus_transparency(self):
-        self.transparency_plus_timer.start(300)
+        self.set_hover_action("transparency", "plus")
         
     def on_leave_plus_transparency(self):
-        self.transparency_plus_timer.stop()
-        self.transparency_plus_repeat.stop()
+        self.clear_hover_action("transparency")
         
     def on_enter_minus_scroll_speed(self):
-        self.scroll_speed_minus_timer.start(300)
+        self.set_hover_action("scroll_speed", "minus")
         
     def on_leave_minus_scroll_speed(self):
-        self.scroll_speed_minus_timer.stop()
-        self.scroll_speed_minus_repeat.stop()
+        self.clear_hover_action("scroll_speed")
         
     def on_enter_plus_scroll_speed(self):
-        self.scroll_speed_plus_timer.start(300)
+        self.set_hover_action("scroll_speed", "plus")
         
     def on_leave_plus_scroll_speed(self):
-        self.scroll_speed_plus_timer.stop()
-        self.scroll_speed_plus_repeat.stop()
-    
+        self.clear_hover_action("scroll_speed")
+        
     def on_enter_minus_widget_delay(self):
-        self.widget_delay_minus_timer.start(300)
+        self.set_hover_action("widget_delay", "minus")
         
     def on_leave_minus_widget_delay(self):
-        self.widget_delay_minus_timer.stop()
-        self.widget_delay_minus_repeat.stop()
+        self.clear_hover_action("widget_delay")
         
     def on_enter_plus_widget_delay(self):
-        self.widget_delay_plus_timer.start(300)
+        self.set_hover_action("widget_delay", "plus")
         
     def on_leave_plus_widget_delay(self):
-        self.widget_delay_plus_timer.stop()
-        self.widget_delay_plus_repeat.stop()
-    
+        self.clear_hover_action("widget_delay")
+        
     def on_enter_minus_unlock_threshold(self):
-        self.unlock_threshold_minus_timer.start(300)
-    
+        self.set_hover_action("unlock_threshold", "minus")
+        
     def on_leave_minus_unlock_threshold(self):
-        self.unlock_threshold_minus_timer.stop()
-        self.unlock_threshold_minus_repeat.stop()
-    
+        self.clear_hover_action("unlock_threshold")
+        
     def on_enter_plus_unlock_threshold(self):
-        self.unlock_threshold_plus_timer.start(300)
-    
+        self.set_hover_action("unlock_threshold", "plus")
+        
     def on_leave_plus_unlock_threshold(self):
-        self.unlock_threshold_plus_timer.stop()
-        self.unlock_threshold_plus_repeat.stop()
-    
+        self.clear_hover_action("unlock_threshold")
+        
     def on_enter_minus_menu_size(self):
-        self.menu_size_minus_timer.start(300)
-    
+        self.set_hover_action("menu_size", "minus")
+        
     def on_leave_minus_menu_size(self):
-        self.menu_size_minus_timer.stop()
-        self.menu_size_minus_repeat.stop()
-    
+        self.clear_hover_action("menu_size")
+        
     def on_enter_plus_menu_size(self):
-        self.menu_size_plus_timer.start(300)
-    
+        self.set_hover_action("menu_size", "plus")
+        
     def on_leave_plus_menu_size(self):
-        self.menu_size_plus_timer.stop()
-        self.menu_size_plus_repeat.stop()
+        self.clear_hover_action("menu_size")
+      # ======== Legacy compatibility stubs ========
+    # These methods are maintained for compatibility with any existing code
+    # that might call them directly
     
-    # Timer start methods
     def start_minus_move_repeat(self):
-        self.on_hover_minus_move_limit()
-        self.move_minus_repeat.start(100)
+        pass
         
     def start_plus_move_repeat(self):
-        self.on_hover_plus_move_limit()
-        self.move_plus_repeat.start(100)
+        pass
         
     def start_minus_time_repeat(self):
-        self.on_hover_minus_dwell_time()
-        self.time_minus_repeat.start(100)
+        pass
         
     def start_plus_time_repeat(self):
-        self.on_hover_plus_dwell_time()
-        self.time_plus_repeat.start(100)
+        pass
         
     def start_minus_transparency_repeat(self):
-        self.on_hover_minus_transparency()
-        self.transparency_minus_repeat.start(100)
+        pass
         
     def start_plus_transparency_repeat(self):
-        self.on_hover_plus_transparency()
-        self.transparency_plus_repeat.start(100)
+        pass
         
     def start_minus_scroll_speed_repeat(self):
-        self.on_hover_minus_scroll_speed()
-        self.scroll_speed_minus_repeat.start(100)
+        pass
         
     def start_plus_scroll_speed_repeat(self):
-        self.on_hover_plus_scroll_speed()
-        self.scroll_speed_plus_repeat.start(100)
-    
+        pass
+        
     def start_minus_widget_delay_repeat(self):
-        self.on_hover_minus_widget_delay()
-        self.widget_delay_minus_repeat.start(100)
+        pass
         
     def start_plus_widget_delay_repeat(self):
-        self.on_hover_plus_widget_delay()
-        self.widget_delay_plus_repeat.start(100)
-    
+        pass
+        
     def start_minus_unlock_threshold_repeat(self):
-        self.on_hover_minus_unlock_threshold()
-        self.unlock_threshold_minus_repeat.start(100)
+        pass
         
     def start_plus_unlock_threshold_repeat(self):
-        self.on_hover_plus_unlock_threshold()
-        self.unlock_threshold_plus_repeat.start(100)
-    
+        pass
+        
     def start_minus_menu_size_repeat(self):
-        self.on_hover_minus_menu_size()
-        self.menu_size_minus_repeat.start(100)
-    
+        pass
+        
     def start_plus_menu_size_repeat(self):
-        self.on_hover_plus_menu_size()
-        self.menu_size_plus_repeat.start(100)
+        pass
     
-    # Hover actions
+    # The actual functionality is handled by perform_action now
+    # so these methods are no longer needed
     def on_hover_minus_move_limit(self):
-        self.move_limit_slider.setValue(self.move_limit_slider.value() - 1)
+        pass
         
     def on_hover_plus_move_limit(self):
-        self.move_limit_slider.setValue(self.move_limit_slider.value() + 1)
+        pass
         
     def on_hover_minus_dwell_time(self):
-        self.time_slider.setValue(self.time_slider.value() - 1)
+        pass
         
     def on_hover_plus_dwell_time(self):
-        self.time_slider.setValue(self.time_slider.value() + 1)
+        pass
         
     def on_hover_minus_transparency(self):
-        self.transparency_slider.setValue(self.transparency_slider.value() - 1)
+        pass
         
     def on_hover_plus_transparency(self):
-        self.transparency_slider.setValue(self.transparency_slider.value() + 1)
+        pass
         
     def on_hover_minus_scroll_speed(self):
-        self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() - 1)
+        pass
         
     def on_hover_plus_scroll_speed(self):
-        self.scroll_speed_slider.setValue(self.scroll_speed_slider.value() + 1)
-    
+        pass
+        
     def on_hover_minus_widget_delay(self):
-        self.widget_delay_slider.setValue(self.widget_delay_slider.value() - 1)
+        pass
         
     def on_hover_plus_widget_delay(self):
-        self.widget_delay_slider.setValue(self.widget_delay_slider.value() + 1)
-    
+        pass
+        
     def on_hover_minus_unlock_threshold(self):
-        self.unlock_threshold_slider.setValue(self.unlock_threshold_slider.value() - 1)
+        pass
         
     def on_hover_plus_unlock_threshold(self):
-        self.unlock_threshold_slider.setValue(self.unlock_threshold_slider.value() + 1)
-    
+        pass
+        
     def on_hover_minus_menu_size(self):
-        self.menu_size_slider.setValue(self.menu_size_slider.value() - 1)
+        pass
         
     def on_hover_plus_menu_size(self):
-        self.menu_size_slider.setValue(self.menu_size_slider.value() + 1)
+        pass
     
     def accept(self):
         """Handle dialog acceptance."""
-        # Stop all timers
-        timers_to_stop = [
-            self.move_minus_timer, self.move_plus_timer, self.time_minus_timer, self.time_plus_timer,
-            self.transparency_minus_timer, self.transparency_plus_timer, self.scroll_speed_minus_timer,
-            self.scroll_speed_plus_timer, self.widget_delay_minus_timer, self.widget_delay_plus_timer,
-            self.unlock_threshold_minus_timer, self.unlock_threshold_plus_timer, self.menu_size_minus_timer,
-            self.menu_size_plus_timer, self.move_minus_repeat, self.move_plus_repeat,
-            self.time_minus_repeat, self.time_plus_repeat, self.transparency_minus_repeat,
-            self.transparency_plus_repeat, self.scroll_speed_minus_repeat, self.scroll_speed_plus_repeat,
-            self.widget_delay_minus_repeat, self.widget_delay_plus_repeat, self.unlock_threshold_minus_repeat,
-            self.unlock_threshold_plus_repeat, self.menu_size_minus_repeat, self.menu_size_plus_repeat
-        ]
-        for timer in timers_to_stop:
-            if timer and timer.isActive():
-                timer.stop()
+        # Clean up timers
+        self.cleanup_timers()
         
         # Settings are now applied immediately as they are changed.
         # This method now just closes the dialog.
@@ -1484,3 +1436,16 @@ class SettingsDialog(QDialog):
         """Handle mouse release for dragging."""
         self.drag_pos = None
         event.accept()
+    
+    def cleanup_timers(self):
+        """Clean up timers to prevent memory leaks."""
+        if hasattr(self, 'hover_timer'):
+            self.hover_timer.stop()
+            
+        if hasattr(self, 'repeat_timer'):
+            self.repeat_timer.stop()
+            
+    def closeEvent(self, event):
+        """Handle dialog close event."""
+        self.cleanup_timers()
+        super().closeEvent(event)
