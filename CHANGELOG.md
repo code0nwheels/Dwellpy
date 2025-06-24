@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/code0nwheels/Dwellpy/compare/v0.10.0...v0.11.0) (2025-06-24)
+
+
+### Features
+
+* **optimization:** implement memory and CPU usage optimizations ([#44](https://github.com/code0nwheels/Dwellpy/issues/44)) ([66a1976](https://github.com/code0nwheels/Dwellpy/commit/66a197618316b8c86af90c4db9240f1cc3030bb2))
+
 ## [0.10.0](https://github.com/code0nwheels/Dwellpy/compare/v0.9.2...v0.10.0) (2025-06-11)
 
 
