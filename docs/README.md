@@ -74,6 +74,10 @@ Detailed guides are available in the [project wiki](https://github.com/code0nwhe
 - [Configuration Guide](https://github.com/code0nwheels/dwellpy/wiki/Configuration)
 - [Troubleshooting](https://github.com/code0nwheels/dwellpy/wiki/Troubleshooting)
 
+For developers interested in the codebase architecture, see [Architecture Documentation](architecture.md).
+
+For details on the recent modularization work, see [Modularization Summary](modularization_summary.md).
+
 ## Contributing
 
 This project was created by and for the disability community. We welcome:
@@ -97,10 +101,31 @@ This project was created by and for the disability community. We welcome:
 ```
 dwellpy/
 ├── dwellpy/              # Main application package
-│   ├── core/            # Dwell detection and input handling
-│   ├── ui/              # User interface components (including menu widget)
-│   ├── managers/        # Application state management
-│   └── config/          # Configuration and settings
+│   ├── bootstrap/        # Application startup and initialization
+│   ├── core/            # Core functionality
+│   │   ├── click_manager.py      # Click execution logic
+│   │   ├── dwell_algorithm.py    # Dwell detection algorithms
+│   │   ├── input_manager.py      # Input handling and position tracking
+│   │   └── detection/           # Dwell detection components
+│   ├── ui/              # User interface components
+│   │   ├── ui_manager.py        # Main UI orchestration
+│   │   ├── components/          # Modular UI components
+│   │   │   ├── cursor_movement_detector.py  # Cursor movement detection
+│   │   │   ├── ui_contraction.py           # UI contraction/expansion
+│   │   │   ├── menu_drawing.py             # Menu widget drawing logic
+│   │   │   └── scroll_drawing.py           # Scroll widget drawing logic
+│   │   ├── menu_widget.py       # Menu widget implementation
+│   │   ├── scroll_widget.py     # Scroll widget implementation
+│   │   └── dialogs/             # Settings and configuration dialogs
+│   ├── managers/        # Application state and lifecycle management
+│   │   ├── button_manager.py    # Button state and command management
+│   │   ├── settings_manager.py  # Settings persistence and management
+│   │   ├── window_manager.py    # Window positioning and management
+│   │   ├── exit_manager.py      # Application exit handling
+│   │   └── lifecycle/           # Application lifecycle components
+│   │       └── component_initializer.py    # Component initialization
+│   ├── config/          # Configuration and constants
+│   └── utils/           # Utility functions and helpers
 ├── docs/                # Documentation
 └── tests/               # Test suite (coming soon)
 ```

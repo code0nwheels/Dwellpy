@@ -67,6 +67,17 @@ Help make our guides clearer:
 
 ## Code Guidelines
 
+### Architecture Overview
+Dwellpy follows a modular architecture with clear separation of concerns:
+
+- **Bootstrap**: Application startup and initialization logic
+- **Core**: Core functionality including dwell detection, input handling, and click execution
+- **UI**: User interface components with modular drawing and interaction logic
+- **Managers**: Application state management and lifecycle components
+- **Config**: Configuration constants and settings definitions
+
+When contributing, please follow the existing modular structure and place new functionality in the appropriate module.
+
 ### Python Style
 - Write clean, readable code
 - Use meaningful variable names
