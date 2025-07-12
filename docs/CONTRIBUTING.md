@@ -76,7 +76,34 @@ Dwellpy follows a modular architecture with clear separation of concerns:
 - **Managers**: Application state management and lifecycle components
 - **Config**: Configuration constants and settings definitions
 
-When contributing, please follow the existing modular structure and place new functionality in the appropriate module.
+### Recent Architectural Improvements
+
+**Settings Dialog Modularization (Completed)**
+The settings dialog has been successfully modularized from a single 1,451-line file into 8 focused modules:
+
+```
+dwellpy/ui/dialogs/settings/
+├── components/           # Reusable UI components
+│   ├── ui_components.py  # UI helper functions (headers, buttons, styling)
+│   ├── event_handlers.py # Event handling logic and hover functionality
+│   └── __init__.py
+├── tabs/                 # Individual settings tabs
+│   ├── dwell_movement_tab.py    # Dwell timing and movement settings
+│   ├── visual_feedback_tab.py   # Transparency and click feedback
+│   ├── scroll_widget_tab.py     # Scroll widget configuration
+│   ├── menu_widget_tab.py       # Menu item size settings
+│   ├── general_tab.py           # Startup and UI behavior
+│   └── __init__.py
+└── settings_dialog_refactored.py # Main dialog orchestrator (~300 lines)
+```
+
+**Benefits of the new structure:**
+- **Maintainability**: Each tab is a focused, manageable module
+- **Reusability**: UI components and event handlers can be shared
+- **Organization**: Related functionality is logically grouped
+- **Preserved Functionality**: All original features maintained
+
+When contributing to the settings system, please follow this modular structure and place new functionality in the appropriate module.
 
 ### Python Style
 - Write clean, readable code
@@ -106,6 +133,15 @@ def calculate_dwell_threshold(sensitivity: int, user_capability: str) -> float:
 - Include accessibility features (screen reader compatibility where applicable)
 - Test with different input methods (mouse, head tracker, eye tracker)
 - Ensure high contrast for visibility
+
+### Settings Development Guidelines
+When working on settings functionality:
+
+1. **Follow the modular structure**: Place new settings in appropriate tab modules
+2. **Use shared components**: Leverage existing UI helpers and event handlers
+3. **Maintain consistency**: Follow the established patterns for sliders, checkboxes, etc.
+4. **Preserve accessibility**: Ensure all new controls are dwell-friendly
+5. **Update documentation**: Document any new settings or changes
 
 ### Accessibility First
 Remember that Dwellpy users may have:

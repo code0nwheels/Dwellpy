@@ -58,7 +58,7 @@ python -m dwellpy.main
 - **Multiple click types**: Left, right, double-click, and drag operations
 - **Floating widgets**: Menu and scroll widgets that appear when you dwell (pause cursor)
 - **Visual feedback**: Customizable click animations with distinctive colors for each action type
-- **Organized settings**: Tabbed interface with logical grouping (Dwell, Visual, Scroll, General)
+- **Organized settings**: Tabbed interface with logical grouping (Dwell, Visual, Scroll, Menu, General)
 - **Dwell-friendly controls**: Large buttons with hover functionality for easy adjustment
 - **Auto-collapse UI**: Minimize screen clutter with intelligent toolbar behavior
 - **Configurable**: Adjust sensitivity for different motor abilities and use cases
@@ -75,8 +75,6 @@ Detailed guides are available in the [project wiki](https://github.com/code0nwhe
 - [Troubleshooting](https://github.com/code0nwheels/dwellpy/wiki/Troubleshooting)
 
 For developers interested in the codebase architecture, see [Architecture Documentation](architecture.md).
-
-For details on the recent modularization work, see [Modularization Summary](modularization_summary.md).
 
 ## Contributing
 
@@ -117,6 +115,20 @@ dwellpy/
 │   │   ├── menu_widget.py       # Menu widget implementation
 │   │   ├── scroll_widget.py     # Scroll widget implementation
 │   │   └── dialogs/             # Settings and configuration dialogs
+│   │       ├── settings_dialog.py          # Original settings dialog (1451 lines)
+│   │       ├── settings_dialog_refactored.py # New modular settings dialog (~300 lines)
+│   │       └── settings/        # Modularized settings components
+│   │           ├── components/  # Reusable UI components and event handlers
+│   │           │   ├── ui_components.py     # UI helper functions
+│   │           │   ├── event_handlers.py    # Event handling logic
+│   │           │   └── __init__.py
+│   │           └── tabs/        # Individual settings tabs
+│   │               ├── dwell_movement_tab.py    # Dwell timing and movement settings
+│   │               ├── visual_feedback_tab.py   # Transparency and click feedback
+│   │               ├── scroll_widget_tab.py     # Scroll widget configuration
+│   │               ├── menu_widget_tab.py       # Menu item size settings
+│   │               ├── general_tab.py           # Startup and UI behavior
+│   │               └── __init__.py
 │   ├── managers/        # Application state and lifecycle management
 │   │   ├── button_manager.py    # Button state and command management
 │   │   ├── settings_manager.py  # Settings persistence and management
@@ -129,6 +141,18 @@ dwellpy/
 ├── docs/                # Documentation
 └── tests/               # Test suite (coming soon)
 ```
+
+### Recent Improvements
+
+**Settings Dialog Modularization (Completed)**
+- **Before**: Single monolithic file (1,451 lines)
+- **After**: 8 focused modules (~1,200 lines total)
+- **Benefits**: Improved maintainability, better organization, reusable components
+- **Structure**: 
+  - Main dialog orchestrates tab creation
+  - Individual tabs handle specific settings groups
+  - Shared components for UI helpers and event handling
+  - Preserved all original functionality
 
 ## License
 

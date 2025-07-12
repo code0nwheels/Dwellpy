@@ -73,8 +73,13 @@ class UIContractionManager:
         
         contract_enabled = self.ui_manager.settings_manager.get_setting('contract_ui_enabled', False)
         
-        # If contraction is disabled and UI is currently contracted, expand it
-        if not contract_enabled and self.is_contracted:
+        if contract_enabled and not self.is_contracted:
+            # If contraction is enabled and UI is not contracted, contract it immediately
+            # This handles the startup case where the user wants the UI to start contracted
+            # Use force_contract=True to bypass cursor position check during startup
+            self.contract_ui(force_contract=True)
+        elif not contract_enabled and self.is_contracted:
+            # If contraction is disabled and UI is currently contracted, expand it
             self.expand_ui()
     
     def apply_expansion_settings(self):
@@ -356,13 +361,13 @@ class UIContractionManager:
                 }}
             """)
     
-    def contract_ui(self):
+    def contract_ui(self, force_contract=False):
         """Contract the UI to a single button."""
         if self.is_contracted or not self.ui_manager.settings_manager:
             return
         
-        # Don't contract if cursor is over window
-        if self.ui_manager.is_cursor_over_window:
+        # Don't contract if cursor is over window, unless forced (for startup)
+        if self.ui_manager.is_cursor_over_window and not force_contract:
             return
         
         self.is_contracted = True

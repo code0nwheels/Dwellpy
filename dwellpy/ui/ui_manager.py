@@ -106,7 +106,7 @@ class DwellClickerUI:
         self.scroll_hover = None
         self.scroll_dwell_start_time = None
         self.scroll_dwell_triggered = False
-        
+
         # Initialize menu widget
         self.menu_widget = MenuWidget()
         self.menu_widget.set_active(False)  # Start inactive
@@ -518,8 +518,8 @@ class DwellClickerUI:
             return
             
         # Execute the appropriate command via button manager
-        self.button_manager.execute_command(button_id)
-
+            self.button_manager.execute_command(button_id)
+    
     def on_button_hover(self, button_id, event):
         """Handle when mouse hovers over a button - visual feedback only."""
         # Store the current hover button in button manager
@@ -836,7 +836,7 @@ class DwellClickerUI:
             self.widgets_hidden_for_movement = False
         
         # Update contracted button text if UI is contracted
-        self.contraction_manager.update_contracted_button_state()
+            self.contraction_manager.update_contracted_button_state()
         
         # Apply scroll settings which will show/hide widget based on active state
         self.apply_scroll_settings()
@@ -885,7 +885,7 @@ class DwellClickerUI:
         self.update_button_states()
         
         # Update contracted button text if UI is contracted
-        self.contraction_manager.update_contracted_button_state()
+            self.contraction_manager.update_contracted_button_state()
     
     def process_dwell_event(self, center):
         """Process a dwell event with scroll and menu widget support."""
@@ -931,8 +931,8 @@ class DwellClickerUI:
                 return
             
             # If clicker is inactive, don't process other buttons
-            if not self.is_active:
-                return
+        if not self.is_active:
+            return
         
         # No button detected or button handling complete, process normal dwell clicks
         # Only process if clicker is active
@@ -959,7 +959,7 @@ class DwellClickerUI:
             self.update_button_states()
             # Update contracted button text if UI is contracted
             self.update_contracted_button_state()
-
+    
     def handle_drag(self, center):
         """Handle drag operations that require two dwells."""
         
@@ -969,14 +969,14 @@ class DwellClickerUI:
             success = self.click_manager.mouse_down()
             
             if success:
-                self.drag_state = "down"
+            self.drag_state = "down"
         
         elif self.drag_state == "down":
             # Second dwell - mouse up
             success = self.click_manager.mouse_up()
             
             if success:
-                self.drag_state = None
+            self.drag_state = None
                 
                 # After completing drag, switch back to default if temporary
                 if self.is_temporary_mode:
@@ -1258,7 +1258,7 @@ class DwellClickerUI:
         # Update menu widget with coordinated position
         self.menu_widget.update_position(cursor_pos, coordinated_mode=True)
         self.menu_widget.set_coordinated_position((menu_widget_x, menu_widget_y))
-
+    
     def update_movement_detection(self, cursor_pos):
         """Update movement detection and control widget visibility."""
         # Update movement detector and get current movement state
@@ -1275,11 +1275,11 @@ class DwellClickerUI:
         if self.is_active:
             if should_hide and not self.widgets_hidden_for_movement:
                 # Hide both widgets when movement detected and not near widgets
-                self._hide_widgets_for_movement()
+            self._hide_widgets_for_movement()
             elif should_show and self.widgets_hidden_for_movement:
                 # Show both widgets when dwelling detected or near widgets
-                self._show_widgets_for_movement()
-
+            self._show_widgets_for_movement()
+    
     def _hide_widgets_for_movement(self):
         """Hide widgets when cursor movement is detected."""
         if not self.widgets_hidden_for_movement:
@@ -1315,24 +1315,24 @@ class DwellClickerUI:
         """Show widgets when cursor dwelling is detected."""
         if self.widgets_hidden_for_movement:
             self.widgets_hidden_for_movement = False
-              # Show widgets and restore their normal state
+            # Show widgets and restore their normal state
             scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
             menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
             
             if scroll_enabled and self.is_active:
-                self.scroll_widget.show()
+                    self.scroll_widget.show()
                 self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
                 # Only raise on non-macOS platforms to prevent focus stealing
                 if sys.platform != "darwin":
                     self.scroll_widget.raise_()
-                
+            
             if menu_enabled and self.is_active:
-                self.menu_widget.show()
+                    self.menu_widget.show()
                 self.menu_widget.setWindowOpacity(self.menu_widget.base_opacity)
                 # Only raise on non-macOS platforms to prevent focus stealing
                 if sys.platform != "darwin":
                     self.menu_widget.raise_()
-
+    
     def _refresh_button_hover_states(self):
         """Force a refresh of button hover states by simulating mouse movement."""
         try:
@@ -1356,13 +1356,13 @@ class DwellClickerUI:
                         # Manually trigger the hover state
                         self.button_manager.set_hover(button_id)
                         break
-              # Process any pending Qt events to ensure proper state updates
+            # Process any pending Qt events to ensure proper state updates
             QCoreApplication.processEvents()
             
         except Exception as e:
             # If there's any error, just clear the hover state
             self.button_manager.clear_hover()
-
+    
     def handle_menu_item_selection(self, item_id):
         """Handle selection of a menu item."""
         if item_id == 'LEFT':
@@ -1394,12 +1394,12 @@ class DwellClickerUI:
         # Force menu widget to repaint to show updated blue/red states
         if item_id in ['LEFT', 'DOUBLE', 'RIGHT', 'DRAG']:
             self.menu_widget.update()
-
+    
     def toggle_menu_widget(self):
         """Toggle the menu widget on/off."""
         if not self.settings_manager:
             return
-            
+        
         # Get current menu enabled state and toggle it
         current_menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
         new_menu_enabled = not current_menu_enabled
@@ -1412,12 +1412,12 @@ class DwellClickerUI:
         
         # Update button states to reflect new state
         self.update_button_states()
-
+    
     def toggle_scroll_widget(self):
         """Toggle the scroll widget on/off."""
         if not self.settings_manager:
             return
-            
+        
         # Get current scroll enabled state and toggle it
         current_scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
         new_scroll_enabled = not current_scroll_enabled
@@ -1430,7 +1430,7 @@ class DwellClickerUI:
         
         # Update button states to reflect new state
         self.update_button_states()
-
+    
     def cleanup_scroll_widget(self):
         """Clean up the scroll widget and UI contraction before application exit."""
         if hasattr(self, 'scroll_widget') and self.scroll_widget:
@@ -1455,7 +1455,7 @@ class DwellClickerUI:
         # Expand UI if contracted
         if self.contraction_manager.is_contracted:
             self.contraction_manager.expand_ui()
-
+    
     def cleanup_menu_widget(self):
         """Clean up the menu widget before application exit."""
         if hasattr(self, 'menu_widget') and self.menu_widget:
@@ -1506,7 +1506,7 @@ class DwellClickerUI:
             # Check if horizontal expansion is possible
             horizontal_possible = (space_right >= horizontal_space_needed + SCREEN_EDGE_MARGIN or 
                                  space_left >= horizontal_space_needed + SCREEN_EDGE_MARGIN)
-            
+        
             # Check if vertical expansion is possible
             vertical_possible = (space_bottom >= vertical_space_needed + SCREEN_EDGE_MARGIN or 
                                space_top >= vertical_space_needed + SCREEN_EDGE_MARGIN)
@@ -1516,7 +1516,7 @@ class DwellClickerUI:
                 return 'horizontal'
             elif vertical_possible:
                 return 'vertical'
-            else:
+        else:
                 # If neither fits perfectly, choose the one with more space
                 max_horizontal = max(space_right, space_left)
                 max_vertical = max(space_bottom, space_top)
@@ -1556,13 +1556,13 @@ class DwellClickerUI:
                 # The movement detection system will show it after the configured delay
                 self.menu_widget.is_active = True
                 # Don't call show() here - let _show_widgets_for_movement() handle it
-            else:
+        else:
                 # When disabling, immediately hide
                 self.menu_widget.set_active(False)
         
         # Update button states to reflect menu setting changes
         self.update_button_states()
-
+    
     def apply_widget_appearance_settings(self):
         """Apply widget appearance settings from the settings manager."""
         if not self.settings_manager:
@@ -1585,11 +1585,11 @@ class DwellClickerUI:
             WIDGET_UNLOCK_THRESHOLD_DEFAULT
         )
         self.set_unlock_threshold(threshold)
-
+    
     def set_unlock_threshold(self, threshold: int):
         """Set the widget unlock threshold."""
         self.widget_unlock_threshold = threshold
-
+    
     def _is_cursor_near_widgets(self, cursor_pos):
         """
         Check if the cursor is near any of the main UI, scroll, or menu widgets.
@@ -1668,7 +1668,7 @@ class DwellClickerUI:
         
         # If there's no movement history, we can't determine direction
         if not self.cursor_movement_detector.movement_velocity_history:
-            return False
+        return False 
             
         # Convert positions
         if hasattr(current_pos, '__iter__'):
