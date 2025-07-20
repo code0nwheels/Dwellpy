@@ -885,7 +885,7 @@ class DwellClickerUI:
         self.update_button_states()
         
         # Update contracted button text if UI is contracted
-            self.contraction_manager.update_contracted_button_state()
+        self.contraction_manager.update_contracted_button_state()
     
     def process_dwell_event(self, center):
         """Process a dwell event with scroll and menu widget support."""
@@ -958,7 +958,7 @@ class DwellClickerUI:
             self.is_temporary_mode = False
             self.update_button_states()
             # Update contracted button text if UI is contracted
-            self.update_contracted_button_state()
+            self.contraction_manager.update_contracted_button_state()
     
     def handle_drag(self, center):
         """Handle drag operations that require two dwells."""
@@ -969,14 +969,14 @@ class DwellClickerUI:
             success = self.click_manager.mouse_down()
             
             if success:
-            self.drag_state = "down"
+                self.drag_state = "down"
         
         elif self.drag_state == "down":
             # Second dwell - mouse up
             success = self.click_manager.mouse_up()
             
             if success:
-            self.drag_state = None
+                self.drag_state = None
                 
                 # After completing drag, switch back to default if temporary
                 if self.is_temporary_mode:
@@ -1275,10 +1275,10 @@ class DwellClickerUI:
         if self.is_active:
             if should_hide and not self.widgets_hidden_for_movement:
                 # Hide both widgets when movement detected and not near widgets
-            self._hide_widgets_for_movement()
+                self._hide_widgets_for_movement()
             elif should_show and self.widgets_hidden_for_movement:
                 # Show both widgets when dwelling detected or near widgets
-            self._show_widgets_for_movement()
+                self._show_widgets_for_movement()
     
     def _hide_widgets_for_movement(self):
         """Hide widgets when cursor movement is detected."""
@@ -1320,14 +1320,14 @@ class DwellClickerUI:
             menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
             
             if scroll_enabled and self.is_active:
-                    self.scroll_widget.show()
+                self.scroll_widget.show()
                 self.scroll_widget.setWindowOpacity(self.scroll_widget.base_opacity)
                 # Only raise on non-macOS platforms to prevent focus stealing
                 if sys.platform != "darwin":
                     self.scroll_widget.raise_()
             
             if menu_enabled and self.is_active:
-                    self.menu_widget.show()
+                self.menu_widget.show()
                 self.menu_widget.setWindowOpacity(self.menu_widget.base_opacity)
                 # Only raise on non-macOS platforms to prevent focus stealing
                 if sys.platform != "darwin":
@@ -1516,7 +1516,7 @@ class DwellClickerUI:
                 return 'horizontal'
             elif vertical_possible:
                 return 'vertical'
-        else:
+            else:
                 # If neither fits perfectly, choose the one with more space
                 max_horizontal = max(space_right, space_left)
                 max_vertical = max(space_bottom, space_top)
@@ -1668,7 +1668,7 @@ class DwellClickerUI:
         
         # If there's no movement history, we can't determine direction
         if not self.cursor_movement_detector.movement_velocity_history:
-        return False 
+            return False 
             
         # Convert positions
         if hasattr(current_pos, '__iter__'):
