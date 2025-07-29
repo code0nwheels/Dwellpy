@@ -900,6 +900,7 @@ class DwellClickerUI:
             self.menu_widget.trigger_menu_item(self.menu_hover)
             # After triggering, reset hover to prevent immediate re-triggering
             self.menu_hover = None
+            # Don't reset mode for menu widget selections (same as main UI buttons)
             return
 
         # Stop scrolling if we've moved away from the scroll widget
@@ -959,6 +960,9 @@ class DwellClickerUI:
             self.update_button_states()
             # Update contracted button text if UI is contracted
             self.contraction_manager.update_contracted_button_state()
+            # Force menu widget to repaint to show the reverted state
+            if hasattr(self, 'menu_widget'):
+                self.menu_widget.update()
     
     def handle_drag(self, center):
         """Handle drag operations that require two dwells."""
