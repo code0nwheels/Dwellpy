@@ -4,6 +4,12 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, Q
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
+try:
+    from ....config.constants import Colors
+except ImportError:
+    class Colors:
+        TEXT_COLOR = "#ffffff"
+
 from ..components.ui_components import create_section_header, create_adjustment_button, get_slider_style, get_checkbox_style
 
 
@@ -51,7 +57,7 @@ class ScrollWidgetTab:
         
         # Scroll speed label
         scroll_speed_label = QLabel("Scroll Speed:")
-        scroll_speed_label.setStyleSheet(f"color: {self.dialog.Colors.TEXT_COLOR};")
+        scroll_speed_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(scroll_speed_label)
         
         # Controls frame
@@ -85,7 +91,7 @@ class ScrollWidgetTab:
         # Value label
         self.dialog.scroll_speed_label = QLabel(str(self.dialog.scroll_speed_slider.value()))
         self.dialog.scroll_speed_label.setStyleSheet(f"""
-            color: {self.dialog.Colors.TEXT_COLOR};
+            color: {Colors.TEXT_COLOR};
         """)
         self.dialog.scroll_speed_label.setFixedWidth(30)
         scroll_speed_layout.addWidget(self.dialog.scroll_speed_label)
@@ -94,7 +100,7 @@ class ScrollWidgetTab:
         
         # Widget Appearance Delay
         appearance_delay_label = QLabel("Widget Appearance Delay:")
-        appearance_delay_label.setStyleSheet(f"color: {self.dialog.Colors.TEXT_COLOR};")
+        appearance_delay_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(appearance_delay_label)
         
         # Description for widget delay
@@ -136,7 +142,7 @@ class ScrollWidgetTab:
         delay_seconds = self.dialog.widget_delay_slider.value() / 10.0
         self.dialog.widget_delay_label = QLabel(f"{delay_seconds:.1f}s")
         self.dialog.widget_delay_label.setStyleSheet(f"""
-            color: {self.dialog.Colors.TEXT_COLOR};
+            color: {Colors.TEXT_COLOR};
         """)
         self.dialog.widget_delay_label.setFixedWidth(40)
         widget_delay_layout.addWidget(self.dialog.widget_delay_label)
@@ -145,7 +151,7 @@ class ScrollWidgetTab:
         
         # Widget Unlock Threshold
         unlock_threshold_label = QLabel("Widget Unlock Threshold:")
-        unlock_threshold_label.setStyleSheet(f"color: {self.dialog.Colors.TEXT_COLOR};")
+        unlock_threshold_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(unlock_threshold_label)
         
         # Description
@@ -183,7 +189,7 @@ class ScrollWidgetTab:
         # Value label
         self.dialog.unlock_threshold_label = QLabel(f"{self.dialog.unlock_threshold_slider.value()}px")
         self.dialog.unlock_threshold_label.setStyleSheet(f"""
-            color: {self.dialog.Colors.TEXT_COLOR};
+            color: {Colors.TEXT_COLOR};
         """)
         self.dialog.unlock_threshold_label.setFixedWidth(40)
         unlock_threshold_layout.addWidget(self.dialog.unlock_threshold_label)

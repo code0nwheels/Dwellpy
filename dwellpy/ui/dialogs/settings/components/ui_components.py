@@ -24,6 +24,13 @@ except ImportError:
     BORDER_RADIUS = 5
     __version__ = "0.1.0"
     
+    class Fonts:
+        PRIMARY_FAMILY = "'Helvetica Neue', Helvetica, Arial, sans-serif"
+        TITLE_SIZE = 16
+        REGULAR_SIZE = 11
+        BUTTON_SIZE = 9
+        VERSION_SIZE = 9
+    
     def center_window(window):
         from PyQt6.QtGui import QGuiApplication
         screen = QGuiApplication.primaryScreen().geometry()
@@ -69,14 +76,14 @@ def create_section_header(title, description):
     
     # Title
     title_label = QLabel(title)
-    title_label.setFont(QFont(Fonts.MAIN_FONT, 12, QFont.Weight.Bold))
+    title_label.setFont(QFont(Fonts.PRIMARY_FAMILY, 12, QFont.Weight.Bold))
     title_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
     header_layout.addWidget(title_label)
     
     # Description
     if description:
         desc_label = QLabel(description)
-        desc_label.setFont(QFont(Fonts.MAIN_FONT, 10))
+        desc_label.setFont(QFont(Fonts.PRIMARY_FAMILY, 10))
         desc_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; opacity: 0.8;")
         desc_label.setWordWrap(True)
         header_layout.addWidget(desc_label)
@@ -88,7 +95,7 @@ def create_adjustment_button(text):
     """Create an adjustment button with consistent styling."""
     button = QPushButton(text)
     button.setFixedSize(30, 30)
-    button.setFont(QFont(Fonts.MAIN_FONT, 12, QFont.Weight.Bold))
+    button.setFont(QFont(Fonts.PRIMARY_FAMILY, 12, QFont.Weight.Bold))
     button.setStyleSheet(f"""
         QPushButton {{
             background-color: {Colors.DARK_BUTTON_BG};
@@ -188,7 +195,7 @@ def get_checkbox_style():
     return f"""
         QCheckBox {{
             color: {Colors.TEXT_COLOR};
-            font-family: {Fonts.MAIN_FONT};
+            font-family: {Fonts.PRIMARY_FAMILY};
             font-size: 10px;
             spacing: 8px;
         }}
@@ -220,7 +227,7 @@ def get_radio_style():
     return f"""
         QRadioButton {{
             color: {Colors.TEXT_COLOR};
-            font-family: {Fonts.MAIN_FONT};
+            font-family: {Fonts.PRIMARY_FAMILY};
             font-size: 10px;
             spacing: 8px;
         }}

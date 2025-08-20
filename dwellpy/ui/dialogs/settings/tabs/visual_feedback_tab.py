@@ -3,6 +3,12 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QSlider, QCheckBox, QPushButton
 from PyQt6.QtCore import Qt
 
+try:
+    from ....config.constants import Colors
+except ImportError:
+    class Colors:
+        TEXT_COLOR = "#ffffff"
+
 from ..components.ui_components import (create_section_header, create_adjustment_button, 
                                        get_slider_style, get_checkbox_style, create_color_button,
                                        format_percentage_display)
@@ -59,7 +65,7 @@ class VisualFeedbackTab:
         
         # Transparency level label
         transparency_label = QLabel("Transparency (%):")
-        transparency_label.setStyleSheet(f"color: {self.dialog.Colors.TEXT_COLOR};")
+        transparency_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(transparency_label)
         
         # Controls frame
@@ -90,7 +96,7 @@ class VisualFeedbackTab:
         # Value label
         self.dialog.transparency_label = QLabel(format_percentage_display(self.settings_manager.get_setting('transparency_level', 70)))
         self.dialog.transparency_label.setStyleSheet(f"""
-            color: {self.dialog.Colors.TEXT_COLOR};
+            color: {Colors.TEXT_COLOR};
         """)
         self.dialog.transparency_label.setFixedWidth(40)
         transparency_layout.addWidget(self.dialog.transparency_label)
@@ -116,7 +122,7 @@ class VisualFeedbackTab:
         """Create click colors customization section."""
         # Section title
         colors_label = QLabel("Click Colors:")
-        colors_label.setStyleSheet(f"color: {self.dialog.Colors.TEXT_COLOR};")
+        colors_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(colors_label)
         
         # Default colors to use if not set in settings

@@ -4,6 +4,12 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, Q
 from PyQt6.QtCore import Qt
 import os
 
+try:
+    from ....config.constants import Colors
+except ImportError:
+    class Colors:
+        TEXT_COLOR = "#ffffff"
+
 from ..components.ui_components import create_section_header, get_checkbox_style, get_radio_style
 
 
@@ -97,7 +103,7 @@ class GeneralTab:
         
         # Expansion direction
         expansion_direction_label = QLabel("Expansion Direction:")
-        expansion_direction_label.setStyleSheet(f"color: {self.dialog.Colors.TEXT_COLOR};")
+        expansion_direction_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         expansion_direction_layout.addWidget(expansion_direction_label)
 
         # Radio button container

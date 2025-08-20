@@ -3,6 +3,12 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QSlider
 from PyQt6.QtCore import Qt
 
+try:
+    from ....config.constants import Colors
+except ImportError:
+    class Colors:
+        TEXT_COLOR = "#ffffff"
+
 from ..components.ui_components import create_section_header, create_adjustment_button, get_slider_style, format_time_display
 
 
@@ -44,7 +50,7 @@ class DwellMovementTab:
         """Create move limit adjustment section."""
         # Label
         move_label = QLabel("Move Limit (px):")
-        move_label.setStyleSheet(f"color: {self.dialog.Colors.TEXT_COLOR};")
+        move_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(move_label)
         
         # Controls frame
@@ -75,7 +81,7 @@ class DwellMovementTab:
         # Value label
         self.dialog.move_limit_label = QLabel(str(self.settings_manager.get_setting('move_limit', 5)))
         self.dialog.move_limit_label.setStyleSheet(f"""
-            color: {self.dialog.Colors.TEXT_COLOR};
+            color: {Colors.TEXT_COLOR};
         """)
         self.dialog.move_limit_label.setFixedWidth(30)
         move_layout.addWidget(self.dialog.move_limit_label)
@@ -86,7 +92,7 @@ class DwellMovementTab:
         """Create dwell time adjustment section."""
         # Label
         time_label = QLabel("Dwell Time (s):")
-        time_label.setStyleSheet(f"color: {self.dialog.Colors.TEXT_COLOR};")
+        time_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
         layout.addWidget(time_label)
         
         # Controls frame
@@ -117,7 +123,7 @@ class DwellMovementTab:
         # Value label
         self.dialog.time_label = QLabel(format_time_display(self.settings_manager.get_setting('dwell_time', 1.0)))
         self.dialog.time_label.setStyleSheet(f"""
-            color: {self.dialog.Colors.TEXT_COLOR};
+            color: {Colors.TEXT_COLOR};
         """)
         self.dialog.time_label.setFixedWidth(30)
         time_layout.addWidget(self.dialog.time_label)

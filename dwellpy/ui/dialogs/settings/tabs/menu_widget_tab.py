@@ -3,6 +3,12 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QSlider
 from PyQt6.QtCore import Qt
 
+try:
+    from ....config.constants import Colors
+except ImportError:
+    class Colors:
+        TEXT_COLOR = "#ffffff"
+
 from ..components.ui_components import create_section_header, create_adjustment_button, get_slider_style
 
 
@@ -72,7 +78,7 @@ class MenuWidgetTab:
         # Value label
         self.dialog.menu_size_label = QLabel(str(self.settings_manager.get_setting('menu_item_size', 60)))
         self.dialog.menu_size_label.setStyleSheet(f"""
-            color: {self.dialog.Colors.TEXT_COLOR};
+            color: {Colors.TEXT_COLOR};
         """)
         self.dialog.menu_size_label.setFixedWidth(40)
         size_layout.addWidget(self.dialog.menu_size_label)
