@@ -101,8 +101,9 @@ class SettingsEventHandlers:
     
     def update_time_value(self, value):
         """Update dwell time value display."""
-        from .ui_components import format_time_display
-        self.dialog.time_label.setText(f"{format_time_display(value)}s")
+        # Convert slider value (1-10) to seconds (0.1-1.0)
+        time_seconds = value / 10.0
+        self.dialog.time_label.setText(f"{time_seconds:.1f}s")
     
     def update_transparency_value(self, value):
         """Update transparency value display."""
@@ -114,8 +115,9 @@ class SettingsEventHandlers:
     
     def update_widget_delay_value(self, value):
         """Update widget delay value display."""
-        from .ui_components import format_time_display
-        self.dialog.widget_delay_label.setText(f"{format_time_display(value)}s")
+        # Convert slider value (1-10) to seconds (0.1-1.0)
+        delay_seconds = value / 10.0
+        self.dialog.widget_delay_label.setText(f"{delay_seconds:.1f}s")
     
     def update_unlock_threshold_value(self, value):
         """Update unlock threshold value display."""

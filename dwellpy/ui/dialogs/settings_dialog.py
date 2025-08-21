@@ -372,7 +372,7 @@ class SettingsDialog(QDialog):
         widget_delay_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_widget_delay()
         controls_layout.addWidget(widget_delay_plus_btn)
         
-        # Value label
+        # Value label - Fix: divide by 10 to get correct seconds
         delay_seconds = self.widget_delay_slider.value() / 10.0
         self.widget_delay_label = QLabel(f"{delay_seconds:.1f}s")
         self.widget_delay_label.setStyleSheet(f"""
