@@ -96,32 +96,40 @@ class GeneralTab:
         
         layout.addWidget(contract_ui_frame)
         
-        # Expansion direction section
-        expansion_direction_frame = QFrame()
-        expansion_direction_layout = QHBoxLayout(expansion_direction_frame)
-        expansion_direction_layout.setContentsMargins(15, 0, 0, 0) # Indent
+        # Expansion Direction Section
+        expansion_frame = QFrame()
+        expansion_layout = QVBoxLayout(expansion_frame)
+        expansion_layout.setContentsMargins(0, 0, 0, 0)
+        expansion_layout.setSpacing(4)
         
-        # Expansion direction
+        # Label on top
         expansion_direction_label = QLabel("Expansion Direction:")
         expansion_direction_label.setStyleSheet(get_small_label_style())
-        expansion_direction_label.setFixedWidth(140)  # Increased width for better alignment
-        expansion_direction_layout.addWidget(expansion_direction_label)
-
-        # Dropdown instead of radio buttons
-        self.dialog.expansion_direction_combo = QComboBox()
-        self.dialog.expansion_direction_combo.addItem("Auto (detects available space)", "auto")
-        self.dialog.expansion_direction_combo.addItem("Horizontal (left-to-right)", "horizontal")
-        self.dialog.expansion_direction_combo.addItem("Vertical (top-to-bottom)", "vertical")
+        expansion_layout.addWidget(expansion_direction_label)
+        
+        # Dropdown below the label
+        self.expansion_direction_combo = QComboBox()
+        self.expansion_direction_combo.addItem("Auto (detects available space)", "auto")
+        self.expansion_direction_combo.addItem("Expand Up", "up")
+        self.expansion_direction_combo.addItem("Expand Down", "down")
+        self.expansion_direction_combo.addItem("Expand Left", "left")
+        self.expansion_direction_combo.addItem("Expand Right", "right")
+        
+        # Set current value
+        current_direction = self.settings_manager.get_setting('expansion_direction', 'auto')
+        index = self.expansion_direction_combo.findData(current_direction)
+        if index >= 0:
+            self.expansion_direction_combo.setCurrentIndex(index)
         
         # Style the dropdown
-        self.dialog.expansion_direction_combo.setStyleSheet(f"""
+        self.expansion_direction_combo.setStyleSheet(f"""
             QComboBox {{
                 background-color: {Colors.DARK_BUTTON_BG};
                 color: {Colors.TEXT_COLOR};
                 border: 1px solid {Colors.BORDER_COLOR};
                 border-radius: {BORDER_RADIUS}px;
                 padding: 6px 12px;
-                font-size: 12px;
+                font-size: 11px;
                 min-width: 200px;
             }}
             QComboBox:hover {{
@@ -143,18 +151,10 @@ class GeneralTab:
             }}
         """)
         
-        # Set current selection based on settings
-        current_direction = self.settings_manager.get_setting('expansion_direction', 'auto')
-        index = self.dialog.expansion_direction_combo.findData(current_direction)
-        if index >= 0:
-            self.dialog.expansion_direction_combo.setCurrentIndex(index)
+        expansion_layout.addWidget(self.expansion_direction_combo)
+        layout.addWidget(expansion_frame)
         
         # Connect the dropdown signal to save changes
-        self.dialog.expansion_direction_combo.currentIndexChanged.connect(
+        self.expansion_direction_combo.currentIndexChanged.connect(
             lambda index: self.dialog.event_handlers.on_expansion_direction_changed(index)
-        )
-        
-        expansion_direction_layout.addWidget(self.dialog.expansion_direction_combo)
-        expansion_direction_layout.addStretch()
-        
-        layout.addWidget(expansion_direction_frame) 
+        ) 

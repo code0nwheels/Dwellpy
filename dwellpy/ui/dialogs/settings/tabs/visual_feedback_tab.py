@@ -142,111 +142,72 @@ class VisualFeedbackTab:
     
     def create_click_colors_section(self, layout):
         """Create click colors customization section."""
-        # Section title
+        # Click Colors Section
+        colors_frame = QFrame()
+        colors_layout = QVBoxLayout(colors_frame)
+        colors_layout.setContentsMargins(0, 0, 0, 0)
+        colors_layout.setSpacing(8)
+        
+        # Label
         colors_label = QLabel("Click Colors:")
-        colors_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; font-weight: bold;")
-        layout.addWidget(colors_label)
+        colors_label.setStyleSheet(get_small_label_style())
+        colors_layout.addWidget(colors_label)
         
-        # Default colors to use if not set in settings
-        default_colors = {
-            'left': "#00e676",
-            'right': "#ff9800", 
-            'double': "#e91e63",
-            'drag_down': "#9c27b0",
-            'drag_up': "#673ab7",
-            'middle': "#00bcd4"
-        }
+        # Color buttons with better spacing and readable text
+        color_buttons_layout = QHBoxLayout()
+        color_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        color_buttons_layout.setSpacing(12)  # Increased from default spacing
         
-        # Color names for display
-        color_names = {
-            'left': "Left Click",
-            'right': "Right Click", 
-            'double': "Double Click",
-            'drag_down': "Drag Start",
-            'drag_up': "Drag End",
-            'middle': "Middle Click"
-        }
+        # Left Click Color
+        self.left_click_color_button = create_color_button(
+            "Left Click", 
+            self.settings_manager.get_setting('left_click_color', '#00ff00'),
+            lambda: self.event_handlers.open_color_picker('left', self.left_click_color_button)
+        )
+        color_buttons_layout.addWidget(self.left_click_color_button)
         
-        # Create color picker buttons in a compact grid layout
-        color_grid_frame = QFrame()
-        color_grid_layout = QHBoxLayout(color_grid_frame)
-        color_grid_layout.setContentsMargins(0, 0, 0, 0)
-        color_grid_layout.setSpacing(6)
-        color_grid_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        # Right Click Color
+        self.right_click_color_button = create_color_button(
+            "Right Click", 
+            self.settings_manager.get_setting('right_click_color', '#ff8000'),
+            lambda: self.event_handlers.open_color_picker('right', self.right_click_color_button)
+        )
+        color_buttons_layout.addWidget(self.right_click_color_button)
         
-        # Group colors logically: Primary clicks, Drag operations, Middle click
-        primary_colors = ['left', 'right', 'double']
-        drag_colors = ['drag_down', 'drag_up']
-        other_colors = ['middle']
+        # Double Click Color
+        self.double_click_color_button = create_color_button(
+            "Double Click", 
+            self.settings_manager.get_setting('double_click_color', '#ff00ff'),
+            lambda: self.event_handlers.open_color_picker('double', self.double_click_color_button)
+        )
+        color_buttons_layout.addWidget(self.double_click_color_button)
         
-        # Add primary click colors
-        for click_type in primary_colors:
-            color_btn = create_color_button(click_type, color_names[click_type], default_colors[click_type])
-            color_btn.setToolTip(f"Click to change {color_names[click_type]} color")
-            color_btn.setAccessibleName(f"{color_names[click_type]} Color")
-            color_btn.setAccessibleDescription(f"Click to customize the color for {color_names[click_type]} feedback")
-            color_grid_layout.addWidget(color_btn)
+        # Add some spacing between the first and second row
+        color_buttons_layout.addSpacing(20)
         
-        # Add a small spacer between groups
-        spacer = QFrame()
-        spacer.setFixedWidth(10)
-        color_grid_layout.addWidget(spacer)
+        # Drag Start Color
+        self.drag_start_color_button = create_color_button(
+            "Drag Start", 
+            self.settings_manager.get_setting('drag_start_color', '#8000ff'),
+            lambda: self.event_handlers.open_color_picker('drag_start', self.drag_start_color_button)
+        )
+        color_buttons_layout.addWidget(self.drag_start_color_button)
         
-        # Add drag operation colors
-        for click_type in drag_colors:
-            color_btn = create_color_button(click_type, color_names[click_type], default_colors[click_type])
-            color_btn.setToolTip(f"Click to change {color_names[click_type]} color")
-            color_btn.setAccessibleName(f"{color_names[click_type]} Color")
-            color_btn.setAccessibleDescription(f"Click to customize the color for {color_names[click_type]} feedback")
-            color_grid_layout.addWidget(color_btn)
+        # Drag End Color
+        self.drag_end_color_button = create_color_button(
+            "Drag End", 
+            self.settings_manager.get_setting('drag_end_color', '#400080'),
+            lambda: self.event_handlers.open_color_picker('drag_end', self.drag_end_color_button)
+        )
+        color_buttons_layout.addWidget(self.drag_end_color_button)
         
-        # Add another spacer
-        spacer2 = QFrame()
-        spacer2.setFixedWidth(10)
-        color_grid_layout.addWidget(spacer2)
+        # Middle Click Color
+        self.middle_click_color_button = create_color_button(
+            "Middle Click", 
+            self.settings_manager.get_setting('middle_click_color', '#00ffff'),
+            lambda: self.event_handlers.open_color_picker('middle', self.middle_click_color_button)
+        )
+        color_buttons_layout.addWidget(self.middle_click_color_button)
         
-        # Add other colors
-        for click_type in other_colors:
-            color_btn = create_color_button(click_type, color_names[click_type], default_colors[click_type])
-            color_btn.setToolTip(f"Click to change {color_names[click_type]} color")
-            color_btn.setAccessibleName(f"{color_names[click_type]} Color")
-            color_btn.setAccessibleDescription(f"Click to customize the color for {color_names[click_type]} feedback")
-            color_grid_layout.addWidget(color_btn)
-        
-        # Now connect all color buttons to their event handlers
-        # We need to find the buttons by their text since we can't store references in the loop
-        for child in color_grid_frame.children():
-            if hasattr(child, 'text') and child.text():
-                button_text = child.text()
-                if button_text == "Left Click":
-                    self.dialog.left_click_color_button = child
-                    child.clicked.connect(
-                        lambda checked, btn=child: self.event_handlers.open_color_picker('left', btn)
-                    )
-                elif button_text == "Right Click":
-                    self.dialog.right_click_color_button = child
-                    child.clicked.connect(
-                        lambda checked, btn=child: self.event_handlers.open_color_picker('right', btn)
-                    )
-                elif button_text == "Double Click":
-                    self.dialog.double_click_color_button = child
-                    child.clicked.connect(
-                        lambda checked, btn=child: self.event_handlers.open_color_picker('double', btn)
-                    )
-                elif button_text == "Drag Start":
-                    self.dialog.drag_start_color_button = child
-                    child.clicked.connect(
-                        lambda checked, btn=child: self.event_handlers.open_color_picker('drag_down', btn)
-                    )
-                elif button_text == "Drag End":
-                    self.dialog.drag_end_color_button = child
-                    child.clicked.connect(
-                        lambda checked, btn=child: self.event_handlers.open_color_picker('drag_up', btn)
-                    )
-                elif button_text == "Middle Click":
-                    self.dialog.middle_click_color_button = child
-                    child.clicked.connect(
-                        lambda checked, btn=child: self.event_handlers.open_color_picker('middle', btn)
-                    )
-        
-        layout.addWidget(color_grid_frame) 
+        colors_layout.addLayout(color_buttons_layout)
+        layout.addWidget(colors_frame) 

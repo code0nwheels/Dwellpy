@@ -152,36 +152,75 @@ def create_adjustment_button(text, tooltip=""):
     return button
 
 
-def create_color_button(click_type, display_name, default_color):
-    """Create a color selection button."""
-    # Create color button
-    color_btn = QPushButton(display_name)
-    color_btn.setFixedSize(70, 22)
-    color_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-    color_btn.setProperty('click_type', click_type)  # Store click type for reference
+def create_color_button(text, color, callback):
+    """Create a color picker button with better text readability."""
+    button = QPushButton(text)
+    button.setFixedSize(80, 30)  # Increased size for better readability
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.clicked.connect(callback)
     
-    # Style the button with default color (will be updated by settings)
-    update_color_button_style(color_btn, default_color)
+    # Determine text color based on background brightness for better contrast
+    from PyQt6.QtGui import QColor
+    bg_color = QColor(color)
+    brightness = (bg_color.red() * 299 + bg_color.green() * 587 + bg_color.blue() * 114) / 1000
     
-    return color_btn
-
-
-def update_color_button_style(button, color_hex):
-    """Update button style with the specified color."""
-    # Determine text color based on background brightness
-    text_color = "#000000" if is_light_color(color_hex) else "#ffffff"
+    # Use dark text on light backgrounds, light text on dark backgrounds
+    if brightness > 128:
+        text_color = "#000000"  # Black text on light backgrounds
+    else:
+        text_color = "#ffffff"  # White text on dark backgrounds
     
     button.setStyleSheet(f"""
         QPushButton {{
-            background-color: {color_hex};
+            background-color: {color};
             color: {text_color};
-            border: 2px solid {Colors.BORDER_COLOR};
-            border-radius: {BORDER_RADIUS}px;
-            padding: 5px 10px;
+            border: 2px solid #333333;
+            border-radius: 4px;
             font-weight: bold;
+            font-size: 10px;
+            padding: 4px;
         }}
         QPushButton:hover {{
-            border-color: {Colors.BLUE_ACCENT};
+            border-color: #0078d7;
+        }}
+        QPushButton:pressed {{
+            background-color: {color};
+            border-color: #005a9e;
+        }}
+    """)
+    
+    return button
+
+
+def update_color_button_style(button, color):
+    """Update color button style with improved text readability."""
+    # Determine text color based on background brightness for better contrast
+    from PyQt6.QtGui import QColor
+    bg_color = QColor(color)
+    brightness = (bg_color.red() * 299 + bg_color.green() * 587 + bg_color.blue() * 114) / 1000
+    
+    # Use dark text on light backgrounds, light text on dark backgrounds
+    if brightness > 128:
+        text_color = "#000000"  # Black text on light backgrounds
+    else:
+        text_color = "#ffffff"  # White text on dark backgrounds
+    
+    button.setStyleSheet(f"""
+        QPushButton {{
+            background-color: {color};
+            color: {text_color};
+            border: 2px solid #333333;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 10px;
+            padding: 4px;
+        }}
+        QPushButton:hover {{
+            border-color: #0078d7;
+        }}
+        QPushButton:pressed {{
+            background-color: {color};
+            border-color: #005a9e;
         }}
     """)
 

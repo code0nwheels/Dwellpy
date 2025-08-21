@@ -624,68 +624,38 @@ class SettingsDialog(QDialog):
             }}
         """)
         
-        bottom_layout = QHBoxLayout(bottom_frame)
+        bottom_layout = QVBoxLayout(bottom_frame)
         bottom_layout.setContentsMargins(15, 0, 15, 0)
         
-        # Spacer
-        bottom_layout.addStretch()
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
         
-        # Close button
-        close_button = QPushButton("Cancel")
-        close_button.setFixedSize(100, 40)  # Increased from 80x35
-        close_button.setFont(QFont(Fonts.PRIMARY_FAMILY, 12, QFont.Weight.Bold))  # Increased from 11pt
-        close_button.setAccessibleName("Cancel Settings")
-        close_button.setAccessibleDescription("Close the settings dialog without saving changes")
-        close_button.setStyleSheet(f"""
-            QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                          stop:0 {Colors.DARK_BUTTON_BG}, stop:1 #252525);
-                color: {Colors.TEXT_COLOR};
-                border: 1px solid {Colors.BORDER_COLOR};
-                border-radius: {BORDER_RADIUS}px;
-                padding: 10px 20px;  /* Increased from 8px 16px */
-            }}
-            QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                          stop:0 #353535, stop:1 #2a2a2a);
-                border-color: {Colors.BLUE_HOVER};
-            }}
-            QPushButton:pressed {{
-                background: {Colors.BLUE_ACCENT};
-            }}
-        """)
-        close_button.clicked.connect(self.close)
-        bottom_layout.addWidget(close_button)
-        
-        # Add spacing between buttons
-        bottom_layout.addSpacing(15)  # Increased from 10
-        
-        # OK button
+        # OK button (now just closes the dialog since settings apply immediately)
         ok_button = QPushButton("OK")
-        ok_button.setFixedSize(100, 40)  # Increased from 80x35
-        ok_button.setFont(QFont(Fonts.PRIMARY_FAMILY, 12, QFont.Weight.Bold))  # Increased from 11pt
-        ok_button.setAccessibleName("Save Settings")
-        ok_button.setAccessibleDescription("Save all settings and close the dialog")
         ok_button.setStyleSheet(f"""
             QPushButton {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                          stop:0 {Colors.BLUE_ACCENT}, stop:1 {Colors.BLUE_HOVER});
-                color: {Colors.TEXT_COLOR};
-                border: 1px solid {Colors.BLUE_ACCENT};
+                    stop:0 {Colors.BLUE_ACCENT}, stop:1 {Colors.BLUE_HOVER});
+                color: white;
+                border: none;
                 border-radius: {BORDER_RADIUS}px;
-                padding: 10px 20px;  /* Increased from 8px 16px */
+                padding: 8px 16px;
+                font-weight: bold;
+                min-width: 80px;
             }}
             QPushButton:hover {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                          stop:0 {Colors.BLUE_HOVER}, stop:1 {Colors.BLUE_ACCENT});
-                border-color: {Colors.BLUE_HOVER};
+                    stop:0 {Colors.BLUE_HOVER}, stop:1 {Colors.BLUE_ACCENT});
             }}
             QPushButton:pressed {{
                 background: {Colors.BLUE_ACCENT};
             }}
         """)
-        ok_button.clicked.connect(self.accept)
-        bottom_layout.addWidget(ok_button)
+        ok_button.clicked.connect(self.close)
+        button_layout.addWidget(ok_button)
+        
+        bottom_layout.addLayout(button_layout)
         
         main_layout.addWidget(bottom_frame)
     
@@ -710,7 +680,6 @@ class SettingsDialog(QDialog):
         self.scroll_speed_slider.valueChanged.connect(self.event_handlers.update_scroll_speed_value)
         self.widget_delay_slider.valueChanged.connect(self.event_handlers.update_widget_delay_value)
         self.unlock_threshold_slider.valueChanged.connect(self.event_handlers.update_unlock_threshold_value)
-        self.unlock_threshold_slider.valueChanged.connect(self.event_handlers.update_unlock_threshold_setting)
         self.menu_size_slider.valueChanged.connect(self.event_handlers.update_menu_size_value)
         
         # Checkbox toggles
@@ -723,29 +692,6 @@ class SettingsDialog(QDialog):
         self.auto_start_check.toggled.connect(self.event_handlers.on_auto_start_toggle)
         
         # Color button clicks are handled in the VisualFeedbackTab
-    
-    def accept(self):
-        """Save settings and close dialog."""
-        # Save all slider values
-        self.settings_manager.set_setting('move_limit', self.move_limit_slider.value())
-        self.settings_manager.set_setting('dwell_time', self.time_slider.value() / 10.0)
-        self.settings_manager.set_setting('transparency_enabled', self.transparency_check.isChecked())
-        self.settings_manager.set_setting('transparency_level', self.transparency_slider.value())
-        self.settings_manager.set_setting('visible_clicks_enabled', self.visible_clicks_check.isChecked())
-        self.settings_manager.set_setting('scroll_enabled', self.scroll_check.isChecked())
-        self.settings_manager.set_setting('menu_enabled', self.menu_check.isChecked())
-        self.settings_manager.set_setting('widget_appearance_delay', self.widget_delay_slider.value() / 10.0)
-        self.settings_manager.set_setting('widget_unlock_threshold', self.unlock_threshold_slider.value())
-        self.settings_manager.set_setting('menu_item_size', self.menu_size_slider.value())
-        self.settings_manager.set_setting('default_active', self.active_check.isChecked())
-        self.settings_manager.set_setting('contract_ui_enabled', self.contract_ui_check.isChecked())
-        
-        # Save scroll speed (convert slider value back to interval)
-        speed_value = self.scroll_speed_slider.value()
-        interval = (11 - speed_value) * 20  # Convert back to milliseconds
-        self.settings_manager.set_setting('scroll_speed', interval)
-        
-        super().accept()
     
     def showEvent(self, event):
         """Handle show event."""

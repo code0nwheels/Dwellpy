@@ -96,49 +96,55 @@ class SettingsEventHandlers:
     
     # Value update handlers
     def update_move_limit_value(self, value):
-        """Update move limit value display."""
+        """Update move limit value display and save setting."""
         self.dialog.move_limit_label.setText(f"{value}px")
+        self.settings_manager.set_setting('move_limit', value)
     
     def update_time_value(self, value):
-        """Update dwell time value display."""
+        """Update dwell time value display and save setting."""
         # Convert slider value (1-10) to seconds (0.1-1.0)
         time_seconds = value / 10.0
         self.dialog.time_label.setText(f"{time_seconds:.1f}s")
+        self.settings_manager.set_setting('dwell_time', time_seconds)
     
     def update_transparency_value(self, value):
-        """Update transparency value display."""
+        """Update transparency value display and save setting."""
         self.dialog.transparency_label.setText(f"{value}%")
+        self.settings_manager.set_setting('transparency_level', value)
     
     def update_scroll_speed_value(self, value):
-        """Update scroll speed value display."""
+        """Update scroll speed value display and save setting."""
         self.dialog.scroll_speed_label.setText(f"{value}%")
+        # Convert slider value back to interval
+        interval = (11 - value) * 20  # Convert back to milliseconds
+        self.settings_manager.set_setting('scroll_speed', interval)
     
     def update_widget_delay_value(self, value):
-        """Update widget delay value display."""
+        """Update widget delay value display and save setting."""
         # Convert slider value (1-10) to seconds (0.1-1.0)
         delay_seconds = value / 10.0
         self.dialog.widget_delay_label.setText(f"{delay_seconds:.1f}s")
+        self.settings_manager.set_setting('widget_appearance_delay', delay_seconds)
     
     def update_unlock_threshold_value(self, value):
-        """Update unlock threshold value display."""
+        """Update unlock threshold value display and save setting."""
         self.dialog.unlock_threshold_label.setText(f"{value}px")
-    
-    def update_unlock_threshold_setting(self, value):
-        """Update unlock threshold setting in real-time."""
         self.settings_manager.set_setting('widget_unlock_threshold', value)
     
     def update_menu_size_value(self, value):
-        """Update menu size value display."""
+        """Update menu size value display and save setting."""
         self.dialog.menu_size_label.setText(f"{value}px")
+        self.settings_manager.set_setting('menu_item_size', value)
     
     # Toggle handlers
     def on_transparency_toggle(self, state):
-        """Handle transparency toggle."""
+        """Handle transparency toggle and save setting."""
         self.dialog.transparency_slider.setEnabled(state)
         self.dialog.transparency_label.setEnabled(state)
+        self.settings_manager.set_setting('transparency_enabled', state)
     
     def on_scroll_toggle(self, checked):
-        """Handle scroll widget toggle."""
+        """Handle scroll widget toggle and save setting."""
         # Enable/disable scroll-specific controls
         self.dialog.scroll_speed_slider.setEnabled(checked)
         self.dialog.scroll_speed_label.setEnabled(checked)
@@ -147,9 +153,11 @@ class SettingsEventHandlers:
         for child in self.dialog.findChildren(QPushButton):
             if hasattr(child, 'toolTip') and child.toolTip() in ["Decrease scroll speed", "Increase scroll speed"]:
                 child.setEnabled(checked)
+        
+        self.settings_manager.set_setting('scroll_enabled', checked)
     
     def on_menu_toggle(self, checked):
-        """Handle menu widget toggle."""
+        """Handle menu widget toggle and save setting."""
         # Enable/disable menu-specific controls
         self.dialog.menu_size_slider.setEnabled(checked)
         self.dialog.menu_size_label.setEnabled(checked)
@@ -158,32 +166,38 @@ class SettingsEventHandlers:
         for child in self.dialog.findChildren(QPushButton):
             if hasattr(child, 'toolTip') and child.toolTip() in ["Decrease icon size", "Increase icon size"]:
                 child.setEnabled(checked)
+        
+        self.settings_manager.set_setting('menu_enabled', checked)
     
     def on_visible_clicks_toggle(self, state):
-        """Handle visible clicks toggle."""
+        """Handle visible clicks toggle and save setting."""
         # Enable/disable color buttons
         for button in [self.dialog.left_click_color_button, 
                       self.dialog.right_click_color_button, 
                       self.dialog.double_click_color_button]:
             button.setEnabled(state)
+        
+        self.settings_manager.set_setting('visible_clicks_enabled', state)
     
     def on_active_toggle(self, state):
-        """Handle active state toggle."""
+        """Handle active state toggle and save setting."""
         self.dialog.unlock_threshold_slider.setEnabled(state)
         self.dialog.unlock_threshold_label.setEnabled(state)
+        self.settings_manager.set_setting('default_active', state)
     
     def on_contract_ui_toggle(self, state):
-        """Handle UI contraction toggle."""
+        """Handle UI contraction toggle and save setting."""
         # Enable/disable expansion direction dropdown
         self.dialog.expansion_direction_combo.setEnabled(state)
+        self.settings_manager.set_setting('contract_ui_enabled', state)
     
     def on_expansion_direction_changed(self, index):
-        """Handle expansion direction dropdown change."""
+        """Handle expansion direction dropdown change and save setting."""
         direction = self.dialog.expansion_direction_combo.itemData(index)
         self.settings_manager.set_setting('expansion_direction', direction)
     
     def on_auto_start_toggle(self, state):
-        """Handle auto-start toggle."""
+        """Handle auto-start toggle and save setting."""
         # This would typically involve system-level changes
         # For now, just update the setting
         self.settings_manager.set_setting('auto_start', state)
