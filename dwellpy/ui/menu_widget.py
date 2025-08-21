@@ -218,8 +218,14 @@ class MenuWidget(QWidget):
         if not self.is_active:
             return
         
-        # If in coordinated mode, skip normal positioning logic
+        # If in coordinated mode, skip normal positioning logic but track cursor
         if coordinated_mode:
+            # Convert coordinates for cursor tracking
+            qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
+            cursor_x, cursor_y = qt_cursor_pos.x(), qt_cursor_pos.y()
+            
+            # Update cursor tracking for hover detection
+            self.last_cursor_pos = (cursor_x, cursor_y)
             return
         
         # Convert pynput coordinates to Qt coordinates for consistency

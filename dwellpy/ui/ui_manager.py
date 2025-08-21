@@ -1065,7 +1065,8 @@ class DwellClickerUI:
         if menu_expanded and not scroll_activated:
             if self.scroll_widget.isVisible():
                 self.scroll_widget.hide()
-            # Only position menu widget in this case
+            # When menu is expanded, don't reposition it but still track cursor for hover detection
+            # This allows the widget to stay in place while maintaining hover functionality
             self.menu_widget.update_position(cursor_pos, coordinated_mode=True)
             return
         
