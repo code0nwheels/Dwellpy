@@ -78,7 +78,7 @@ User interface components with a focus on accessibility and dwell interaction.
 
 #### Settings Dialog Architecture (Recent Improvement)
 
-The settings dialog has been successfully modularized from a single 1,451-line file into a well-organized, maintainable structure:
+The settings dialog has been successfully modularized from a single 1,451-line file into a well-organized, maintainable structure with improved accessibility and user experience:
 
 ```
 dwellpy/ui/dialogs/settings/
@@ -93,21 +93,24 @@ dwellpy/ui/dialogs/settings/
 │   ├── menu_widget_tab.py       # Menu item size settings
 │   ├── general_tab.py           # Startup and UI behavior
 │   └── __init__.py
-└── settings_dialog_refactored.py # Main dialog orchestrator (~300 lines)
+└── settings_dialog.py    # Main dialog orchestrator (~300 lines)
 ```
 
 **Benefits of the new structure:**
 - **Maintainability**: Each tab is a focused, manageable module (~100-150 lines each)
 - **Reusability**: UI components and event handlers can be shared across tabs
-- **Organization**: Related functionality is logically grouped
-- **Preserved Functionality**: All original features maintained
+- **Organization**: Related functionality is logically grouped into 3 main tabs (Behavior, Visual, Widgets)
+- **Preserved Functionality**: All original features maintained with improved organization
 - **Developer Experience**: Easier to locate and modify specific settings
+- **Accessibility**: Enhanced keyboard navigation, tooltips, and consistent sizing
+- **User Experience**: More compact layout with better visual hierarchy
 
 **Design Patterns Used:**
 - **Component Pattern**: Reusable UI components (headers, buttons, sliders)
 - **Event Handler Pattern**: Centralized event handling with hover functionality
 - **Tab Pattern**: Each settings category in its own focused module
 - **Orchestrator Pattern**: Main dialog coordinates tab creation and signal connections
+- **Accessibility Pattern**: Consistent sizing, keyboard navigation, and visual feedback
 
 ### Managers (`dwellpy/managers/`)
 

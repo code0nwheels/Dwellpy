@@ -79,7 +79,7 @@ Dwellpy follows a modular architecture with clear separation of concerns:
 ### Recent Architectural Improvements
 
 **Settings Dialog Modularization (Completed)**
-The settings dialog has been successfully modularized from a single 1,451-line file into 8 focused modules:
+The settings dialog has been successfully modularized from a single 1,451-line file into a well-organized, maintainable structure with improved accessibility and user experience:
 
 ```
 dwellpy/ui/dialogs/settings/
@@ -94,14 +94,16 @@ dwellpy/ui/dialogs/settings/
 │   ├── menu_widget_tab.py       # Menu item size settings
 │   ├── general_tab.py           # Startup and UI behavior
 │   └── __init__.py
-└── settings_dialog_refactored.py # Main dialog orchestrator (~300 lines)
+└── settings_dialog.py    # Main dialog orchestrator (~300 lines)
 ```
 
 **Benefits of the new structure:**
 - **Maintainability**: Each tab is a focused, manageable module
 - **Reusability**: UI components and event handlers can be shared
-- **Organization**: Related functionality is logically grouped
-- **Preserved Functionality**: All original features maintained
+- **Organization**: Related functionality is logically grouped into 3 main tabs (Behavior, Visual, Widgets)
+- **Preserved Functionality**: All original features maintained with improved organization
+- **Accessibility**: Enhanced keyboard navigation, tooltips, and consistent sizing
+- **User Experience**: More compact layout with better visual hierarchy
 
 When contributing to the settings system, please follow this modular structure and place new functionality in the appropriate module.
 
