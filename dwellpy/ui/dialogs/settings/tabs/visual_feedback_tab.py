@@ -61,15 +61,19 @@ class VisualFeedbackTab:
         
         # Transparency level controls in a compact layout
         transparency_frame = QFrame()
-        transparency_layout = QHBoxLayout(transparency_frame)
+        transparency_layout = QVBoxLayout(transparency_frame)  # Changed to vertical layout
         transparency_layout.setContentsMargins(0, 0, 0, 0)
-        transparency_layout.setSpacing(8)
+        transparency_layout.setSpacing(4)  # Reduced spacing for vertical layout
         
-        # Label
+        # Label on top
         transparency_label = QLabel("Transparency (%):")
         transparency_label.setStyleSheet(get_small_label_style())
-        transparency_label.setFixedWidth(120)
         transparency_layout.addWidget(transparency_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
         
         # Minus button
         transparency_minus_btn = create_adjustment_button("◀")
@@ -78,7 +82,7 @@ class VisualFeedbackTab:
         transparency_minus_btn.setAccessibleDescription("Click to decrease transparency by 1%")
         transparency_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_transparency()
         transparency_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_transparency()
-        transparency_layout.addWidget(transparency_minus_btn)
+        controls_layout.addWidget(transparency_minus_btn)
         
         # Slider
         self.dialog.transparency_slider = QSlider(Qt.Orientation.Horizontal)
@@ -88,7 +92,7 @@ class VisualFeedbackTab:
         self.dialog.transparency_slider.setToolTip("Adjust the transparency level of the Dwellpy toolbar")
         self.dialog.transparency_slider.setAccessibleName("Transparency Slider")
         self.dialog.transparency_slider.setAccessibleDescription("Controls how transparent the toolbar appears")
-        transparency_layout.addWidget(self.dialog.transparency_slider)
+        controls_layout.addWidget(self.dialog.transparency_slider)
         
         # Plus button
         transparency_plus_btn = create_adjustment_button("▶")
@@ -97,7 +101,7 @@ class VisualFeedbackTab:
         transparency_plus_btn.setAccessibleDescription("Click to increase transparency by 1%")
         transparency_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_transparency()
         transparency_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_transparency()
-        transparency_layout.addWidget(transparency_plus_btn)
+        controls_layout.addWidget(transparency_plus_btn)
         
         # Value label
         self.dialog.transparency_label = QLabel(format_percentage_display(self.settings_manager.get_setting('transparency_level', 70)))
@@ -111,7 +115,10 @@ class VisualFeedbackTab:
             padding: 2px 4px;
         """)
         self.dialog.transparency_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        transparency_layout.addWidget(self.dialog.transparency_label)
+        controls_layout.addWidget(self.dialog.transparency_label)
+        
+        # Add controls layout to main layout
+        transparency_layout.addLayout(controls_layout)
         
         layout.addWidget(transparency_frame)
     

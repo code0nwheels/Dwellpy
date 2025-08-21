@@ -2,6 +2,7 @@
 
 from PyQt6.QtWidgets import QColorDialog
 from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QPushButton
 
 
 class SettingsEventHandlers:
@@ -130,12 +131,27 @@ class SettingsEventHandlers:
         self.dialog.transparency_slider.setEnabled(state)
         self.dialog.transparency_label.setEnabled(state)
     
-    def on_scroll_toggle(self, state):
+    def on_scroll_toggle(self, checked):
         """Handle scroll widget toggle."""
-        self.dialog.scroll_speed_slider.setEnabled(state)
-        self.dialog.scroll_speed_label.setEnabled(state)
-        self.dialog.widget_delay_slider.setEnabled(state)
-        self.dialog.widget_delay_label.setEnabled(state)
+        # Enable/disable scroll-specific controls
+        self.dialog.scroll_speed_slider.setEnabled(checked)
+        self.dialog.scroll_speed_label.setEnabled(checked)
+        
+        # Find and enable/disable scroll speed minus/plus buttons
+        for child in self.dialog.findChildren(QPushButton):
+            if hasattr(child, 'toolTip') and child.toolTip() in ["Decrease scroll speed", "Increase scroll speed"]:
+                child.setEnabled(checked)
+    
+    def on_menu_toggle(self, checked):
+        """Handle menu widget toggle."""
+        # Enable/disable menu-specific controls
+        self.dialog.menu_size_slider.setEnabled(checked)
+        self.dialog.menu_size_label.setEnabled(checked)
+        
+        # Find and enable/disable menu size minus/plus buttons
+        for child in self.dialog.findChildren(QPushButton):
+            if hasattr(child, 'toolTip') and child.toolTip() in ["Decrease icon size", "Increase icon size"]:
+                child.setEnabled(checked)
     
     def on_visible_clicks_toggle(self, state):
         """Handle visible clicks toggle."""

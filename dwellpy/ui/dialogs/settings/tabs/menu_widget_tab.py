@@ -36,9 +36,19 @@ class MenuWidgetTab:
         """Create menu item size adjustment section."""
         # Controls frame
         size_frame = QFrame()
-        size_layout = QHBoxLayout(size_frame)
+        size_layout = QVBoxLayout(size_frame)  # Changed to vertical layout
         size_layout.setContentsMargins(0, 0, 0, 0)
-        size_layout.setSpacing(8)
+        size_layout.setSpacing(4)  # Reduced spacing for vertical layout
+
+        # Label on top
+        size_label = QLabel("Icon Size:")
+        size_label.setStyleSheet(get_small_label_style())
+        size_layout.addWidget(size_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
 
         # Minus button
         menu_size_minus_btn = create_adjustment_button("◀")
@@ -47,7 +57,7 @@ class MenuWidgetTab:
         menu_size_minus_btn.setAccessibleDescription("Click to decrease the size of menu items")
         menu_size_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_menu_size()
         menu_size_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_menu_size()
-        size_layout.addWidget(menu_size_minus_btn)
+        controls_layout.addWidget(menu_size_minus_btn)
 
         # Slider for menu item size
         self.dialog.menu_size_slider = QSlider(Qt.Orientation.Horizontal)
@@ -63,7 +73,7 @@ class MenuWidgetTab:
         self.dialog.menu_size_slider.setToolTip("Adjust the size of menu items in the circular menu")
         self.dialog.menu_size_slider.setAccessibleName("Menu Item Size Slider")
         self.dialog.menu_size_slider.setAccessibleDescription("Controls how large the menu items appear")
-        size_layout.addWidget(self.dialog.menu_size_slider)
+        controls_layout.addWidget(self.dialog.menu_size_slider)
 
         # Plus button
         menu_size_plus_btn = create_adjustment_button("▶")
@@ -72,7 +82,7 @@ class MenuWidgetTab:
         menu_size_plus_btn.setAccessibleDescription("Click to increase the size of menu items")
         menu_size_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_menu_size()
         menu_size_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_menu_size()
-        size_layout.addWidget(menu_size_plus_btn)
+        controls_layout.addWidget(menu_size_plus_btn)
 
         # Value label
         self.dialog.menu_size_label = QLabel(str(self.settings_manager.get_setting('menu_item_size', 60)))
@@ -86,6 +96,9 @@ class MenuWidgetTab:
             padding: 2px 4px;
         """)
         self.dialog.menu_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        size_layout.addWidget(self.dialog.menu_size_label)
+        controls_layout.addWidget(self.dialog.menu_size_label)
+        
+        # Add controls layout to main layout
+        size_layout.addLayout(controls_layout)
         
         layout.addWidget(size_frame) 

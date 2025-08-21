@@ -50,15 +50,19 @@ class DwellMovementTab:
         """Create move limit adjustment section."""
         # Label and controls in a more compact layout
         move_frame = QFrame()
-        move_layout = QHBoxLayout(move_frame)
+        move_layout = QVBoxLayout(move_frame)  # Changed to vertical layout
         move_layout.setContentsMargins(0, 0, 0, 0)
-        move_layout.setSpacing(8)
+        move_layout.setSpacing(4)  # Reduced spacing for vertical layout
         
-        # Label
+        # Label on top
         move_label = QLabel("Move Limit (px):")
         move_label.setStyleSheet(get_small_label_style())
-        move_label.setFixedWidth(100)
         move_layout.addWidget(move_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
         
         # Minus button
         move_minus_btn = create_adjustment_button("◀")
@@ -67,7 +71,7 @@ class DwellMovementTab:
         move_minus_btn.setAccessibleDescription("Click to decrease the movement limit by 1 pixel")
         move_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_move()
         move_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_move()
-        move_layout.addWidget(move_minus_btn)
+        controls_layout.addWidget(move_minus_btn)
         
         # Slider
         self.dialog.move_limit_slider = QSlider(Qt.Orientation.Horizontal)
@@ -77,7 +81,7 @@ class DwellMovementTab:
         self.dialog.move_limit_slider.setToolTip("Adjust the maximum distance (in pixels) the cursor can move while dwelling")
         self.dialog.move_limit_slider.setAccessibleName("Movement Limit Slider")
         self.dialog.move_limit_slider.setAccessibleDescription("Controls how much the cursor can move while dwelling")
-        move_layout.addWidget(self.dialog.move_limit_slider)
+        controls_layout.addWidget(self.dialog.move_limit_slider)
         
         # Plus button
         move_plus_btn = create_adjustment_button("▶")
@@ -85,8 +89,8 @@ class DwellMovementTab:
         move_plus_btn.setAccessibleName("Increase Movement Limit")
         move_plus_btn.setAccessibleDescription("Click to increase the movement limit by 1 pixel")
         move_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_move()
-        move_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_move()
-        move_layout.addWidget(move_plus_btn)
+        move_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_move()
+        controls_layout.addWidget(move_plus_btn)
         
         # Value label
         self.dialog.move_limit_label = QLabel(str(self.settings_manager.get_setting('move_limit', 5)))
@@ -100,7 +104,10 @@ class DwellMovementTab:
             padding: 2px 4px;
         """)
         self.dialog.move_limit_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        move_layout.addWidget(self.dialog.move_limit_label)
+        controls_layout.addWidget(self.dialog.move_limit_label)
+        
+        # Add controls layout to main layout
+        move_layout.addLayout(controls_layout)
         
         layout.addWidget(move_frame)
     
@@ -108,15 +115,19 @@ class DwellMovementTab:
         """Create dwell time adjustment section."""
         # Label and controls in a more compact layout
         time_frame = QFrame()
-        time_layout = QHBoxLayout(time_frame)
+        time_layout = QVBoxLayout(time_frame)  # Changed to vertical layout
         time_layout.setContentsMargins(0, 0, 0, 0)
-        time_layout.setSpacing(8)
+        time_layout.setSpacing(4)  # Reduced spacing for vertical layout
         
-        # Label
+        # Label on top
         time_label = QLabel("Dwell Time (s):")
         time_label.setStyleSheet(get_small_label_style())
-        time_label.setFixedWidth(100)
         time_layout.addWidget(time_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
         
         # Minus button
         time_minus_btn = create_adjustment_button("◀")
@@ -125,7 +136,7 @@ class DwellMovementTab:
         time_minus_btn.setAccessibleDescription("Click to decrease the dwell time by 1 second")
         time_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_time()
         time_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_time()
-        time_layout.addWidget(time_minus_btn)
+        controls_layout.addWidget(time_minus_btn)
         
         # Slider
         self.dialog.time_slider = QSlider(Qt.Orientation.Horizontal)
@@ -135,7 +146,7 @@ class DwellMovementTab:
         self.dialog.time_slider.setToolTip("Adjust the minimum time (in seconds) you must hold your cursor still")
         self.dialog.time_slider.setAccessibleName("Dwell Time Slider")
         self.dialog.time_slider.setAccessibleDescription("Controls how long you must hold your cursor still")
-        time_layout.addWidget(self.dialog.time_slider)
+        controls_layout.addWidget(self.dialog.time_slider)
         
         # Plus button
         time_plus_btn = create_adjustment_button("▶")
@@ -144,20 +155,23 @@ class DwellMovementTab:
         time_plus_btn.setAccessibleDescription("Click to increase the dwell time by 1 second")
         time_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_time()
         time_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_time()
-        time_layout.addWidget(time_plus_btn)
+        controls_layout.addWidget(time_plus_btn)
         
         # Value label
-        self.dialog.time_label = QLabel(format_time_display(self.settings_manager.get_setting('dwell_time', 1.0)))
+        self.dialog.time_label = QLabel(f"{self.dialog.time_slider.value() / 10.0:.1f}s")
         self.dialog.time_label.setStyleSheet(f"""
             color: {Colors.TEXT_COLOR};
             font-weight: bold;
-            min-width: 25px;
+            min-width: 35px;
             background: rgba(0, 120, 215, 0.1);
             border: 1px solid rgba(0, 120, 215, 0.3);
             border-radius: 3px;
             padding: 2px 4px;
         """)
         self.dialog.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        time_layout.addWidget(self.dialog.time_label)
+        controls_layout.addWidget(self.dialog.time_label)
+        
+        # Add controls layout to main layout
+        time_layout.addLayout(controls_layout)
         
         layout.addWidget(time_frame) 

@@ -242,38 +242,287 @@ class SettingsDialog(QDialog):
     
     def create_widgets_tab(self):
         """Create a combined widgets tab with scroll and menu settings."""
-        from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFrame
+        from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFrame, QLabel, QHBoxLayout, QSlider, QCheckBox
+        from PyQt6.QtCore import Qt
+        from dwellpy.ui.dialogs.settings.components.ui_components import (
+            create_section_header, create_adjustment_button, get_slider_style, get_checkbox_style, get_small_label_style
+        )
+        from dwellpy.config.constants import Colors
         
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(15, 10, 15, 10)  # Reduced margins
-        layout.setSpacing(8)  # Reduced spacing
+        layout.setContentsMargins(15, 10, 15, 10)
+        layout.setSpacing(12)
         
         # Scroll Widget Section
-        scroll_header = self.create_section_header("Scroll Widget", 
-                                                   "A floating scroll widget that appears near your cursor for easy scrolling")
+        scroll_header = create_section_header("Scroll Widget",
+                                             "A floating scroll widget that appears near your cursor for easy scrolling")
         layout.addWidget(scroll_header)
         
-        # Add scroll widget content
-        scroll_content = self.scroll_tab.create_scroll_widget_section(layout)
+        # Scroll Widget Enable
+        scroll_enable_frame = QFrame()
+        scroll_enable_layout = QHBoxLayout(scroll_enable_frame)
+        scroll_enable_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_enable_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        self.scroll_check = QCheckBox("Enable scroll widget")
+        self.scroll_check.setChecked(self.settings_manager.get_setting('scroll_enabled', True))
+        self.scroll_check.setStyleSheet(get_checkbox_style())
+        self.scroll_check.setToolTip("Show a floating scroll widget when you dwell")
+        scroll_enable_layout.addWidget(self.scroll_check)
+        layout.addWidget(scroll_enable_frame)
+        
+        # Scroll Speed Control (Label above, slider below)
+        scroll_speed_frame = QFrame()
+        scroll_speed_layout = QVBoxLayout(scroll_speed_frame)
+        scroll_speed_layout.setContentsMargins(0, 0, 0, 0)
+        scroll_speed_layout.setSpacing(4)
+        
+        # Label on top
+        scroll_speed_label = QLabel("Scroll Speed:")
+        scroll_speed_label.setStyleSheet(get_small_label_style())
+        scroll_speed_layout.addWidget(scroll_speed_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
+        
+        # Minus button
+        scroll_speed_minus_btn = create_adjustment_button("◀")
+        scroll_speed_minus_btn.setToolTip("Decrease scroll speed")
+        scroll_speed_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_scroll_speed()
+        scroll_speed_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_scroll_speed()
+        controls_layout.addWidget(scroll_speed_minus_btn)
+        
+        # Slider
+        self.scroll_speed_slider = QSlider(Qt.Orientation.Horizontal)
+        self.scroll_speed_slider.setRange(1, 10)
+        current_interval = self.settings_manager.get_setting('scroll_speed', 100)
+        speed_value = 11 - (current_interval // 20)
+        self.scroll_speed_slider.setValue(max(1, min(10, speed_value)))
+        self.scroll_speed_slider.setStyleSheet(get_slider_style())
+        controls_layout.addWidget(self.scroll_speed_slider)
+        
+        # Plus button
+        scroll_speed_plus_btn = create_adjustment_button("▶")
+        scroll_speed_plus_btn.setToolTip("Increase scroll speed")
+        scroll_speed_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_scroll_speed()
+        scroll_speed_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_scroll_speed()
+        controls_layout.addWidget(scroll_speed_plus_btn)
+        
+        # Value label
+        self.scroll_speed_label = QLabel(str(self.scroll_speed_slider.value()))
+        self.scroll_speed_label.setStyleSheet(f"""
+            color: {Colors.TEXT_COLOR};
+            font-weight: bold;
+            min-width: 25px;
+            background: rgba(0, 120, 215, 0.1);
+            border: 1px solid rgba(0, 120, 215, 0.3);
+            border-radius: 3px;
+            padding: 2px 4px;
+        """)
+        self.scroll_speed_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        controls_layout.addWidget(self.scroll_speed_label)
+        
+        scroll_speed_layout.addLayout(controls_layout)
+        layout.addWidget(scroll_speed_frame)
+        
+        # Widget Appearance & Behavior Section (shared between both widgets)
+        appearance_header = create_section_header("Widget Appearance & Behavior",
+                                                "Control when and how widgets appear (applies to both scroll and menu widgets)")
+        layout.addWidget(appearance_header)
+        
+        # Widget Appearance Delay Control (Label above, slider below)
+        widget_delay_frame = QFrame()
+        widget_delay_layout = QVBoxLayout(widget_delay_frame)
+        widget_delay_layout.setContentsMargins(0, 0, 0, 0)
+        widget_delay_layout.setSpacing(4)
+        
+        # Label on top
+        widget_delay_label = QLabel("Widget Appearance Delay:")
+        widget_delay_label.setStyleSheet(get_small_label_style())
+        widget_delay_layout.addWidget(widget_delay_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
+        
+        # Minus button
+        widget_delay_minus_btn = create_adjustment_button("◀")
+        widget_delay_minus_btn.setToolTip("Decrease appearance delay")
+        widget_delay_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_widget_delay()
+        widget_delay_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_widget_delay()
+        controls_layout.addWidget(widget_delay_minus_btn)
+        
+        # Slider
+        self.widget_delay_slider = QSlider(Qt.Orientation.Horizontal)
+        self.widget_delay_slider.setRange(1, 10)
+        current_delay = self.settings_manager.get_setting('widget_appearance_delay', 0.2)
+        slider_value = int(current_delay * 10)
+        self.widget_delay_slider.setValue(max(1, min(10, slider_value)))
+        self.widget_delay_slider.setStyleSheet(get_slider_style())
+        controls_layout.addWidget(self.widget_delay_slider)
+        
+        # Plus button
+        widget_delay_plus_btn = create_adjustment_button("▶")
+        widget_delay_plus_btn.setToolTip("Increase appearance delay")
+        widget_delay_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_widget_delay()
+        widget_delay_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_widget_delay()
+        controls_layout.addWidget(widget_delay_plus_btn)
+        
+        # Value label
+        delay_seconds = self.widget_delay_slider.value() / 10.0
+        self.widget_delay_label = QLabel(f"{delay_seconds:.1f}s")
+        self.widget_delay_label.setStyleSheet(f"""
+            color: {Colors.TEXT_COLOR};
+            font-weight: bold;
+            min-width: 35px;
+            background: rgba(0, 120, 215, 0.1);
+            border: 1px solid rgba(0, 120, 215, 0.3);
+            border-radius: 3px;
+            padding: 2px 4px;
+        """)
+        self.widget_delay_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        controls_layout.addWidget(self.widget_delay_label)
+        
+        widget_delay_layout.addLayout(controls_layout)
+        layout.addWidget(widget_delay_frame)
+        
+        # Widget Unlock Threshold Control (Label above, slider below)
+        unlock_threshold_frame = QFrame()
+        unlock_threshold_layout = QVBoxLayout(unlock_threshold_frame)
+        unlock_threshold_layout.setContentsMargins(0, 0, 0, 0)
+        unlock_threshold_layout.setSpacing(4)
+        
+        # Label on top
+        unlock_threshold_label = QLabel("Widget Unlock Threshold:")
+        unlock_threshold_label.setStyleSheet(get_small_label_style())
+        unlock_threshold_layout.addWidget(unlock_threshold_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
+        
+        # Minus button
+        unlock_threshold_minus_btn = create_adjustment_button("◀")
+        unlock_threshold_minus_btn.setToolTip("Decrease unlock threshold")
+        unlock_threshold_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_unlock_threshold()
+        unlock_threshold_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_unlock_threshold()
+        controls_layout.addWidget(unlock_threshold_minus_btn)
+        
+        # Slider
+        self.unlock_threshold_slider = QSlider(Qt.Orientation.Horizontal)
+        self.unlock_threshold_slider.setRange(10, 100)
+        self.unlock_threshold_slider.setValue(self.settings_manager.get_setting('widget_unlock_threshold', 30))
+        self.unlock_threshold_slider.setStyleSheet(get_slider_style())
+        controls_layout.addWidget(self.unlock_threshold_slider)
+        
+        # Plus button
+        unlock_threshold_plus_btn = create_adjustment_button("▶")
+        unlock_threshold_plus_btn.setToolTip("Increase unlock threshold")
+        unlock_threshold_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_unlock_threshold()
+        unlock_threshold_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_unlock_threshold()
+        controls_layout.addWidget(unlock_threshold_plus_btn)
+        
+        # Value label
+        self.unlock_threshold_label = QLabel(f"{self.unlock_threshold_slider.value()}px")
+        self.unlock_threshold_label.setStyleSheet(f"""
+            color: {Colors.TEXT_COLOR};
+            font-weight: bold;
+            min-width: 35px;
+            background: rgba(0, 120, 215, 0.1);
+            border: 1px solid rgba(0, 120, 215, 0.3);
+            border-radius: 3px;
+            padding: 2px 4px;
+        """)
+        self.unlock_threshold_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        controls_layout.addWidget(self.unlock_threshold_label)
+        
+        unlock_threshold_layout.addLayout(controls_layout)
+        layout.addWidget(unlock_threshold_frame)
         
         # Menu Widget Section
-        menu_header = self.create_section_header("Menu Widget",
-                                                "Configure the circular menu widget appearance and behavior")
+        menu_header = create_section_header("Menu Widget",
+                                           "Customize the appearance of the menu widget")
         layout.addWidget(menu_header)
         
-        # Create a frame for menu widget settings
-        menu_settings_frame = QFrame()
-        menu_settings_layout = QVBoxLayout(menu_settings_frame)
-        menu_settings_layout.setContentsMargins(10, 8, 10, 8)
-        menu_settings_layout.setSpacing(12)
+        # Menu Widget Enable
+        menu_enable_frame = QFrame()
+        menu_enable_layout = QHBoxLayout(menu_enable_frame)
+        menu_enable_layout.setContentsMargins(0, 0, 0, 0)
+        menu_enable_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
-        # Add menu widget content as options within the section
-        self.menu_tab.create_menu_item_size_section(menu_settings_layout)
-        layout.addWidget(menu_settings_frame)
+        self.menu_check = QCheckBox("Enable menu widget")
+        self.menu_check.setChecked(self.settings_manager.get_setting('menu_enabled', True))
+        self.menu_check.setStyleSheet(get_checkbox_style())
+        self.menu_check.setToolTip("Show a circular menu widget when you dwell")
+        menu_enable_layout.addWidget(self.menu_check)
+        layout.addWidget(menu_enable_frame)
         
-        # Add minimal stretch to push content to the top
-        layout.addStretch(1)
+        # Icon Size Control (Label above, slider below)
+        icon_size_frame = QFrame()
+        icon_size_layout = QVBoxLayout(icon_size_frame)
+        icon_size_layout.setContentsMargins(0, 0, 0, 0)
+        icon_size_layout.setSpacing(4)
+        
+        # Label on top
+        icon_size_label = QLabel("Icon Size:")
+        icon_size_label.setStyleSheet(get_small_label_style())
+        icon_size_layout.addWidget(icon_size_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
+        
+        # Minus button
+        icon_size_minus_btn = create_adjustment_button("◀")
+        icon_size_minus_btn.setToolTip("Decrease icon size")
+        icon_size_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_menu_size()
+        icon_size_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_menu_size()
+        controls_layout.addWidget(icon_size_minus_btn)
+        
+        # Slider
+        self.menu_size_slider = QSlider(Qt.Orientation.Horizontal)
+        try:
+            from dwellpy.config.constants import MENU_ITEM_SIZE_MIN, MENU_ITEM_SIZE_MAX
+            self.menu_size_slider.setRange(MENU_ITEM_SIZE_MIN, MENU_ITEM_SIZE_MAX)
+        except ImportError:
+            self.menu_size_slider.setRange(40, 100)
+        
+        self.menu_size_slider.setValue(self.settings_manager.get_setting('menu_item_size', 60))
+        self.menu_size_slider.setStyleSheet(get_slider_style())
+        controls_layout.addWidget(self.menu_size_slider)
+        
+        # Plus button
+        icon_size_plus_btn = create_adjustment_button("▶")
+        icon_size_plus_btn.setToolTip("Increase icon size")
+        icon_size_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_menu_size()
+        icon_size_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_menu_size()
+        controls_layout.addWidget(icon_size_plus_btn)
+        
+        # Value label
+        self.menu_size_label = QLabel(str(self.settings_manager.get_setting('menu_item_size', 60)))
+        self.menu_size_label.setStyleSheet(f"""
+            color: {Colors.TEXT_COLOR};
+            font-weight: bold;
+            min-width: 35px;
+            background: rgba(0, 120, 215, 0.1);
+            border: 1px solid rgba(0, 120, 215, 0.3);
+            border-radius: 3px;
+            padding: 2px 4px;
+        """)
+        self.menu_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        controls_layout.addWidget(self.menu_size_label)
+        
+        icon_size_layout.addLayout(controls_layout)
+        layout.addWidget(icon_size_frame)
+        
+        # Add stretch to push content to the top
+        layout.addStretch()
         
         return tab
     
@@ -453,6 +702,7 @@ class SettingsDialog(QDialog):
         # Checkbox toggles
         self.transparency_check.toggled.connect(self.event_handlers.on_transparency_toggle)
         self.scroll_check.toggled.connect(self.event_handlers.on_scroll_toggle)
+        self.menu_check.toggled.connect(self.event_handlers.on_menu_toggle)
         self.visible_clicks_check.toggled.connect(self.event_handlers.on_visible_clicks_toggle)
         self.active_check.toggled.connect(self.event_handlers.on_active_toggle)
         self.contract_ui_check.toggled.connect(self.event_handlers.on_contract_ui_toggle)
@@ -469,6 +719,7 @@ class SettingsDialog(QDialog):
         self.settings_manager.set_setting('transparency_level', self.transparency_slider.value())
         self.settings_manager.set_setting('visible_clicks_enabled', self.visible_clicks_check.isChecked())
         self.settings_manager.set_setting('scroll_enabled', self.scroll_check.isChecked())
+        self.settings_manager.set_setting('menu_enabled', self.menu_check.isChecked())
         self.settings_manager.set_setting('widget_appearance_delay', self.widget_delay_slider.value() / 10.0)
         self.settings_manager.set_setting('widget_unlock_threshold', self.unlock_threshold_slider.value())
         self.settings_manager.set_setting('menu_item_size', self.menu_size_slider.value())

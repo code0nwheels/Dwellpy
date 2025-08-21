@@ -31,6 +31,13 @@ class ScrollWidgetTab:
         
         self.create_scroll_widget_section(layout)
         
+        # Widget Appearance & Behavior Section (shared between both widgets)
+        appearance_header = create_section_header("Widget Appearance & Behavior",
+                                                "Control when and how widgets appear (applies to both scroll and menu widgets)")
+        layout.addWidget(appearance_header)
+        
+        self.create_widget_appearance_section(layout)
+        
         # Add stretch to push content to the top
         layout.addStretch()
         
@@ -56,15 +63,19 @@ class ScrollWidgetTab:
         
         # Scroll speed controls in a compact layout
         scroll_speed_frame = QFrame()
-        scroll_speed_layout = QHBoxLayout(scroll_speed_frame)
+        scroll_speed_layout = QVBoxLayout(scroll_speed_frame)  # Changed to vertical layout
         scroll_speed_layout.setContentsMargins(0, 0, 0, 0)
-        scroll_speed_layout.setSpacing(8)
+        scroll_speed_layout.setSpacing(4)  # Reduced spacing for vertical layout
         
-        # Label
+        # Label on top
         scroll_speed_label = QLabel("Scroll Speed:")
         scroll_speed_label.setStyleSheet(get_small_label_style())
-        scroll_speed_label.setFixedWidth(100)
         scroll_speed_layout.addWidget(scroll_speed_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
         
         # Minus button
         scroll_speed_minus_btn = create_adjustment_button("◀")
@@ -73,7 +84,7 @@ class ScrollWidgetTab:
         scroll_speed_minus_btn.setAccessibleDescription("Click to decrease scroll speed")
         scroll_speed_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_scroll_speed()
         scroll_speed_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_scroll_speed()
-        scroll_speed_layout.addWidget(scroll_speed_minus_btn)
+        controls_layout.addWidget(scroll_speed_minus_btn)
         
         # Slider (1-10, where 1 is slowest, 10 is fastest)
         self.dialog.scroll_speed_slider = QSlider(Qt.Orientation.Horizontal)
@@ -86,7 +97,7 @@ class ScrollWidgetTab:
         self.dialog.scroll_speed_slider.setToolTip("Adjust how fast scrolling happens when hovering over scroll arrows")
         self.dialog.scroll_speed_slider.setAccessibleName("Scroll Speed Slider")
         self.dialog.scroll_speed_slider.setAccessibleDescription("Controls the speed of automatic scrolling")
-        scroll_speed_layout.addWidget(self.dialog.scroll_speed_slider)
+        controls_layout.addWidget(self.dialog.scroll_speed_slider)
         
         # Plus button
         scroll_speed_plus_btn = create_adjustment_button("▶")
@@ -95,7 +106,7 @@ class ScrollWidgetTab:
         scroll_speed_plus_btn.setAccessibleDescription("Click to increase scroll speed")
         scroll_speed_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_scroll_speed()
         scroll_speed_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_scroll_speed()
-        scroll_speed_layout.addWidget(scroll_speed_plus_btn)
+        controls_layout.addWidget(scroll_speed_plus_btn)
         
         # Value label
         self.dialog.scroll_speed_label = QLabel(str(self.dialog.scroll_speed_slider.value()))
@@ -109,21 +120,30 @@ class ScrollWidgetTab:
             padding: 2px 4px;
         """)
         self.dialog.scroll_speed_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        scroll_speed_layout.addWidget(self.dialog.scroll_speed_label)
+        controls_layout.addWidget(self.dialog.scroll_speed_label)
+        
+        # Add controls layout to main layout
+        scroll_speed_layout.addLayout(controls_layout)
         
         layout.addWidget(scroll_speed_frame)
-        
+    
+    def create_widget_appearance_section(self, layout):
+        """Create widget appearance and behavior settings section (shared between both widgets)."""
         # Widget Appearance Delay controls in a compact layout
         widget_delay_frame = QFrame()
-        widget_delay_layout = QHBoxLayout(widget_delay_frame)
+        widget_delay_layout = QVBoxLayout(widget_delay_frame)  # Changed to vertical layout
         widget_delay_layout.setContentsMargins(0, 0, 0, 0)
-        widget_delay_layout.setSpacing(8)
+        widget_delay_layout.setSpacing(4)  # Reduced spacing for vertical layout
         
-        # Label
+        # Label on top
         widget_delay_label = QLabel("Widget Appearance Delay:")
         widget_delay_label.setStyleSheet(get_small_label_style())
-        widget_delay_label.setFixedWidth(160)
         widget_delay_layout.addWidget(widget_delay_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
         
         # Minus button
         widget_delay_minus_btn = create_adjustment_button("◀")
@@ -132,7 +152,7 @@ class ScrollWidgetTab:
         widget_delay_minus_btn.setAccessibleDescription("Click to decrease the delay before widgets appear")
         widget_delay_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_widget_delay()
         widget_delay_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_widget_delay()
-        widget_delay_layout.addWidget(widget_delay_minus_btn)
+        controls_layout.addWidget(widget_delay_minus_btn)
         
         # Slider (1-10, representing 0.1s to 1.0s)
         self.dialog.widget_delay_slider = QSlider(Qt.Orientation.Horizontal)
@@ -142,10 +162,10 @@ class ScrollWidgetTab:
         slider_value = int(current_delay * 10)
         self.dialog.widget_delay_slider.setValue(max(1, min(10, slider_value)))
         self.dialog.widget_delay_slider.setStyleSheet(get_slider_style())
-        self.dialog.widget_delay_slider.setToolTip("Time before scroll widget appears when you dwell")
+        self.dialog.widget_delay_slider.setToolTip("Time before widgets appear when you dwell")
         self.dialog.widget_delay_slider.setAccessibleName("Widget Appearance Delay Slider")
         self.dialog.widget_delay_slider.setAccessibleDescription("Controls how long to wait before showing widgets")
-        widget_delay_layout.addWidget(self.dialog.widget_delay_slider)
+        controls_layout.addWidget(self.dialog.widget_delay_slider)
         
         # Plus button
         widget_delay_plus_btn = create_adjustment_button("▶")
@@ -154,7 +174,7 @@ class ScrollWidgetTab:
         widget_delay_plus_btn.setAccessibleDescription("Click to increase the delay before widgets appear")
         widget_delay_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_widget_delay()
         widget_delay_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_widget_delay()
-        widget_delay_layout.addWidget(widget_delay_plus_btn)
+        controls_layout.addWidget(widget_delay_plus_btn)
         
         # Value label
         delay_seconds = self.dialog.widget_delay_slider.value() / 10.0
@@ -169,21 +189,28 @@ class ScrollWidgetTab:
             padding: 2px 4px;
         """)
         self.dialog.widget_delay_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        widget_delay_layout.addWidget(self.dialog.widget_delay_label)
+        controls_layout.addWidget(self.dialog.widget_delay_label)
+        
+        # Add controls layout to main layout
+        widget_delay_layout.addLayout(controls_layout)
         
         layout.addWidget(widget_delay_frame)
         
         # Widget Unlock Threshold controls in a compact layout
         unlock_threshold_frame = QFrame()
-        unlock_threshold_layout = QHBoxLayout(unlock_threshold_frame)
+        unlock_threshold_layout = QVBoxLayout(unlock_threshold_frame)  # Changed to vertical layout
         unlock_threshold_layout.setContentsMargins(0, 0, 0, 0)
-        unlock_threshold_layout.setSpacing(8)
+        unlock_threshold_layout.setSpacing(4)  # Reduced spacing for vertical layout
         
-        # Label
+        # Label on top
         unlock_threshold_label = QLabel("Widget Unlock Threshold:")
         unlock_threshold_label.setStyleSheet(get_small_label_style())
-        unlock_threshold_label.setFixedWidth(160)
         unlock_threshold_layout.addWidget(unlock_threshold_label)
+        
+        # Controls below in horizontal layout
+        controls_layout = QHBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
         
         # Minus button
         unlock_threshold_minus_btn = create_adjustment_button("◀")
@@ -192,7 +219,7 @@ class ScrollWidgetTab:
         unlock_threshold_minus_btn.setAccessibleDescription("Click to decrease the distance needed to unlock widget")
         unlock_threshold_minus_btn.enterEvent = lambda e: self.event_handlers.on_enter_minus_unlock_threshold()
         unlock_threshold_minus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_minus_unlock_threshold()
-        unlock_threshold_layout.addWidget(unlock_threshold_minus_btn)
+        controls_layout.addWidget(unlock_threshold_minus_btn)
         
         # Slider (10-100 pixels)
         self.dialog.unlock_threshold_slider = QSlider(Qt.Orientation.Horizontal)
@@ -202,7 +229,7 @@ class ScrollWidgetTab:
         self.dialog.unlock_threshold_slider.setToolTip("Distance cursor must move from widget before it starts following again")
         self.dialog.unlock_threshold_slider.setAccessibleName("Widget Unlock Threshold Slider")
         self.dialog.unlock_threshold_slider.setAccessibleDescription("Controls when the widget resumes following your cursor")
-        unlock_threshold_layout.addWidget(self.dialog.unlock_threshold_slider)
+        controls_layout.addWidget(self.dialog.unlock_threshold_slider)
         
         # Plus button
         unlock_threshold_plus_btn = create_adjustment_button("▶")
@@ -211,7 +238,7 @@ class ScrollWidgetTab:
         unlock_threshold_plus_btn.setAccessibleDescription("Click to increase the distance needed to unlock widget")
         unlock_threshold_plus_btn.enterEvent = lambda e: self.event_handlers.on_enter_plus_unlock_threshold()
         unlock_threshold_plus_btn.leaveEvent = lambda e: self.event_handlers.on_leave_plus_unlock_threshold()
-        unlock_threshold_layout.addWidget(unlock_threshold_plus_btn)
+        controls_layout.addWidget(unlock_threshold_plus_btn)
         
         # Value label
         self.dialog.unlock_threshold_label = QLabel(f"{self.dialog.unlock_threshold_slider.value()}px")
@@ -225,6 +252,9 @@ class ScrollWidgetTab:
             padding: 2px 4px;
         """)
         self.dialog.unlock_threshold_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        unlock_threshold_layout.addWidget(self.dialog.unlock_threshold_label)
+        controls_layout.addWidget(self.dialog.unlock_threshold_label)
+        
+        # Add controls layout to main layout
+        unlock_threshold_layout.addLayout(controls_layout)
         
         layout.addWidget(unlock_threshold_frame) 
