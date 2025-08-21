@@ -43,58 +43,54 @@ except ImportError:
         return os.path.join(base_path, 'assets', 'icons', asset_name)
 
 # Import modularized components
-from .settings.components import SettingsEventHandlers
-from .settings.tabs import (DwellMovementTab, VisualFeedbackTab, 
-                           ScrollWidgetTab, MenuWidgetTab, GeneralTab)
+from dwellpy.ui.dialogs.settings.tabs.dwell_movement_tab import DwellMovementTab
+from dwellpy.ui.dialogs.settings.tabs.visual_feedback_tab import VisualFeedbackTab
+from dwellpy.ui.dialogs.settings.tabs.scroll_widget_tab import ScrollWidgetTab
+from dwellpy.ui.dialogs.settings.tabs.menu_widget_tab import MenuWidgetTab
+from dwellpy.ui.dialogs.settings.tabs.general_tab import GeneralTab
+from dwellpy.ui.dialogs.settings.components.event_handlers import SettingsEventHandlers
 
 
 class SettingsDialog(QDialog):
     """Refactored settings dialog for Dwellpy configuration."""
     
     def __init__(self, settings_manager, button_manager, parent=None):
+        """Initialize the settings dialog."""
         super().__init__(parent)
+        
+        # Store references
         self.settings_manager = settings_manager
         self.button_manager = button_manager
         
-        # For frameless window dragging
+        # Initialize drag position
         self.drag_pos = None
         
-        # Initialize event handlers
+        # Initialize event handlers FIRST
         self.event_handlers = SettingsEventHandlers(self)
         
-        # Initialize tab creators
+        # Initialize tab components AFTER event handlers
         self.dwell_tab = DwellMovementTab(self)
         self.visual_tab = VisualFeedbackTab(self)
         self.scroll_tab = ScrollWidgetTab(self)
         self.menu_tab = MenuWidgetTab(self)
         self.general_tab = GeneralTab(self)
         
-        # Setup the dialog
+        # Setup UI
         self.setup_ui()
         
         # Connect signals
         self.connect_signals()
     
     def setup_ui(self):
-        """Setup the dialog UI with left-side wide tabs for dwell-friendly navigation."""
-        # Set window flags for frameless window
-        self.setWindowFlags(
-            Qt.WindowType.Dialog | 
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.FramelessWindowHint
-        )
+        """Setup the dialog UI."""
+        # Set window properties
+        self.setWindowTitle("Dwellpy Settings")
+        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        # Make dialog non-modal
-        self.setModal(False)
-        
-        # Set window icon for taskbar display
+        # Try to set window icon
         try:
-            # Use platform-appropriate icon format
-            if os.name == 'nt':  # Windows
-                icon_path = get_asset_path("Dwellpy.ico")
-            else:  # Linux/macOS
-                icon_path = get_asset_path("Dwellpy.png")
-                
+            icon_path = get_asset_path("Dwellpy.ico")
             if os.path.exists(icon_path):
                 self.setWindowIcon(QIcon(icon_path))
         except Exception:
@@ -106,37 +102,46 @@ class SettingsDialog(QDialog):
                 background-color: {Colors.DARK_BG};
                 color: {Colors.TEXT_COLOR};
                 border: 1px solid {Colors.BORDER_COLOR};
+                border-radius: {BORDER_RADIUS}px;
             }}
             QTabWidget::pane {{
                 border: 1px solid {Colors.BORDER_COLOR};
                 background-color: {Colors.DARK_BG};
                 margin-top: 0px;
+                border-radius: 0px 0px {BORDER_RADIUS}px {BORDER_RADIUS}px;
             }}
             QTabBar::tab {{
-                background-color: {Colors.DARK_BUTTON_BG};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 {Colors.DARK_BUTTON_BG}, stop:1 #252525);
                 color: {Colors.TEXT_COLOR};
-                padding: 12px 20px;
-                margin-right: 2px;
+                padding: 12px 20px;  /* Increased from 8px 16px */
+                margin-right: 2px;  /* Increased from 1px */
                 border-top-left-radius: {BORDER_RADIUS}px;
                 border-top-right-radius: {BORDER_RADIUS}px;
                 border: 1px solid {Colors.BORDER_COLOR};
                 border-bottom: none;
                 font-family: {Fonts.PRIMARY_FAMILY};
-                font-size: 11px;
+                font-size: 11px;  /* Increased from 10px */
                 font-weight: bold;
-                min-width: 80px;
+                min-width: 80px;  /* Increased from 70px */
             }}
             QTabBar::tab:selected {{
-                background-color: {Colors.BLUE_ACCENT};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 {Colors.BLUE_ACCENT}, stop:1 {Colors.BLUE_HOVER});
                 border-color: {Colors.BLUE_ACCENT};
             }}
             QTabBar::tab:hover:!selected {{
-                background-color: {Colors.BLUE_HOVER};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 {Colors.BLUE_HOVER}, stop:1 {Colors.BLUE_ACCENT});
                 border-color: {Colors.BLUE_HOVER};
             }}
             QTabBar::tab:disabled {{
                 background-color: {Colors.DARK_BG};
                 color: #666666;
+            }}
+            QTabBar::tab:focus {{
+                outline: 2px solid {Colors.BLUE_ACCENT};
+                outline-offset: 2px;
             }}
         """)
         
@@ -145,138 +150,294 @@ class SettingsDialog(QDialog):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
-        # Title bar
-        title_frame = self.create_title_frame()
-        main_layout.addWidget(title_frame)
-        
-        # Tab widget
+        # Tab widget (now at the top since no title bar)
         self.tab_widget = QTabWidget()
         self.tab_widget.setTabPosition(QTabWidget.TabPosition.North)
         self.tab_widget.setDocumentMode(True)
+        self.tab_widget.setMouseTracking(True)  # Enable mouse tracking for dragging
         main_layout.addWidget(self.tab_widget)
         
         # Create tabs using modularized components
         self.create_tabs()
         
+        # Add tooltips to tabs for better user experience
+        self.tab_widget.setTabToolTip(0, "Core dwell clicking settings, startup behavior, and UI behavior")
+        self.tab_widget.setTabToolTip(1, "Visual appearance and feedback settings")
+        self.tab_widget.setTabToolTip(2, "Widget configuration - scroll and menu widgets")
+        
         # Bottom section with OK button
         self.create_bottom_section(main_layout)
         
         # Set dialog size and position
-        self.resize(800, 600)
+        self.resize(700, 500)  # Reduced from 750x550 to minimize blank space
         center_window(self)
+        
+        # Set focus policy for better keyboard navigation
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.tab_widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        
+        # Set accessibility properties
+        self.setAccessibleName("Dwellpy Settings Dialog")
+        self.setAccessibleDescription("Configure Dwellpy settings including dwell timing, visual feedback, and widget behavior")
+        
+        # Set tab order for better keyboard navigation
+        self.setTabOrder(self.tab_widget, self.findChild(QPushButton, ""))  # OK button)
+        
+        # Install event filters on child widgets to enable dragging from anywhere
+        self.install_drag_event_filters()
     
-    def create_title_frame(self):
-        """Create the title bar frame."""
-        title_frame = QFrame()
-        title_frame.setStyleSheet(f"""
-            QFrame {{
-                background-color: {Colors.BLUE_ACCENT};
-                border-bottom: 1px solid {Colors.BORDER_COLOR};
-                padding: 10px;
-            }}
-        """)
+    def install_drag_event_filters(self):
+        """Install event filters on child widgets to enable dragging from anywhere."""
+        # Install event filter on tab widget
+        self.tab_widget.installEventFilter(self)
         
-        title_layout = QHBoxLayout(title_frame)
-        title_layout.setContentsMargins(15, 10, 15, 10)
+        # Install event filter on bottom section
+        bottom_widget = self.findChild(QFrame)
+        if bottom_widget:
+            bottom_widget.installEventFilter(self)
+    
+    def eventFilter(self, obj, event):
+        """Event filter to handle mouse events for dragging from child widgets."""
+        if event.type() == event.Type.MouseButtonPress:
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.drag_pos = event.globalPosition().toPoint()
+                return True
+        elif event.type() == event.Type.MouseMove:
+            if event.buttons() & Qt.MouseButton.LeftButton and self.drag_pos:
+                new_pos = event.globalPosition().toPoint() - self.drag_pos
+                self.move(self.pos() + new_pos)
+                self.drag_pos = event.globalPosition().toPoint()
+                return True
+        elif event.type() == event.Type.MouseButtonRelease:
+            if event.button() == Qt.MouseButton.LeftButton:
+                self.drag_pos = None
+                return True
+        return super().eventFilter(obj, event)
+    
+    def mousePressEvent(self, event):
+        """Handle mouse press for window dragging."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_pos = event.globalPosition().toPoint()
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+    
+    def mouseMoveEvent(self, event):
+        """Handle mouse move for window dragging."""
+        if event.buttons() & Qt.MouseButton.LeftButton and self.drag_pos:
+            new_pos = event.globalPosition().toPoint() - self.drag_pos
+            self.move(self.pos() + new_pos)
+            self.drag_pos = event.globalPosition().toPoint()
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
+    
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release for window dragging."""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_pos = None
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
+    
+    def create_widgets_tab(self):
+        """Create a combined widgets tab with scroll and menu settings."""
+        from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFrame
         
-        # Title
-        title_label = QLabel("Dwellpy Settings")
-        title_label.setFont(QFont(Fonts.PRIMARY_FAMILY, 14, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
-        title_layout.addWidget(title_label)
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(15, 10, 15, 10)  # Reduced margins
+        layout.setSpacing(8)  # Reduced spacing
         
-        # Version
-        version_label = QLabel(f"v{__version__}")
-        version_label.setFont(QFont(Fonts.PRIMARY_FAMILY, 10))
-        version_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; opacity: 0.8;")
-        title_layout.addWidget(version_label)
+        # Scroll Widget Section
+        scroll_header = self.create_section_header("Scroll Widget", 
+                                                   "A floating scroll widget that appears near your cursor for easy scrolling")
+        layout.addWidget(scroll_header)
         
-        # Spacer
-        title_layout.addStretch()
+        # Add scroll widget content
+        scroll_content = self.scroll_tab.create_scroll_widget_section(layout)
         
-        # Close button
-        close_button = QPushButton("×")
-        close_button.setFixedSize(30, 30)
-        close_button.setFont(QFont(Fonts.PRIMARY_FAMILY, 16, QFont.Weight.Bold))
-        close_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: transparent;
-                color: {Colors.TEXT_COLOR};
-                border: none;
-                border-radius: 15px;
-            }}
-            QPushButton:hover {{
-                background-color: rgba(255, 255, 255, 0.2);
-            }}
-        """)
-        close_button.clicked.connect(self.close)
-        title_layout.addWidget(close_button)
+        # Menu Widget Section
+        menu_header = self.create_section_header("Menu Widget",
+                                                "Configure the circular menu widget appearance and behavior")
+        layout.addWidget(menu_header)
         
-        return title_frame
+        # Create a frame for menu widget settings
+        menu_settings_frame = QFrame()
+        menu_settings_layout = QVBoxLayout(menu_settings_frame)
+        menu_settings_layout.setContentsMargins(10, 8, 10, 8)
+        menu_settings_layout.setSpacing(12)
+        
+        # Add menu widget content as options within the section
+        self.menu_tab.create_menu_item_size_section(menu_settings_layout)
+        layout.addWidget(menu_settings_frame)
+        
+        # Add minimal stretch to push content to the top
+        layout.addStretch(1)
+        
+        return tab
+    
+    def create_behavior_tab(self):
+        """Create a combined behavior tab with core dwell settings and general behavior."""
+        from PyQt6.QtWidgets import QWidget, QVBoxLayout, QFrame
+        
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(15, 10, 15, 10)
+        layout.setSpacing(8)
+        
+        # Core Dwell Settings Section
+        dwell_header = self.create_section_header("Core Dwell Settings", 
+                                                 "Essential settings that control how dwell clicking works")
+        layout.addWidget(dwell_header)
+        
+        # Create a frame for all dwell settings
+        dwell_settings_frame = QFrame()
+        dwell_settings_layout = QVBoxLayout(dwell_settings_frame)
+        dwell_settings_layout.setContentsMargins(10, 8, 10, 8)
+        dwell_settings_layout.setSpacing(12)
+        
+        # Add dwell settings
+        self.dwell_tab.create_move_limit_section(dwell_settings_layout)
+        self.dwell_tab.create_dwell_time_section(dwell_settings_layout)
+        layout.addWidget(dwell_settings_frame)
+        
+        # Application Behavior Section
+        app_header = self.create_section_header("Application Behavior",
+                                               "General application settings and startup behavior")
+        layout.addWidget(app_header)
+        
+        # Create a frame for app behavior settings
+        app_settings_frame = QFrame()
+        app_settings_layout = QVBoxLayout(app_settings_frame)
+        app_settings_layout.setContentsMargins(10, 8, 10, 8)
+        app_settings_layout.setSpacing(12)
+        
+        # Add app behavior content
+        self.general_tab.create_active_state_section(app_settings_layout)
+        self.general_tab.create_ui_contraction_section(app_settings_layout)
+        layout.addWidget(app_settings_frame)
+        
+        # Add minimal stretch to push content to the top
+        layout.addStretch(1)
+        
+        return tab
+    
+    def create_section_header(self, title, description):
+        """Create a section header for the widgets tab."""
+        from PyQt6.QtWidgets import QLabel
+        from dwellpy.ui.dialogs.settings.components.ui_components import create_section_header
+        return create_section_header(title, description)
     
     def create_tabs(self):
         """Create all tabs using modularized components."""
-        # Dwell Movement Tab
-        dwell_tab = self.dwell_tab.create_tab()
-        self.tab_widget.addTab(dwell_tab, "Dwell")
+        # Behavior Tab (Core + General combined)
+        behavior_tab = self.create_behavior_tab()
+        self.tab_widget.addTab(behavior_tab, "Behavior")
         
         # Visual Feedback Tab
         visual_tab = self.visual_tab.create_tab()
         self.tab_widget.addTab(visual_tab, "Visual")
         
-        # Scroll Widget Tab
-        scroll_tab = self.scroll_tab.create_tab()
-        self.tab_widget.addTab(scroll_tab, "Scroll")
+        # Widgets Tab (combines scroll and menu settings)
+        widgets_tab = self.create_widgets_tab()
+        self.tab_widget.addTab(widgets_tab, "Widgets")
         
-        # Menu Widget Tab
-        menu_tab = self.menu_tab.create_tab()
-        self.tab_widget.addTab(menu_tab, "Menu")
-        
-        # General Tab
-        general_tab = self.general_tab.create_tab()
-        self.tab_widget.addTab(general_tab, "General")
+        # Add tooltips to tabs for better user experience
+        self.tab_widget.setTabToolTip(0, "Core dwell clicking settings, startup behavior, and UI behavior")
+        self.tab_widget.setTabToolTip(1, "Visual appearance and feedback settings")
+        self.tab_widget.setTabToolTip(2, "Widget configuration - scroll and menu widgets")
     
     def create_bottom_section(self, main_layout):
         """Create the bottom section with OK button."""
         bottom_frame = QFrame()
         bottom_frame.setStyleSheet(f"""
             QFrame {{
-                background-color: {Colors.DARK_BUTTON_BG};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 {Colors.DARK_BUTTON_BG}, stop:1 #252525);
                 border-top: 1px solid {Colors.BORDER_COLOR};
-                padding: 15px;
+                padding: 12px;
+                border-bottom-left-radius: {BORDER_RADIUS}px;
+                border-bottom-right-radius: {BORDER_RADIUS}px;
             }}
         """)
         
         bottom_layout = QHBoxLayout(bottom_frame)
-        bottom_layout.setContentsMargins(20, 15, 20, 15)
+        bottom_layout.setContentsMargins(15, 0, 15, 0)
         
         # Spacer
         bottom_layout.addStretch()
         
-        # OK button
-        ok_button = QPushButton("OK")
-        ok_button.setFixedSize(80, 35)
-        ok_button.setFont(QFont(Fonts.PRIMARY_FAMILY, 11, QFont.Weight.Bold))
-        ok_button.setStyleSheet(f"""
+        # Close button
+        close_button = QPushButton("Cancel")
+        close_button.setFixedSize(100, 40)  # Increased from 80x35
+        close_button.setFont(QFont(Fonts.PRIMARY_FAMILY, 12, QFont.Weight.Bold))  # Increased from 11pt
+        close_button.setAccessibleName("Cancel Settings")
+        close_button.setAccessibleDescription("Close the settings dialog without saving changes")
+        close_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: {Colors.BLUE_ACCENT};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 {Colors.DARK_BUTTON_BG}, stop:1 #252525);
                 color: {Colors.TEXT_COLOR};
-                border: 1px solid {Colors.BLUE_ACCENT};
+                border: 1px solid {Colors.BORDER_COLOR};
                 border-radius: {BORDER_RADIUS}px;
-                padding: 8px 16px;
+                padding: 10px 20px;  /* Increased from 8px 16px */
             }}
             QPushButton:hover {{
-                background-color: {Colors.BLUE_HOVER};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 #353535, stop:1 #2a2a2a);
                 border-color: {Colors.BLUE_HOVER};
             }}
             QPushButton:pressed {{
-                background-color: {Colors.BLUE_ACCENT};
+                background: {Colors.BLUE_ACCENT};
+            }}
+        """)
+        close_button.clicked.connect(self.close)
+        bottom_layout.addWidget(close_button)
+        
+        # Add spacing between buttons
+        bottom_layout.addSpacing(15)  # Increased from 10
+        
+        # OK button
+        ok_button = QPushButton("OK")
+        ok_button.setFixedSize(100, 40)  # Increased from 80x35
+        ok_button.setFont(QFont(Fonts.PRIMARY_FAMILY, 12, QFont.Weight.Bold))  # Increased from 11pt
+        ok_button.setAccessibleName("Save Settings")
+        ok_button.setAccessibleDescription("Save all settings and close the dialog")
+        ok_button.setStyleSheet(f"""
+            QPushButton {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 {Colors.BLUE_ACCENT}, stop:1 {Colors.BLUE_HOVER});
+                color: {Colors.TEXT_COLOR};
+                border: 1px solid {Colors.BLUE_ACCENT};
+                border-radius: {BORDER_RADIUS}px;
+                padding: 10px 20px;  /* Increased from 8px 16px */
+            }}
+            QPushButton:hover {{
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 {Colors.BLUE_HOVER}, stop:1 {Colors.BLUE_ACCENT});
+                border-color: {Colors.BLUE_HOVER};
+            }}
+            QPushButton:pressed {{
+                background: {Colors.BLUE_ACCENT};
             }}
         """)
         ok_button.clicked.connect(self.accept)
         bottom_layout.addWidget(ok_button)
         
         main_layout.addWidget(bottom_frame)
+    
+    def keyPressEvent(self, event):
+        """Handle key press events for accessibility."""
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            self.accept()
+        elif event.key() == Qt.Key.Key_Escape:
+            self.close()
+        elif event.key() == Qt.Key.Key_Tab:
+            # Allow normal tab navigation
+            super().keyPressEvent(event)
+        else:
+            super().keyPressEvent(event)
     
     def connect_signals(self):
         """Connect all signal handlers."""
@@ -297,11 +458,6 @@ class SettingsDialog(QDialog):
         self.contract_ui_check.toggled.connect(self.event_handlers.on_contract_ui_toggle)
         self.auto_start_check.toggled.connect(self.event_handlers.on_auto_start_toggle)
         
-        # Radio button changes
-        self.expansion_button_group.buttonClicked.connect(
-            lambda button: self.event_handlers.on_expansion_direction_toggle(button)
-        )
-        
         # Color button clicks are handled in the VisualFeedbackTab
     
     def accept(self):
@@ -316,7 +472,7 @@ class SettingsDialog(QDialog):
         self.settings_manager.set_setting('widget_appearance_delay', self.widget_delay_slider.value() / 10.0)
         self.settings_manager.set_setting('widget_unlock_threshold', self.unlock_threshold_slider.value())
         self.settings_manager.set_setting('menu_item_size', self.menu_size_slider.value())
-        self.settings_manager.set_setting('active_on_launch', self.active_check.isChecked())
+        self.settings_manager.set_setting('default_active', self.active_check.isChecked())
         self.settings_manager.set_setting('contract_ui_enabled', self.contract_ui_check.isChecked())
         
         # Save scroll speed (convert slider value back to interval)
@@ -337,24 +493,6 @@ class SettingsDialog(QDialog):
         """Handle double-click event for window dragging."""
         if event.button() == Qt.MouseButton.LeftButton:
             self.close()
-    
-    def mousePressEvent(self, event):
-        """Handle mouse press event for window dragging."""
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.drag_pos = event.globalPosition().toPoint()
-    
-    def mouseMoveEvent(self, event):
-        """Handle mouse move event for window dragging."""
-        if event.buttons() == Qt.MouseButton.LeftButton and self.drag_pos:
-            diff = event.globalPosition().toPoint() - self.drag_pos
-            new_pos = self.pos() + diff
-            self.move(new_pos)
-            self.drag_pos = event.globalPosition().toPoint()
-    
-    def mouseReleaseEvent(self, event):
-        """Handle mouse release event for window dragging."""
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.drag_pos = None
     
     def closeEvent(self, event):
         """Handle close event."""

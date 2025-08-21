@@ -1,26 +1,17 @@
 """UI components for settings dialog."""
 
 from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, 
-                           QPushButton, QSlider, QCheckBox, QFrame, QComboBox, QColorDialog, QRadioButton, QButtonGroup)
+                           QPushButton, QSlider, QCheckBox, QFrame, QComboBox, QColorDialog, QRadioButton, QButtonGroup, QWidget)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor, QIcon
 import os
 
 try:
-    from ....config.constants import Colors, BORDER_RADIUS, Fonts, MENU_ITEM_SIZE_MIN, MENU_ITEM_SIZE_MAX
-    from ....utils.helpers import center_window, format_time_display, format_percentage_display, get_asset_path
-    from ....__init__ import __version__
+    from dwellpy.config.constants import Colors, BORDER_RADIUS, Fonts, MENU_ITEM_SIZE_MIN, MENU_ITEM_SIZE_MAX
+    from dwellpy.utils.helpers import center_window, format_time_display, format_percentage_display, get_asset_path
+    from dwellpy import __version__
 except ImportError:
     # Fallback constants
-    class Colors:
-        DARK_BG = "#1a1a1a"
-        DARK_BUTTON_BG = "#2d2d2d"
-        TEXT_COLOR = "#ffffff"
-        BLUE_ACCENT = "#0078d7"
-        BLUE_HOVER = "#0069c0"
-        SLIDER_TRACK = "#444444"
-        BORDER_COLOR = "#3c3c3c"
-    
     BORDER_RADIUS = 5
     __version__ = "0.1.0"
     
@@ -56,61 +47,108 @@ except ImportError:
         return os.path.join(base_path, 'assets', 'icons', asset_name)
 
 
-def create_section_header(title, description):
-    """Create a section header with title and description."""
-    header_frame = QFrame()
-    header_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-    header_frame.setStyleSheet(f"""
-        QFrame {{
-            background-color: {Colors.DARK_BUTTON_BG};
-            border: 1px solid {Colors.BORDER_COLOR};
-            border-radius: {BORDER_RADIUS}px;
-            padding: 10px;
-            margin: 5px 0px;
+def get_focus_style():
+    """Get consistent focus styling for various widgets."""
+    return f"""
+        QWidget:focus {{
+            outline: 2px solid {Colors.BLUE_ACCENT};
+            outline-offset: 2px;
         }}
-    """)
-    
-    header_layout = QVBoxLayout(header_frame)
-    header_layout.setContentsMargins(10, 10, 10, 10)
-    header_layout.setSpacing(5)
+        
+        QSlider:focus {{
+            outline: 2px solid {Colors.BLUE_ACCENT};
+            outline-offset: 4px;
+        }}
+        
+        QCheckBox:focus {{
+            outline: 2px solid {Colors.BLUE_ACCENT};
+            outline-offset: 2px;
+        }}
+        
+        QRadioButton:focus {{
+            outline: 2px solid {Colors.BLUE_ACCENT};
+            outline-offset: 2px;
+        }}
+        
+        QPushButton:focus {{
+            outline: 2px solid {Colors.BLUE_ACCENT};
+            outline-offset: 2px;
+        }}
+    """
+
+
+def create_section_header(title_text, description=None):
+    """Create a compact section header with title and optional description underneath."""
+    header_widget = QWidget()
+    header_layout = QVBoxLayout(header_widget)
+    header_layout.setContentsMargins(0, 0, 0, 0)
+    header_layout.setSpacing(2)  # Reduced spacing between title and description
     
     # Title
-    title_label = QLabel(title)
-    title_label.setFont(QFont(Fonts.PRIMARY_FAMILY, 12, QFont.Weight.Bold))
-    title_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
-    header_layout.addWidget(title_label)
+    title = QLabel(title_text)
+    title.setStyleSheet(f"""
+        color: {Colors.TEXT_COLOR};
+        font-family: {Fonts.PRIMARY_FAMILY};
+        font-size: 13pt;
+        font-weight: bold;
+        margin: 0;
+        padding: 0;
+    """)
+    header_layout.addWidget(title)
     
-    # Description
+    # Description underneath (if provided)
     if description:
         desc_label = QLabel(description)
-        desc_label.setFont(QFont(Fonts.PRIMARY_FAMILY, 10))
-        desc_label.setStyleSheet(f"color: {Colors.TEXT_COLOR}; opacity: 0.8;")
-        desc_label.setWordWrap(True)
+        desc_label.setStyleSheet(f"""
+            color: {Colors.SUBTLE_TEXT};
+            font-family: {Fonts.PRIMARY_FAMILY};
+            font-size: 10px;
+            margin: 0;
+            padding: 0;
+            opacity: 0.7;
+        """)
+        desc_label.setWordWrap(False)  # Prevent wrapping to save space
         header_layout.addWidget(desc_label)
     
-    return header_frame
+    return header_widget
 
 
-def create_adjustment_button(text):
-    """Create an adjustment button with consistent styling."""
+def create_adjustment_button(text, tooltip=""):
+    """Create a modern, compact adjustment button."""
     button = QPushButton(text)
-    button.setFixedSize(30, 30)
-    button.setFont(QFont(Fonts.PRIMARY_FAMILY, 12, QFont.Weight.Bold))
+    button.setFixedSize(36, 36)  # Increased from 26x26
+    button.setFont(QFont(Fonts.PRIMARY_FAMILY, 12, QFont.Weight.Bold))  # Increased from 10pt
+    button.setToolTip(tooltip)
+    button.setAccessibleName(f"Adjust {text}")
+    button.setAccessibleDescription(f"Button to {tooltip.lower()}")
     button.setStyleSheet(f"""
         QPushButton {{
-            background-color: {Colors.DARK_BUTTON_BG};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                      stop:0 {Colors.DARK_BUTTON_BG}, stop:1 #252525);
             color: {Colors.TEXT_COLOR};
             border: 1px solid {Colors.BORDER_COLOR};
-            border-radius: {BORDER_RADIUS}px;
-            padding: 5px;
+            border-radius: 18px;
+            font-family: {Fonts.PRIMARY_FAMILY};
+            font-size: 12pt;
+            font-weight: bold;
+            padding: 4px;
+            min-width: 36px;
+            min-height: 36px;
         }}
         QPushButton:hover {{
-            background-color: {Colors.BLUE_HOVER};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                      stop:0 {Colors.BLUE_HOVER}, stop:1 {Colors.BLUE_ACCENT});
+            border-color: {Colors.BLUE_ACCENT};
         }}
         QPushButton:pressed {{
-            background-color: {Colors.BLUE_ACCENT};
+            background: {Colors.BLUE_ACCENT};
+        }}
+        QPushButton:disabled {{
+            background-color: {Colors.DARK_BG};
+            color: #666666;
         }}
     """)
+    
     return button
 
 
@@ -164,93 +202,128 @@ def is_light_color(color_hex):
 
 
 def get_slider_style():
-    """Get the consistent slider styling."""
+    """Get consistent slider styling."""
     return f"""
         QSlider::groove:horizontal {{
             border: 1px solid {Colors.BORDER_COLOR};
-            height: 8px;
+            height: 12px;  /* Increased from 6px */
             background: {Colors.SLIDER_TRACK};
-            border-radius: 4px;
-            margin: 2px 0;
+            border-radius: 6px;  /* Increased from 3px */
+            margin: 2px 0px;
         }}
-        QSlider::handle:horizontal {{
-            background: {Colors.BLUE_ACCENT};
-            border: 1px solid {Colors.BORDER_COLOR};
-            width: 18px;
-            margin: -2px 0;
-            border-radius: 9px;
-        }}
-        QSlider::handle:horizontal:hover {{
-            background: {Colors.BLUE_HOVER};
-        }}
+        
         QSlider::sub-page:horizontal {{
-            background: {Colors.BLUE_ACCENT};
-            border-radius: 4px;
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                      stop:0 {Colors.BLUE_ACCENT}, stop:1 {Colors.BLUE_HOVER});
+            border-radius: 6px;  /* Increased from 3px */
+        }}
+        
+        QSlider::handle:horizontal {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                      stop:0 {Colors.TEXT_COLOR}, stop:1 #cccccc);
+            border: 2px solid {Colors.BORDER_COLOR};  /* Increased from 1px */
+            width: 22px;  /* Increased from 16px */
+            margin: -5px 0px;  /* Increased from -1px */
+            border-radius: 11px;  /* Increased from 8px */
+        }}
+        
+        QSlider::handle:horizontal:hover {{
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                      stop:0 {Colors.BLUE_ACCENT}, stop:1 {Colors.BLUE_HOVER});
+            border-color: {Colors.BLUE_ACCENT};
         }}
     """
 
 
+def get_consistent_font_style():
+    """Get consistent font styling for all form controls."""
+    return f"""
+        font-family: {Fonts.PRIMARY_FAMILY};
+        font-size: {Fonts.REGULAR_SIZE}px;
+        color: {Colors.TEXT_COLOR};
+    """
+
+def get_label_style():
+    """Get consistent label styling."""
+    return f"""
+        {get_consistent_font_style()}
+        font-weight: bold;
+    """
+
+def get_small_label_style():
+    """Get consistent small label styling."""
+    return f"""
+        font-family: {Fonts.PRIMARY_FAMILY};
+        font-size: 12px;
+        color: {Colors.TEXT_COLOR};
+        font-weight: bold;
+    """
+
 def get_checkbox_style():
-    """Get the consistent checkbox styling."""
+    """Get consistent checkbox styling with uniform fonts."""
     return f"""
         QCheckBox {{
-            color: {Colors.TEXT_COLOR};
-            font-family: {Fonts.PRIMARY_FAMILY};
-            font-size: 10px;
-            spacing: 8px;
+            {get_consistent_font_style()}
+            spacing: 10px;  /* Increased from 6px */
+            padding: 3px;  /* Increased from 2px */
         }}
+        
         QCheckBox::indicator {{
-            width: 16px;
-            height: 16px;
-            border: 2px solid {Colors.BORDER_COLOR};
-            border-radius: 3px;
-            background-color: {Colors.DARK_BUTTON_BG};
+            width: 18px;  /* Increased from 14px */
+            height: 18px;  /* Increased from 14px */
+            border: 2px solid {Colors.BORDER_COLOR};  /* Increased from 1px */
+            border-radius: 4px;  /* Increased from 2px */
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                      stop:0 {Colors.DARK_BUTTON_BG}, stop:1 #252525);
         }}
+        
         QCheckBox::indicator:checked {{
-            background-color: {Colors.BLUE_ACCENT};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                      stop:0 {Colors.BLUE_ACCENT}, stop:1 {Colors.BLUE_HOVER});
             border-color: {Colors.BLUE_ACCENT};
         }}
-        QCheckBox::indicator:checked::after {{
-            content: "✓";
-            color: white;
-            font-weight: bold;
-            font-size: 12px;
-        }}
+        
         QCheckBox::indicator:hover {{
             border-color: {Colors.BLUE_HOVER};
+        }}
+        
+        QCheckBox::indicator:disabled {{
+            background-color: {Colors.DARK_BG};
+            border-color: #666666;
         }}
     """
 
 
 def get_radio_style():
-    """Get the consistent radio button styling."""
+    """Get consistent radio button styling with uniform fonts."""
     return f"""
         QRadioButton {{
-            color: {Colors.TEXT_COLOR};
-            font-family: {Fonts.PRIMARY_FAMILY};
-            font-size: 10px;
-            spacing: 8px;
+            {get_consistent_font_style()}
+            spacing: 10px;  /* Increased from 6px */
+            padding: 3px;  /* Increased from 2px */
         }}
+        
         QRadioButton::indicator {{
-            width: 16px;
-            height: 16px;
-            border: 2px solid {Colors.BORDER_COLOR};
-            border-radius: 8px;
-            background-color: {Colors.DARK_BUTTON_BG};
+            width: 18px;  /* Increased from 14px */
+            height: 18px;  /* Increased from 14px */
+            border: 2px solid {Colors.BORDER_COLOR};  /* Increased from 1px */
+            border-radius: 9px;  /* Increased from 7px */
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                      stop:0 {Colors.DARK_BUTTON_BG}, stop:1 #252525);
         }}
+        
         QRadioButton::indicator:checked {{
-            background-color: {Colors.BLUE_ACCENT};
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                      stop:0 {Colors.BLUE_ACCENT}, stop:1 {Colors.BLUE_HOVER});
             border-color: {Colors.BLUE_ACCENT};
         }}
-        QRadioButton::indicator:checked::after {{
-            content: "";
-            width: 6px;
-            height: 6px;
-            border-radius: 3px;
-            background-color: white;
-            margin: 3px;
-        }}
+        
         QRadioButton::indicator:hover {{
             border-color: {Colors.BLUE_HOVER};
+        }}
+        
+        QRadioButton::indicator:disabled {{
+            background-color: {Colors.DARK_BG};
+            border-color: #666666;
         }}
     """ 

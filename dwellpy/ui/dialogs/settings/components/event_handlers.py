@@ -152,16 +152,13 @@ class SettingsEventHandlers:
     
     def on_contract_ui_toggle(self, state):
         """Handle UI contraction toggle."""
-        # Enable/disable expansion direction radio buttons
-        for button in [self.dialog.expand_up_radio, self.dialog.expand_down_radio]:
-            button.setEnabled(state)
+        # Enable/disable expansion direction dropdown
+        self.dialog.expansion_direction_combo.setEnabled(state)
     
-    def on_expansion_direction_toggle(self, button):
-        """Handle expansion direction toggle."""
-        if button == self.dialog.expand_up_radio:
-            self.settings_manager.set_setting('ui_expansion_direction', 'up')
-        else:
-            self.settings_manager.set_setting('ui_expansion_direction', 'down')
+    def on_expansion_direction_changed(self, index):
+        """Handle expansion direction dropdown change."""
+        direction = self.dialog.expansion_direction_combo.itemData(index)
+        self.settings_manager.set_setting('expansion_direction', direction)
     
     def on_auto_start_toggle(self, state):
         """Handle auto-start toggle."""

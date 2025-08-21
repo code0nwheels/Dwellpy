@@ -149,6 +149,9 @@ class DwellClickerUI:
         # Apply transparency settings once settings manager is connected
         self.apply_transparency_settings()
         
+        # Apply contraction settings
+        self.contraction_manager.apply_contraction_settings()
+        
         # Apply expansion settings to ensure proper initial layout
         self.contraction_manager.apply_expansion_settings()
         
@@ -168,9 +171,6 @@ class DwellClickerUI:
         
         # Apply widget unlock threshold settings
         self.apply_widget_unlock_threshold_settings()
-        
-        # Apply contraction settings LAST, after all button states are set
-        self.contraction_manager.apply_contraction_settings()
     
     def register_button_commands(self):
         """Register button commands with the button manager."""

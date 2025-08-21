@@ -344,20 +344,20 @@ class UIContractionManager:
                 }}
             """)
         else:
-            # Default/permanent mode - blue like default mode buttons
+            # ON state - green like the ON/OFF button when on
             self.contracted_button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {Colors.BLUE_ACCENT};
+                    background-color: {Colors.GREEN_ACCENT};
                     color: {Colors.TEXT_COLOR};
-                    border: 1px solid {Colors.BLUE_ACCENT};
+                    border: 1px solid {Colors.GREEN_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
                     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                     font-size: 8pt;
                     font-weight: bold;
                 }}
                 QPushButton:hover {{
-                    background-color: {Colors.BLUE_HOVER};
-                    border: 1px solid {Colors.BLUE_HOVER};
+                    background-color: {Colors.GREEN_HOVER};
+                    border: 1px solid {Colors.GREEN_HOVER};
                 }}
             """)
     
@@ -454,11 +454,8 @@ class UIContractionManager:
         if not self.ui_manager.is_active:
             return "OFF"
         
-        # Show current mode, with indicator for temporary mode
-        if self.ui_manager.is_temporary_mode:
-            return f"{self.ui_manager.current_mode}*"  # Asterisk indicates temporary
-        else:
-            return self.ui_manager.current_mode
+        # When active, show "ON" to match the ON/OFF button state
+        return "ON"
     
     def create_contracted_button(self):
         """Create the contracted button showing current status."""

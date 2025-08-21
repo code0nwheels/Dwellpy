@@ -1,16 +1,13 @@
 """General tab for settings dialog."""
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QCheckBox, QRadioButton, QButtonGroup
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QCheckBox, QRadioButton, QButtonGroup, QComboBox
 from PyQt6.QtCore import Qt
+from dwellpy.config.constants import Colors, Fonts, BORDER_RADIUS
+from dwellpy.ui.dialogs.settings.components.ui_components import (
+    create_section_header, get_checkbox_style, get_radio_style, 
+    get_label_style, get_small_label_style
+)
 import os
-
-try:
-    from ....config.constants import Colors
-except ImportError:
-    class Colors:
-        TEXT_COLOR = "#ffffff"
-
-from ..components.ui_components import create_section_header, get_checkbox_style, get_radio_style
 
 
 class GeneralTab:
@@ -25,19 +22,19 @@ class GeneralTab:
         """Create general tab."""
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(20, 15, 20, 15)
-        layout.setSpacing(20)
+        layout.setContentsMargins(20, 15, 20, 15)  # Increased from 15,10,15,10
+        layout.setSpacing(18)  # Increased from 15
         
-        # Startup Behavior Section
-        startup_header = create_section_header("Startup Behavior",
-                                              "How Dwellpy should behave when first launched")
-        layout.addWidget(startup_header)
+        # Application Behavior Section
+        app_header = create_section_header("Application Behavior",
+                                          "How Dwellpy behaves when launched and during operation")
+        layout.addWidget(app_header)
         
         self.create_active_state_section(layout)
         
-        # UI Behavior Section
-        ui_header = create_section_header("UI Behavior",
-                                         "How the toolbar behaves when you're not using it")
+        # Interface Behavior Section
+        ui_header = create_section_header("Interface Behavior",
+                                         "How the toolbar and interface elements behave")
         layout.addWidget(ui_header)
         
         self.create_ui_contraction_section(layout)
@@ -56,8 +53,9 @@ class GeneralTab:
         active_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         
         self.dialog.active_check = QCheckBox("Active on launch")
-        self.dialog.active_check.setChecked(self.settings_manager.get_setting('active_on_launch', True))
+        self.dialog.active_check.setChecked(self.settings_manager.get_setting('default_active', True))
         self.dialog.active_check.setStyleSheet(get_checkbox_style())
+        self.dialog.active_check.setToolTip("Start Dwellpy in active mode when launched")
         active_layout.addWidget(self.dialog.active_check)
         
         layout.addWidget(active_frame)
@@ -71,6 +69,7 @@ class GeneralTab:
         self.dialog.auto_start_check = QCheckBox("Automatically start with system")
         self.dialog.auto_start_check.setChecked(self.settings_manager.get_setting('auto_start_enabled', False))
         self.dialog.auto_start_check.setStyleSheet(get_checkbox_style())
+        self.dialog.auto_start_check.setToolTip("Launch Dwellpy automatically when your system starts up")
         auto_start_layout.addWidget(self.dialog.auto_start_check)
         
         # Warning for non-Windows systems
@@ -92,6 +91,7 @@ class GeneralTab:
         self.dialog.contract_ui_check = QCheckBox("Contract UI when idle")
         self.dialog.contract_ui_check.setChecked(self.settings_manager.get_setting('contract_ui_enabled', True))
         self.dialog.contract_ui_check.setStyleSheet(get_checkbox_style())
+        self.dialog.contract_ui_check.setToolTip("Automatically hide the toolbar when not in use to save screen space")
         contract_ui_layout.addWidget(self.dialog.contract_ui_check)
         
         layout.addWidget(contract_ui_frame)
@@ -99,46 +99,62 @@ class GeneralTab:
         # Expansion direction section
         expansion_direction_frame = QFrame()
         expansion_direction_layout = QHBoxLayout(expansion_direction_frame)
-        expansion_direction_layout.setContentsMargins(20, 0, 0, 0) # Indent
+        expansion_direction_layout.setContentsMargins(15, 0, 0, 0) # Indent
         
         # Expansion direction
         expansion_direction_label = QLabel("Expansion Direction:")
-        expansion_direction_label.setStyleSheet(f"color: {Colors.TEXT_COLOR};")
+        expansion_direction_label.setStyleSheet(get_small_label_style())
+        expansion_direction_label.setFixedWidth(140)  # Increased width for better alignment
         expansion_direction_layout.addWidget(expansion_direction_label)
 
-        # Radio button container
-        radio_container = QFrame()
-        radio_layout = QVBoxLayout(radio_container)
-        radio_layout.setContentsMargins(0,0,0,0)
-        self.dialog.expansion_button_group = QButtonGroup()
+        # Dropdown instead of radio buttons
+        self.dialog.expansion_direction_combo = QComboBox()
+        self.dialog.expansion_direction_combo.addItem("Auto (detects available space)", "auto")
+        self.dialog.expansion_direction_combo.addItem("Horizontal (left-to-right)", "horizontal")
+        self.dialog.expansion_direction_combo.addItem("Vertical (top-to-bottom)", "vertical")
         
-        # Auto radio button
-        self.dialog.expansion_auto_radio = QRadioButton("Auto (detects available space)")
-        self.dialog.expansion_auto_radio.setStyleSheet(get_radio_style())
-        self.dialog.expansion_button_group.addButton(self.dialog.expansion_auto_radio, 0)
-        radio_layout.addWidget(self.dialog.expansion_auto_radio)
-        
-        # Horizontal radio button
-        self.dialog.expansion_horizontal_radio = QRadioButton("Horizontal (left-to-right)")
-        self.dialog.expansion_horizontal_radio.setStyleSheet(get_radio_style())
-        self.dialog.expansion_button_group.addButton(self.dialog.expansion_horizontal_radio, 1)
-        radio_layout.addWidget(self.dialog.expansion_horizontal_radio)
-        
-        # Vertical radio button
-        self.dialog.expansion_vertical_radio = QRadioButton("Vertical (top-to-bottom)")
-        self.dialog.expansion_vertical_radio.setStyleSheet(get_radio_style())
-        self.dialog.expansion_button_group.addButton(self.dialog.expansion_vertical_radio, 2)
-        radio_layout.addWidget(self.dialog.expansion_vertical_radio)
-        
-        expansion_direction_layout.addWidget(radio_container)
+        # Style the dropdown
+        self.dialog.expansion_direction_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {Colors.DARK_BUTTON_BG};
+                color: {Colors.TEXT_COLOR};
+                border: 1px solid {Colors.BORDER_COLOR};
+                border-radius: {BORDER_RADIUS}px;
+                padding: 6px 12px;
+                font-size: 12px;
+                min-width: 200px;
+            }}
+            QComboBox:hover {{
+                border-color: {Colors.BLUE_HOVER};
+            }}
+            QComboBox:focus {{
+                border-color: {Colors.BLUE_ACCENT};
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid {Colors.TEXT_COLOR};
+                margin-right: 5px;
+            }}
+        """)
         
         # Set current selection based on settings
         current_direction = self.settings_manager.get_setting('expansion_direction', 'auto')
-        if current_direction == 'auto':
-            self.dialog.expansion_auto_radio.setChecked(True)
-        elif current_direction == 'horizontal':
-            self.dialog.expansion_horizontal_radio.setChecked(True)
-        elif current_direction == 'vertical':
-            self.dialog.expansion_vertical_radio.setChecked(True)
+        index = self.dialog.expansion_direction_combo.findData(current_direction)
+        if index >= 0:
+            self.dialog.expansion_direction_combo.setCurrentIndex(index)
+        
+        # Connect the dropdown signal to save changes
+        self.dialog.expansion_direction_combo.currentIndexChanged.connect(
+            lambda index: self.dialog.event_handlers.on_expansion_direction_changed(index)
+        )
+        
+        expansion_direction_layout.addWidget(self.dialog.expansion_direction_combo)
+        expansion_direction_layout.addStretch()
         
         layout.addWidget(expansion_direction_frame) 
