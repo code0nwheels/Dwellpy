@@ -201,13 +201,5 @@ class VisualFeedbackTab:
         )
         color_buttons_layout.addWidget(self.drag_end_color_button)
         
-        # Middle Click Color
-        self.middle_click_color_button = create_color_button(
-            "Middle Click", 
-            self.settings_manager.get_setting('middle_click_color', '#00ffff'),
-            lambda: self.event_handlers.open_color_picker('middle', self.middle_click_color_button)
-        )
-        color_buttons_layout.addWidget(self.middle_click_color_button)
-        
         colors_layout.addLayout(color_buttons_layout)
         layout.addWidget(colors_frame) 
