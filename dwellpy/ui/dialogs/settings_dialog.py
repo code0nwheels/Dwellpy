@@ -415,8 +415,15 @@ class SettingsDialog(QDialog):
         
         # Slider
         self.unlock_threshold_slider = QSlider(Qt.Orientation.Horizontal)
-        self.unlock_threshold_slider.setRange(10, 100)
-        self.unlock_threshold_slider.setValue(self.settings_manager.get_setting('widget_unlock_threshold', 30))
+        try:
+            from dwellpy.config.constants import WIDGET_UNLOCK_THRESHOLD_MIN, WIDGET_UNLOCK_THRESHOLD_MAX, WIDGET_UNLOCK_THRESHOLD_DEFAULT
+            self.unlock_threshold_slider.setRange(WIDGET_UNLOCK_THRESHOLD_MIN, WIDGET_UNLOCK_THRESHOLD_MAX)
+            default_value = WIDGET_UNLOCK_THRESHOLD_DEFAULT
+        except ImportError:
+            self.unlock_threshold_slider.setRange(100, 300)
+            default_value = 150
+        
+        self.unlock_threshold_slider.setValue(self.settings_manager.get_setting('widget_unlock_threshold', default_value))
         self.unlock_threshold_slider.setStyleSheet(get_slider_style())
         controls_layout.addWidget(self.unlock_threshold_slider)
         
@@ -428,7 +435,13 @@ class SettingsDialog(QDialog):
         controls_layout.addWidget(unlock_threshold_plus_btn)
         
         # Value label
-        self.unlock_threshold_label = QLabel(f"{self.unlock_threshold_slider.value()}px")
+        try:
+            from dwellpy.config.constants import WIDGET_UNLOCK_THRESHOLD_DEFAULT
+            default_value = WIDGET_UNLOCK_THRESHOLD_DEFAULT
+        except ImportError:
+            default_value = 150
+        
+        self.unlock_threshold_label = QLabel(f"{self.settings_manager.get_setting('widget_unlock_threshold', default_value)}px")
         self.unlock_threshold_label.setStyleSheet(f"""
             color: {Colors.TEXT_COLOR};
             font-weight: bold;
@@ -697,6 +710,7 @@ class SettingsDialog(QDialog):
         self.scroll_speed_slider.valueChanged.connect(self.event_handlers.update_scroll_speed_value)
         self.widget_delay_slider.valueChanged.connect(self.event_handlers.update_widget_delay_value)
         self.unlock_threshold_slider.valueChanged.connect(self.event_handlers.update_unlock_threshold_value)
+        self.unlock_threshold_slider.valueChanged.connect(self.event_handlers.update_unlock_threshold_setting)
         self.menu_size_slider.valueChanged.connect(self.event_handlers.update_menu_size_value)
         
         # Checkbox toggles

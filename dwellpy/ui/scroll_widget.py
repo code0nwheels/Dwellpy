@@ -11,6 +11,7 @@ import time
 
 try:
     from ..config.constants import Colors
+    from ..config.constants import WIDGET_UNLOCK_THRESHOLD_DEFAULT
 except ImportError:
     # Fallback if constants not available
     class Colors:
@@ -71,7 +72,7 @@ class ScrollWidget(QWidget):
         # Position lock state
         self.is_locked = False  # Whether widget is locked in position
         self.lock_threshold = 140  # Distance to lock (must be greater than offset_distance)
-        self.unlock_threshold = 180  # Distance to resume following (will be set by settings)
+        self.unlock_threshold = WIDGET_UNLOCK_THRESHOLD_DEFAULT  # Distance to resume following (will be set by settings)
         
         # Movement tracking to prevent false hover detection
         self.last_move_time = 0
@@ -657,3 +658,7 @@ class ScrollWidget(QWidget):
             adjusted_y = screen_geometry.bottom() - widget_size.height()
         
         return QPoint(adjusted_x, adjusted_y)
+
+    def set_unlock_threshold(self, threshold: int):
+        """Update the unlock threshold for the widget."""
+        self.unlock_threshold = threshold

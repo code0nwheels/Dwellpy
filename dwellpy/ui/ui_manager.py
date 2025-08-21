@@ -1593,6 +1593,12 @@ class DwellClickerUI:
     def set_unlock_threshold(self, threshold: int):
         """Set the widget unlock threshold."""
         self.widget_unlock_threshold = threshold
+        
+        # Update the unlock threshold on individual widgets
+        if hasattr(self, 'menu_widget') and self.menu_widget:
+            self.menu_widget.set_unlock_threshold(threshold)
+        if hasattr(self, 'scroll_widget') and self.scroll_widget:
+            self.scroll_widget.set_unlock_threshold(threshold)
     
     def _is_cursor_near_widgets(self, cursor_pos):
         """

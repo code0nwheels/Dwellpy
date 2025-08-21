@@ -10,7 +10,7 @@ import sys
 import time
 
 try:
-    from ..config.constants import Colors, BUTTON_IDS
+    from ..config.constants import Colors, BUTTON_IDS, WIDGET_UNLOCK_THRESHOLD_DEFAULT
 except ImportError:
     # Fallback if constants not available
     class Colors:
@@ -80,7 +80,7 @@ class MenuWidget(QWidget):
         # Position lock state - keeping existing lock logic for accessibility
         self.is_locked = False  # Whether widget is locked in position
         self.lock_threshold = 120  # Distance to lock
-        self.unlock_threshold = 180  # Distance to resume following (will be set by settings)
+        self.unlock_threshold = WIDGET_UNLOCK_THRESHOLD_DEFAULT  # Distance to resume following (will be set by settings)
         
         # Movement tracking to prevent false hover detection
         self.last_move_time = 0
@@ -635,3 +635,7 @@ class MenuWidget(QWidget):
         if self.is_expanded:
             self.setFixedSize(self.expanded_size, self.expanded_size)
             self.update()
+
+    def set_unlock_threshold(self, threshold: int):
+        """Update the unlock threshold for the widget."""
+        self.unlock_threshold = threshold

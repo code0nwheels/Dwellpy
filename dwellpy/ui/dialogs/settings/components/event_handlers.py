@@ -119,7 +119,11 @@ class SettingsEventHandlers:
     
     def update_unlock_threshold_value(self, value):
         """Update unlock threshold value display."""
-        self.dialog.unlock_threshold_label.setText(f"{value}%")
+        self.dialog.unlock_threshold_label.setText(f"{value}px")
+    
+    def update_unlock_threshold_setting(self, value):
+        """Update unlock threshold setting in real-time."""
+        self.settings_manager.set_setting('widget_unlock_threshold', value)
     
     def update_menu_size_value(self, value):
         """Update menu size value display."""

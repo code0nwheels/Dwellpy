@@ -845,8 +845,8 @@ Keywords=accessibility;dwell;click;motor;disability;
 		self.settings['widget_unlock_threshold'] = clamped_threshold
 		
 		# Apply immediately to UI manager if it exists
-		# if self.ui_manager:
-		# 	self.ui_manager.set_unlock_threshold(clamped_threshold)
+		if self.ui_manager:
+			self.ui_manager.set_unlock_threshold(clamped_threshold)
 		
 		self.logger.info(f"Widget unlock threshold updated to: {clamped_threshold}px")
 	
