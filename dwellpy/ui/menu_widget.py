@@ -97,6 +97,10 @@ class MenuWidget(QWidget):
         self.max_velocity_for_hover = 100
         self.velocity_check_window = 3
         
+        # Safety mechanism to prevent getting permanently stuck
+        self.last_lock_time = 0
+        self.max_lock_duration = 5.0  # Maximum time to stay locked (5 seconds)
+        
         # Mouse controller
         self.mouse = MouseController()
         
@@ -263,10 +267,11 @@ class MenuWidget(QWidget):
         dy = cursor_y - widget_global_center.y()
         distance_to_widget = math.sqrt(dx * dx + dy * dy)
         
-        # Lock/unlock logic
+        # Lock/unlock logic - simplified to prevent getting stuck
         if not self.is_locked:
             if distance_to_widget < self.lock_threshold:
                 self.is_locked = True
+                self.last_lock_time = time.time()
                 return
             
             # Position widget so hamburger icon is centered under cursor
@@ -299,7 +304,12 @@ class MenuWidget(QWidget):
                 self.move(new_x, new_y)
         else:
             # Widget is locked - check if cursor moved far enough to unlock
-            if distance_to_widget > self.unlock_threshold:
+            # Also check if we've been locked too long (safety mechanism)
+            current_time = time.time()
+            should_unlock = (distance_to_widget > self.unlock_threshold or 
+                           (current_time - self.last_lock_time) > self.max_lock_duration)
+            
+            if should_unlock:
                 self.is_locked = False
                 
                 # Immediately update to new position centered under cursor
@@ -426,6 +436,10 @@ class MenuWidget(QWidget):
                     new_y = int(cursor_y - self.expanded_size // 2)
                     self.move(new_x, new_y)
                     
+                    # Update last widget position to prevent conflicts
+                    self.last_widget_pos = (new_x, new_y)
+                    self.last_move_time = time.time()
+                    
                     # Start with radius 0 for animation
                     self.current_radius = 0
                 except:
@@ -471,7 +485,13 @@ class MenuWidget(QWidget):
                 current_pos = self.pos()
                 
                 self.setFixedSize(self.hamburger_size, self.hamburger_size)
-                self.move(current_pos.x() + offset, current_pos.y() + offset)
+                new_x = current_pos.x() + offset
+                new_y = current_pos.y() + offset
+                self.move(new_x, new_y)
+                
+                # Update last widget position to prevent conflicts
+                self.last_widget_pos = (new_x, new_y)
+                self.last_move_time = time.time()
 
     def trigger_menu_item(self, item_id):
         """Trigger a menu item action."""
@@ -613,3 +633,12 @@ class MenuWidget(QWidget):
     def set_unlock_threshold(self, threshold: int):
         """Update the unlock threshold for the widget."""
         self.unlock_threshold = threshold
+    
+    def force_unlock(self):
+        """Force unlock the widget if it gets stuck."""
+        if self.is_locked:
+            self.is_locked = False
+            self.last_lock_time = 0
+            # Force a position update
+            if self.last_cursor_pos is not None:
+                self.update_position(self.last_cursor_pos)

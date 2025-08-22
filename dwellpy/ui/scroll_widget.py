@@ -74,6 +74,7 @@ class ScrollWidget(QWidget):
         self.is_locked = False  # Whether widget is locked in position
         self.lock_threshold = 140  # Distance to lock (must be greater than offset_distance)
         self.unlock_threshold = WIDGET_UNLOCK_THRESHOLD_DEFAULT  # Distance to resume following (will be set by settings)
+        self.last_lock_time = 0  # Track when widget gets locked
         
         # Movement tracking to prevent false hover detection
         self.last_move_time = 0
@@ -319,6 +320,7 @@ class ScrollWidget(QWidget):
             # If cursor gets close, lock the widget position
             if distance_to_widget < self.lock_threshold:
                 self.is_locked = True
+                self.last_lock_time = time.time()
                 return
             
             # Otherwise, update position normally
@@ -360,6 +362,7 @@ class ScrollWidget(QWidget):
             # Widget is locked - check if cursor moved far enough to unlock
             if distance_to_widget > self.unlock_threshold:
                 self.is_locked = False
+                self.last_lock_time = 0
                 
                 # Immediately update to new position
                 angle_rad = math.radians(self.offset_angle)
@@ -444,6 +447,7 @@ class ScrollWidget(QWidget):
                 # Lock position when hovering
                 if not self.is_locked:
                     self.is_locked = True
+                    self.last_lock_time = time.time()
             else:
                 # Return to base opacity
                 self.setWindowOpacity(self.base_opacity)
@@ -592,3 +596,12 @@ class ScrollWidget(QWidget):
     def set_unlock_threshold(self, threshold: int):
         """Update the unlock threshold for the widget."""
         self.unlock_threshold = threshold
+    
+    def force_unlock(self):
+        """Force unlock the widget if it gets stuck."""
+        if self.is_locked:
+            self.is_locked = False
+            self.last_lock_time = 0
+            # Force a position update
+            if self.last_cursor_pos is not None:
+                self.update_position(self.last_cursor_pos)

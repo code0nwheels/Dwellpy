@@ -114,6 +114,11 @@ class DwellClickerUI:
         self.opacity_timer.setSingleShot(True)
         self.opacity_timer.timeout.connect(self.set_transparent)
 
+        # Stuck widget detection timer
+        self.stuck_widget_timer = QTimer()
+        self.stuck_widget_timer.timeout.connect(self._check_for_stuck_widgets)
+        self.stuck_widget_timer.start(2000)  # Check every 2 seconds
+
         # UI Contraction state
         self.contraction_manager = UIContractionManager(self)
 
@@ -1584,7 +1589,7 @@ class DwellClickerUI:
                 # The movement detection system will show it after the configured delay
                 self.menu_widget.is_active = True
                 # Don't call show() here - let _show_widgets_for_movement() handle it
-        else:
+            else:
                 # When disabling, immediately hide
                 self.menu_widget.set_active(False)
         
@@ -1721,6 +1726,45 @@ class DwellClickerUI:
         # This is more forgiving for small movements during interaction
         movement_threshold = 8  # pixels - increased threshold for more forgiveness
         return current_distance > last_distance + movement_threshold
+
+    def _check_for_stuck_widgets(self):
+        """Periodically check if widgets are stuck and fix them."""
+        if not self.is_active:
+            return
+        
+        current_time = time.time()
+        
+        # Check menu widget for stuck state
+        menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
+        if menu_enabled and self.menu_widget.isVisible():
+            # Check if menu widget has been locked too long
+            if (hasattr(self.menu_widget, 'is_locked') and 
+                self.menu_widget.is_locked and 
+                hasattr(self.menu_widget, 'last_lock_time') and
+                self.menu_widget.last_lock_time > 0):
+                
+                lock_duration = current_time - self.menu_widget.last_lock_time
+                if lock_duration > 10.0:  # If locked for more than 10 seconds, force unlock
+                    self.menu_widget.force_unlock()
+        
+        # Check scroll widget for stuck state
+        scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
+        if scroll_enabled and self.scroll_widget.isVisible():
+            # Check if scroll widget has been locked too long
+            if (hasattr(self.scroll_widget, 'is_locked') and 
+                self.scroll_widget.is_locked and 
+                hasattr(self.scroll_widget, 'last_lock_time') and
+                self.scroll_widget.last_lock_time > 0):
+                
+                lock_duration = current_time - self.scroll_widget.last_lock_time
+                if lock_duration > 10.0:  # If locked for more than 10 seconds, force unlock
+                    # Add a force_unlock method to scroll widget if it doesn't exist
+                    if hasattr(self.scroll_widget, 'force_unlock'):
+                        self.scroll_widget.force_unlock()
+                    else:
+                        # Fallback: manually unlock
+                        self.scroll_widget.is_locked = False
+                        self.scroll_widget.last_lock_time = 0
 
     def update_menu_item_size(self, size):
         """Update the menu item size."""
