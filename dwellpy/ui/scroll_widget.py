@@ -5,6 +5,7 @@ from PyQt6.QtCore import Qt, QPoint, QPointF, QTimer, pyqtSignal, QRect, QSize
 from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPolygonF, QCursor
 from pynput.mouse import Controller as MouseController
 from .components.scroll_drawing import ScrollDrawingManager
+from ..utils.coordinate_manager import get_cursor_position, get_screen_at_cursor, get_dpi_scale_at_cursor
 import math
 import sys
 import time
@@ -162,73 +163,101 @@ class ScrollWidget(QWidget):
 
         
     def _get_qt_cursor_position(self):
-        """Get cursor position using Qt's coordinate system for consistency."""
+        """Get cursor position using the coordinate manager for DPI-aware positioning."""
         try:
-            # Use Qt's QCursor.pos() which is DPI-aware and consistent across monitors
-            return QCursor.pos()
+            return get_cursor_position()
         except:
-            # Fallback to pynput if Qt method fails
+            # Fallback to pynput if coordinate manager fails
             pos = self.mouse.position
             return QPoint(int(pos[0]), int(pos[1]))
     
-    def _convert_pynput_to_qt_coords(self, pynput_pos):
-        """Convert pynput coordinates to Qt coordinates for multi-monitor consistency."""
+    def _get_screen_geometry(self):
+        """Get the screen geometry that contains the current cursor position."""
         try:
-            # Get the screen that contains this position
+            screen = get_screen_at_cursor()
+            if screen:
+                return screen.geometry()
+            
+            # Fallback to QApplication if coordinate manager fails
             app = QApplication.instance()
-            if not app:
-                return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+            if app:
+                return app.primaryScreen().geometry()
+            return None
             
-            # First, try using Qt's cursor position as it should be more accurate
-            try:
-                qt_direct = QCursor.pos()
-                # If Qt and pynput positions are very close, prefer Qt
-                dx = abs(qt_direct.x() - pynput_pos[0])
-                dy = abs(qt_direct.y() - pynput_pos[1])
-                if dx < 10 and dy < 10:  # Within 10 pixels, use Qt directly
-                    return qt_direct
-            except:
-                pass
+        except Exception:
+            return None
+    
+    def _detect_off_screen_position(self, proposed_pos, widget_size):
+        """
+        Detect if a proposed widget position would place it off-screen.
+        
+        Args:
+            proposed_pos: QPoint representing the proposed widget position
+            widget_size: QSize representing the widget dimensions
             
-            # Find which screen contains the pynput position
-            target_screen = None
-            for screen in app.screens():
-                geometry = screen.geometry()
-                # Expand the geometry slightly to handle edge cases
-                expanded_geom = geometry.adjusted(-10, -10, 10, 10)
-                if (expanded_geom.x() <= pynput_pos[0] < expanded_geom.x() + expanded_geom.width() and
-                    expanded_geom.y() <= pynput_pos[1] < expanded_geom.y() + expanded_geom.height()):
-                    target_screen = screen
-                    break
+        Returns:
+            dict: Information about off-screen positioning
+        """
+        screen_geometry = self._get_screen_geometry()
+        if not screen_geometry:
+            return {'off_screen': False}
+        
+        # Calculate widget bounds at proposed position
+        widget_right = proposed_pos.x() + widget_size.width()
+        widget_bottom = proposed_pos.y() + widget_size.height()
+        widget_left = proposed_pos.x()
+        widget_top = proposed_pos.y()
+        
+        # Check each edge
+        off_screen_info = {
+            'off_screen': False,
+            'off_left': widget_left < screen_geometry.left(),
+            'off_right': widget_right > screen_geometry.right(),
+            'off_top': widget_top < screen_geometry.top(),
+            'off_bottom': widget_bottom > screen_geometry.bottom()
+        }
+        
+        # Set overall off_screen flag
+        off_screen_info['off_screen'] = any([
+            off_screen_info['off_left'],
+            off_screen_info['off_right'], 
+            off_screen_info['off_top'],
+            off_screen_info['off_bottom']
+        ])
+        
+        return off_screen_info
+    
+    def _adjust_position_for_screen_bounds(self, proposed_pos, widget_size):
+        """
+        Adjust a proposed position to keep the widget within screen bounds.
+        
+        Args:
+            proposed_pos: QPoint representing the proposed widget position
+            widget_size: QSize representing the widget dimensions
             
-            if target_screen:
-                # Account for DPI scaling
-                device_pixel_ratio = target_screen.devicePixelRatio()
-                if device_pixel_ratio != 1.0:
-                    # Get the logical geometry (what Qt thinks the screen size is)
-                    logical_geom = target_screen.geometry()
-                    
-                    # Convert pynput position to relative position on this screen
-                    relative_x = pynput_pos[0] - logical_geom.x()
-                    relative_y = pynput_pos[1] - logical_geom.y()
-                    
-                    # Apply DPI scaling
-                    scaled_x = relative_x / device_pixel_ratio
-                    scaled_y = relative_y / device_pixel_ratio
-                    
-                    # Convert back to global coordinates
-                    qt_x = logical_geom.x() + scaled_x
-                    qt_y = logical_geom.y() + scaled_y
-                    
-                    return QPoint(int(qt_x), int(qt_y))
-            
-            # If no scaling needed or screen not found, use direct conversion
-            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
-            
-        except Exception as e:
-            print(f"ScrollWidget coordinate conversion error: {e}")
-            # Fallback to direct conversion
-            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+        Returns:
+            QPoint: Adjusted position that stays within screen bounds
+        """
+        screen_geometry = self._get_screen_geometry()
+        if not screen_geometry:
+            return proposed_pos
+        
+        adjusted_x = proposed_pos.x()
+        adjusted_y = proposed_pos.y()
+        
+        # Adjust horizontal position
+        if adjusted_x < screen_geometry.left():
+            adjusted_x = screen_geometry.left()
+        elif adjusted_x + widget_size.width() > screen_geometry.right():
+            adjusted_x = screen_geometry.right() - widget_size.width()
+        
+        # Adjust vertical position  
+        if adjusted_y < screen_geometry.top():
+            adjusted_y = screen_geometry.top()
+        elif adjusted_y + widget_size.height() > screen_geometry.bottom():
+            adjusted_y = screen_geometry.bottom() - widget_size.height()
+        
+        return QPoint(adjusted_x, adjusted_y)
 
     def update_position(self, cursor_pos, coordinated_mode=False):
         """Update widget position relative to cursor, with optional coordinated mode."""
@@ -239,8 +268,8 @@ class ScrollWidget(QWidget):
         if coordinated_mode:
             return
         
-        # Convert pynput coordinates to Qt coordinates for consistency
-        qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
+        # Get DPI-aware cursor position from coordinate manager
+        qt_cursor_pos = self._get_qt_cursor_position()
         cursor_x, cursor_y = qt_cursor_pos.x(), qt_cursor_pos.y()
         
         # Track cursor velocity for hover detection
@@ -375,8 +404,8 @@ class ScrollWidget(QWidget):
                     self._set_hover(None)
                 return None
         
-        # Convert pynput coordinates to Qt coordinates for consistency
-        qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
+        # Get DPI-aware cursor position from coordinate manager
+        qt_cursor_pos = self._get_qt_cursor_position()
             
         # Convert cursor position to widget coordinates
         widget_pos = self.mapFromGlobal(qt_cursor_pos)
@@ -460,7 +489,7 @@ class ScrollWidget(QWidget):
                 import ctypes
                 from ctypes import wintypes
                 
-                # Get the current cursor position using Qt for consistency
+                # Get the current cursor position using coordinate manager for consistency
                 try:
                     qt_pos = self._get_qt_cursor_position()
                     cursor_pos = (qt_pos.x(), qt_pos.y())
@@ -512,7 +541,7 @@ class ScrollWidget(QWidget):
                 self.raise_()
             # Set initial position if we can get mouse position
             try:
-                pos = self.mouse.position
+                pos = self._get_qt_cursor_position()
                 self.update_position(pos)
             except:
                 pass
@@ -560,105 +589,6 @@ class ScrollWidget(QWidget):
         if self.current_hover is None:
             self.setWindowOpacity(self.base_opacity)
     
-    def _get_screen_geometry(self):
-        """Get the screen geometry that contains the current cursor position."""
-        try:
-            app = QApplication.instance()
-            if not app:
-                return None
-            
-            # Get all screens
-            screens = app.screens()
-            if not screens:
-                return None
-            
-            # Get current cursor position
-            cursor_pos = QCursor.pos()
-            
-            # Find which screen contains the cursor
-            for screen in screens:
-                geometry = screen.geometry()
-                if geometry.contains(cursor_pos):
-                    return geometry
-            
-            # If no screen contains cursor, return primary screen
-            return app.primaryScreen().geometry()
-            
-        except Exception:
-            return None
-    
-    def _detect_off_screen_position(self, proposed_pos, widget_size):
-        """
-        Detect if a proposed widget position would place it off-screen.
-        
-        Args:
-            proposed_pos: QPoint representing the proposed widget position
-            widget_size: QSize representing the widget dimensions
-            
-        Returns:
-            dict: Information about off-screen positioning
-        """
-        screen_geometry = self._get_screen_geometry()
-        if not screen_geometry:
-            return {'off_screen': False}
-        
-        # Calculate widget bounds at proposed position
-        widget_right = proposed_pos.x() + widget_size.width()
-        widget_bottom = proposed_pos.y() + widget_size.height()
-        widget_left = proposed_pos.x()
-        widget_top = proposed_pos.y()
-        
-        # Check each edge
-        off_screen_info = {
-            'off_screen': False,
-            'off_left': widget_left < screen_geometry.left(),
-            'off_right': widget_right > screen_geometry.right(),
-            'off_top': widget_top < screen_geometry.top(),
-            'off_bottom': widget_bottom > screen_geometry.bottom()
-        }
-        
-        # Set overall off_screen flag
-        off_screen_info['off_screen'] = any([
-            off_screen_info['off_left'],
-            off_screen_info['off_right'], 
-            off_screen_info['off_top'],
-            off_screen_info['off_bottom']
-        ])
-        
-        return off_screen_info
-    
-    def _adjust_position_for_screen_bounds(self, proposed_pos, widget_size):
-        """
-        Adjust a proposed position to keep the widget within screen bounds.
-        
-        Args:
-            proposed_pos: QPoint representing the proposed widget position
-            widget_size: QSize representing the widget dimensions
-            
-        Returns:
-            QPoint: Adjusted position that stays within screen bounds
-        """
-        screen_geometry = self._get_screen_geometry()
-        if not screen_geometry:
-            return proposed_pos
-        
-        adjusted_x = proposed_pos.x()
-        adjusted_y = proposed_pos.y()
-        
-        # Adjust horizontal position
-        if adjusted_x < screen_geometry.left():
-            adjusted_x = screen_geometry.left()
-        elif adjusted_x + widget_size.width() > screen_geometry.right():
-            adjusted_x = screen_geometry.right() - widget_size.width()
-        
-        # Adjust vertical position  
-        if adjusted_y < screen_geometry.top():
-            adjusted_y = screen_geometry.top()
-        elif adjusted_y + widget_size.height() > screen_geometry.bottom():
-            adjusted_y = screen_geometry.bottom() - widget_size.height()
-        
-        return QPoint(adjusted_x, adjusted_y)
-
     def set_unlock_threshold(self, threshold: int):
         """Update the unlock threshold for the widget."""
         self.unlock_threshold = threshold

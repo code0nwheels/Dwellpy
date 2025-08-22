@@ -21,6 +21,7 @@ try:
         WIDGET_UNLOCK_THRESHOLD_DEFAULT
     )
     from ..utils.helpers import get_asset_path
+    from ..utils.coordinate_manager import get_cursor_position, get_cursor_position_tuple, get_screen_at_cursor
 except ImportError:
     # Fallback constants for testing
     class Colors:
@@ -60,6 +61,23 @@ except ImportError:
         else:
             base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         return os.path.join(base_path, 'assets', 'icons', asset_name)
+    
+    # Fallback coordinate manager functions
+    def get_cursor_position():
+        from PyQt6.QtGui import QCursor
+        return QCursor.pos()
+    
+    def get_cursor_position_tuple():
+        from PyQt6.QtGui import QCursor
+        pos = QCursor.pos()
+        return (pos.x(), pos.y())
+    
+    def get_screen_at_cursor():
+        from PyQt6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app:
+            return app.primaryScreen()
+        return None
 
 
 class DwellClickerUI:
@@ -1047,11 +1065,16 @@ class DwellClickerUI:
         import math
         from PyQt6.QtCore import QPoint, QSize
         
-        # Convert pynput coordinates to Qt coordinates
-        if hasattr(cursor_pos, '__iter__'):
-            cursor_x, cursor_y = cursor_pos
-        else:
-            cursor_x, cursor_y = cursor_pos.x(), cursor_pos.y()
+        # Get DPI-aware cursor position from coordinate manager
+        try:
+            qt_cursor_pos = get_cursor_position()
+            cursor_x, cursor_y = qt_cursor_pos.x(), qt_cursor_pos.y()
+        except:
+            # Fallback to provided cursor_pos if coordinate manager fails
+            if hasattr(cursor_pos, '__iter__'):
+                cursor_x, cursor_y = cursor_pos
+            else:
+                cursor_x, cursor_y = cursor_pos.x(), cursor_pos.y()
         
         # Initialize coordinated lock state if not exists
         if not hasattr(self, '_coordinated_locked'):

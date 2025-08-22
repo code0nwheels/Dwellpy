@@ -5,6 +5,7 @@ from PyQt6.QtCore import Qt, QPoint, QPointF, QTimer, pyqtSignal, QRect, QSize
 from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPolygonF, QCursor, QFont
 from pynput.mouse import Controller as MouseController
 from .components.menu_drawing import MenuDrawingManager
+from ..utils.coordinate_manager import get_cursor_position, get_screen_at_cursor, get_dpi_scale_at_cursor
 import math
 import sys
 import time
@@ -174,36 +175,30 @@ class MenuWidget(QWidget):
 
     
     def _get_qt_cursor_position(self):
-        """Get cursor position using Qt's coordinate system for consistency."""
+        """Get cursor position using the coordinate manager for DPI-aware positioning."""
         try:
-            return QCursor.pos()
+            return get_cursor_position()
         except:
+            # Fallback to pynput if coordinate manager fails
             pos = self.mouse.position
             return QPoint(int(pos[0]), int(pos[1]))
     
-    def _convert_pynput_to_qt_coords(self, pynput_pos):
-        """Convert pynput coordinates to Qt coordinates for multi-monitor consistency."""
+    def _get_screen_geometry(self):
+        """Get the screen geometry that contains the current cursor position."""
         try:
+            screen = get_screen_at_cursor()
+            if screen:
+                return screen.geometry()
+            
+            # Fallback to QApplication if coordinate manager fails
             app = QApplication.instance()
-            if not app:
-                return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+            if app:
+                return app.primaryScreen().geometry()
+            return None
             
-            # Try using Qt's cursor position as it should be more accurate
-            try:
-                qt_direct = QCursor.pos()
-                dx = abs(qt_direct.x() - pynput_pos[0])
-                dy = abs(qt_direct.y() - pynput_pos[1])
-                if dx < 10 and dy < 10:  # Within 10 pixels, use Qt directly
-                    return qt_direct
-            except:
-                pass
-            
-            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
-            
-        except Exception as e:
-            print(f"MenuWidget coordinate conversion error: {e}")
-            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
-
+        except Exception:
+            return None
+    
     def set_coordinated_position(self, position):
         """Set widget position using coordinated positioning (for multi-widget layouts)."""
         if not self.is_active:
@@ -220,16 +215,16 @@ class MenuWidget(QWidget):
         
         # If in coordinated mode, skip normal positioning logic but track cursor
         if coordinated_mode:
-            # Convert coordinates for cursor tracking
-            qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
+            # Get DPI-aware cursor position from coordinate manager
+            qt_cursor_pos = self._get_qt_cursor_position()
             cursor_x, cursor_y = qt_cursor_pos.x(), qt_cursor_pos.y()
             
             # Update cursor tracking for hover detection
             self.last_cursor_pos = (cursor_x, cursor_y)
             return
         
-        # Convert pynput coordinates to Qt coordinates for consistency
-        qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
+        # Get DPI-aware cursor position from coordinate manager
+        qt_cursor_pos = self._get_qt_cursor_position()
         cursor_x, cursor_y = qt_cursor_pos.x(), qt_cursor_pos.y()
         
         # Track cursor velocity for hover detection
@@ -346,8 +341,8 @@ class MenuWidget(QWidget):
                     self._set_expanded(False)
                 return None
         
-        # Convert pynput coordinates to Qt coordinates
-        qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
+        # Get DPI-aware cursor position from coordinate manager
+        qt_cursor_pos = self._get_qt_cursor_position()
         
         # Convert cursor position to widget coordinates
         widget_pos = self.mapFromGlobal(qt_cursor_pos)
@@ -494,7 +489,7 @@ class MenuWidget(QWidget):
             if sys.platform != "darwin":
                 self.raise_()
             try:
-                pos = self.mouse.position
+                pos = self._get_qt_cursor_position()
                 self.update_position(pos)
             except:
                 pass
@@ -528,33 +523,6 @@ class MenuWidget(QWidget):
         # Update current opacity if not hovering
         if self.current_hover is None:
             self.setWindowOpacity(self.base_opacity)
-    
-    def _get_screen_geometry(self):
-        """Get the screen geometry that contains the current cursor position."""
-        try:
-            app = QApplication.instance()
-            if not app:
-                return None
-            
-            # Get all screens
-            screens = app.screens()
-            if not screens:
-                return None
-            
-            # Get current cursor position
-            cursor_pos = QCursor.pos()
-            
-            # Find which screen contains the cursor
-            for screen in screens:
-                geometry = screen.geometry()
-                if geometry.contains(cursor_pos):
-                    return geometry
-            
-            # If no screen contains cursor, return primary screen
-            return app.primaryScreen().geometry()
-            
-        except Exception:
-            return None
     
     def _detect_off_screen_position(self, proposed_pos, widget_size):
         """

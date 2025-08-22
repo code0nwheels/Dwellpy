@@ -4,6 +4,7 @@ from PyQt6.QtCore import QObject, QTimer, pyqtSignal, QThread
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QCursor
 from pynput.mouse import Controller
+from ..utils.coordinate_manager import get_cursor_position, get_cursor_position_tuple
 import time
 
 class InputWorker(QObject):
@@ -25,13 +26,21 @@ class InputWorker(QObject):
         self._running = True
         while self._running:
             try:
-                pos = self.mouse.position
+                # Use coordinate manager for DPI-aware positioning
+                pos = get_cursor_position_tuple()
                 if pos != self.last_position:
                     self.last_position = pos
                     self.position_changed.emit(pos)
             except Exception:
-                # This can happen if the mouse controller has issues
-                pass
+                # Fallback to pynput if coordinate manager fails
+                try:
+                    pos = self.mouse.position
+                    if pos != self.last_position:
+                        self.last_position = pos
+                        self.position_changed.emit(pos)
+                except:
+                    # This can happen if the mouse controller has issues
+                    pass
             time.sleep(self.poll_interval)
 
     def stop(self):
