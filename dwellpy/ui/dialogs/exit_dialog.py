@@ -7,19 +7,25 @@ from PyQt6.QtGui import QIcon
 import os
 
 try:
-    from ...config.constants import Colors, Fonts
+    from ...config.constants import Colors, BORDER_RADIUS, Fonts
     from ...utils.helpers import center_window, get_asset_path
     # Use constants from config
     DARK_BG = Colors.DARK_BG
     TEXT_COLOR = Colors.TEXT_COLOR
     BLUE_ACCENT = Colors.BLUE_ACCENT
     RED_ACCENT = Colors.RED_ACCENT
+    BORDER_COLOR = Colors.BORDER_COLOR
+    BORDER_RADIUS = BORDER_RADIUS
+    PRIMARY_FONT = Fonts.PRIMARY_FAMILY
 except ImportError:
-    # Fallback constants
-    DARK_BG = "#222222"
+    # Fallback constants - match exactly what settings dialog uses
+    DARK_BG = "#1a1a1a"
     TEXT_COLOR = "#ffffff"
     BLUE_ACCENT = "#0078d7"
-    RED_ACCENT = "#d83638"
+    RED_ACCENT = "#e74c3c"
+    BORDER_COLOR = "#3c3c3c"
+    BORDER_RADIUS = 5
+    PRIMARY_FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif"
     
     def center_window(window):
         from PyQt6.QtGui import QGuiApplication
@@ -74,16 +80,17 @@ class ExitDialog(QDialog):
         except Exception:
             pass  # Silently fail if icon can't be loaded
         
-        # Apply dark theme with red border
+        # Apply dark theme with consistent border styling
         self.setStyleSheet(f"""
             QDialog {{
                 background-color: {DARK_BG};
                 color: {TEXT_COLOR};
-                border: 1px solid {RED_ACCENT};
-                border-radius: 3px;
+                border: 1px solid {BORDER_COLOR};
+                border-radius: {BORDER_RADIUS}px;
             }}
             QLabel {{
                 color: {TEXT_COLOR};
+                font-family: {PRIMARY_FONT};
             }}
         """)
         
@@ -95,7 +102,7 @@ class ExitDialog(QDialog):
         # Message
         message = QLabel("Are you sure you want to exit?")
         message.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-family: {PRIMARY_FONT};
             font-size: 14pt;
             color: {TEXT_COLOR};
         """)
@@ -109,44 +116,48 @@ class ExitDialog(QDialog):
         buttons_layout.setSpacing(20)
         buttons_frame.setStyleSheet(f"background-color: {DARK_BG};")
         
-        # Yes button - red styling
+        # Yes button - red styling with modern hover effects
         self.yes_button = QPushButton("Yes")
         self.yes_button.setFixedSize(100, 40)
         self.yes_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.yes_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: {RED_ACCENT};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 {RED_ACCENT}, stop:1 #c0392b);
                 color: {TEXT_COLOR};
                 border: none;
-                border-radius: 3px;
-                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                border-radius: {BORDER_RADIUS}px;
+                font-family: {PRIMARY_FONT};
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 5px 15px;
             }}
             QPushButton:hover {{
-                background-color: #c0392b;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 #c0392b, stop:1 {RED_ACCENT});
             }}
         """)
         buttons_layout.addWidget(self.yes_button)
         
-        # No button - blue styling
+        # No button - blue styling with modern hover effects
         self.no_button = QPushButton("No")
         self.no_button.setFixedSize(100, 40)
         self.no_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.no_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: {BLUE_ACCENT};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 {BLUE_ACCENT}, stop:1 #0069c0);
                 color: {TEXT_COLOR};
                 border: none;
-                border-radius: 3px;
-                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                border-radius: {BORDER_RADIUS}px;
+                font-family: {PRIMARY_FONT};
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 5px 15px;
             }}
             QPushButton:hover {{
-                background-color: #0069c0;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                          stop:0 #0069c0, stop:1 {BLUE_ACCENT});
             }}
         """)
         buttons_layout.addWidget(self.no_button)

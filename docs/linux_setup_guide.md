@@ -198,28 +198,48 @@ The automated install script will detect Wayland and warn you about this require
 
 ## Managing Auto-Start
 
-### Check if auto-start is enabled:
+### Method 1: Via Dwellpy Settings (Recommended)
+The easiest way to enable auto-start is through Dwellpy's built-in settings:
+
+1. Open Dwellpy
+2. Click the **Settings** button (gear icon) 
+3. Go to the **General** tab
+4. Check **"Auto-start on system login"**
+5. Click **OK**
+
+Dwellpy will now automatically start when you log in to your desktop environment. This method creates an XDG autostart entry that integrates properly with your system.
+
+### Method 2: Manual File Management
+If you prefer to manage auto-start manually:
+
+#### Check if auto-start is enabled:
 ```bash
 ls -la ~/.config/autostart/dwellpy.desktop
 ```
 
-### Disable auto-start:
+#### Disable auto-start:
 ```bash
 rm ~/.config/autostart/dwellpy.desktop
 ```
 
-### Enable auto-start (if not set up during installation):
+#### Enable auto-start (if not set up during installation):
 ```bash
 # Copy the desktop entry to autostart
 cp ~/.local/share/applications/dwellpy.desktop ~/.config/autostart/dwellpy.desktop
 ```
 
-### Desktop Environment Settings:
+### Method 3: Desktop Environment Settings
 You can also manage auto-start through your desktop environment:
 - **GNOME**: Settings → Applications → Startup Applications
 - **KDE**: System Settings → Startup and Shutdown → Autostart  
 - **XFCE**: Settings → Session and Startup → Application Autostart
 - **Ubuntu**: Search for "Startup Applications" in Activities
+
+### Disabling Auto-Start
+To disable auto-start:
+- **Via Settings**: Uncheck "Auto-start on system login" in Dwellpy Settings → General
+- **Manually**: Remove the file `~/.config/autostart/dwellpy.desktop`
+- **Desktop Environment**: Use your desktop's startup application settings
 
 ## Manual Auto-Start Setup (For Manual Installation)
 

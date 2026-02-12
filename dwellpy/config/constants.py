@@ -90,6 +90,7 @@ class Colors:
     BORDER_COLOR = "#3c3c3c"     # Subtle borders
     SLIDER_TRACK = "#444444"     # Slider track color
     DISABLED_TEXT = "#999999"    # Disabled text color
+    SUBTLE_TEXT = "#999999"      # Subtle text for descriptions
     
     # Hover states
     BLUE_HOVER = "#0069c0"       # Blue hover state
@@ -161,9 +162,9 @@ QSlider::sub-page:horizontal {{
 class Fonts:
     PRIMARY_FAMILY = "'Helvetica Neue', Helvetica, Arial, sans-serif"
     TITLE_SIZE = 16
-    REGULAR_SIZE = 11
-    BUTTON_SIZE = 9
-    VERSION_SIZE = 9
+    REGULAR_SIZE = 13
+    BUTTON_SIZE = 11
+    VERSION_SIZE = 11
     
 # File Configuration
 SETTINGS_FILENAME = "dwell_settings.json"
@@ -218,4 +219,18 @@ BUTTON_IDS = {
     'SETUP': 'SETUP',
     'MOVE': 'MOVE',
     'EXIT': 'EXIT'
+}
+
+# Icon mapping for buttons and menu items
+ICON_MAPPING = {
+    "ON_OFF": "on.png",  # Will use "off.png" when inactive
+    "LEFT": "left.png",
+    "DOUBLE": "double.png", 
+    "DRAG": "drag.png",
+    "RIGHT": "right.png",
+    "SCROLL": "scroll.png",
+    "MENU": "hamburger.png",
+    "SETUP": "setup.png",
+    "MOVE": "move.png",
+    "EXIT": "exit.png"
 }

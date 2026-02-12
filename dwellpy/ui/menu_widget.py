@@ -2,14 +2,17 @@
 
 from PyQt6.QtWidgets import QWidget, QApplication
 from PyQt6.QtCore import Qt, QPoint, QPointF, QTimer, pyqtSignal, QRect, QSize
-from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPolygonF, QCursor, QFont
+from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QPolygonF, QCursor, QFont, QPixmap
 from pynput.mouse import Controller as MouseController
+from .components.menu_drawing import MenuDrawingManager
+from ..utils.coordinate_manager import get_cursor_position, get_screen_at_cursor, get_dpi_scale_at_cursor
 import math
 import sys
 import time
 
 try:
-    from ..config.constants import Colors, BUTTON_IDS
+    from ..config.constants import Colors, BUTTON_IDS, WIDGET_UNLOCK_THRESHOLD_DEFAULT, ICON_MAPPING
+    from ..utils.helpers import get_asset_path
 except ImportError:
     # Fallback if constants not available
     class Colors:
@@ -19,12 +22,26 @@ except ImportError:
         GREEN_ACCENT = "#2ecc71"
         RED_ACCENT = "#e74c3c"
     
+    def get_asset_path(asset_name):
+        """Fallback get_asset_path function"""
+        import os
+        return os.path.join(os.path.dirname(__file__), '..', 'assets', 'icons', asset_name)
+    
     BUTTON_IDS = {
         'LEFT': 'LEFT',
         'DOUBLE': 'DOUBLE', 
         'DRAG': 'DRAG',
         'RIGHT': 'RIGHT',
         'SETUP': 'SETUP'
+    }
+    
+    ICON_MAPPING = {
+        "LEFT": "left.png",
+        "DOUBLE": "double.png", 
+        "DRAG": "drag.png",
+        "RIGHT": "right.png",
+        "SETUP": "setup.png",
+        "ON_OFF": "off.png"
     }
 
 # Windows DPI awareness for better multi-monitor support
@@ -79,7 +96,7 @@ class MenuWidget(QWidget):
         # Position lock state - keeping existing lock logic for accessibility
         self.is_locked = False  # Whether widget is locked in position
         self.lock_threshold = 120  # Distance to lock
-        self.unlock_threshold = 180  # Distance to resume following (will be set by settings)
+        self.unlock_threshold = WIDGET_UNLOCK_THRESHOLD_DEFAULT  # Distance to resume following (will be set by settings)
         
         # Movement tracking to prevent false hover detection
         self.last_move_time = 0
@@ -95,17 +112,21 @@ class MenuWidget(QWidget):
         self.max_velocity_for_hover = 100
         self.velocity_check_window = 3
         
+        # Safety mechanism to prevent getting permanently stuck
+        self.last_lock_time = 0
+        self.max_lock_duration = 5.0  # Maximum time to stay locked (5 seconds)
+        
         # Mouse controller
         self.mouse = MouseController()
         
         # Menu items configuration
         self.menu_items = [
-            {'id': 'LEFT', 'label': 'Left', 'color': Colors.BLUE_ACCENT},
-            {'id': 'DOUBLE', 'label': 'Double', 'color': Colors.GREEN_ACCENT},
-            {'id': 'RIGHT', 'label': 'Right', 'color': Colors.RED_ACCENT},
-            {'id': 'DRAG', 'label': 'Drag', 'color': Colors.BLUE_ACCENT},
-            {'id': 'SETUP', 'label': 'Settings', 'color': Colors.TEXT_COLOR},
-            {'id': 'OFF', 'label': 'Turn Off', 'color': Colors.RED_ACCENT}
+            {'id': 'LEFT', 'label': 'Left', 'color': Colors.BLUE_ACCENT, 'icon': ICON_MAPPING.get('LEFT', 'left.png')},
+            {'id': 'DOUBLE', 'label': 'Double', 'color': Colors.GREEN_ACCENT, 'icon': ICON_MAPPING.get('DOUBLE', 'double.png')},
+            {'id': 'RIGHT', 'label': 'Right', 'color': Colors.RED_ACCENT, 'icon': ICON_MAPPING.get('RIGHT', 'right.png')},
+            {'id': 'DRAG', 'label': 'Drag', 'color': Colors.BLUE_ACCENT, 'icon': ICON_MAPPING.get('DRAG', 'drag.png')},
+            {'id': 'SETUP', 'label': 'Settings', 'color': Colors.TEXT_COLOR, 'icon': ICON_MAPPING.get('SETUP', 'setup.png')},
+            {'id': 'OFF', 'label': 'Turn Off', 'color': Colors.RED_ACCENT, 'icon': 'off.png'}  # Explicitly use off.png icon
         ]
         
         # Layout configuration - circular layout around hamburger icon
@@ -119,6 +140,17 @@ class MenuWidget(QWidget):
         
         # Reference to UI manager for state checking
         self.ui_manager = None
+        
+        # Load hamburger icon
+        self.hamburger_icon = None
+        self._load_hamburger_icon()
+        
+        # Load menu item icons
+        self.menu_item_icons = {}
+        self._load_menu_item_icons()
+        
+        # Setup drawing manager
+        self.drawing_manager = MenuDrawingManager(self)
         
         # Setup UI
         self._setup_ui()
@@ -156,6 +188,28 @@ class MenuWidget(QWidget):
         
         # Initially hide the widget
         self.hide()
+    
+    def _load_hamburger_icon(self):
+        """Load the hamburger icon from assets."""
+        try:
+            icon_path = get_asset_path("hamburger.png")
+            self.hamburger_icon = QPixmap(icon_path)
+            if self.hamburger_icon.isNull():
+                self.hamburger_icon = None
+        except Exception:
+            self.hamburger_icon = None
+    
+    def _load_menu_item_icons(self):
+        """Load icons for menu items."""
+        self.menu_item_icons = {}
+        for item in self.menu_items:
+            try:
+                icon_path = get_asset_path(item['icon'])
+                icon = QPixmap(icon_path)
+                if not icon.isNull():
+                    self.menu_item_icons[item['id']] = icon
+            except Exception:
+                pass  # Icon will not be available for this item
         
     def paintEvent(self, event):
         """Custom paint event to draw the menu."""
@@ -163,10 +217,29 @@ class MenuWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
         if not self.is_expanded:
-            self._draw_hamburger_icon(painter)
+            self.drawing_manager.draw_hamburger_icon(painter)
         else:
-            self._draw_expanded_menu(painter)
-            
+            self.drawing_manager.draw_expanded_menu(painter)
+    
+
+    def _load_hamburger_icon(self):
+        """Load the hamburger icon from assets."""
+        try:
+            icon_path = get_asset_path(ICON_MAPPING["MENU"])
+            self.hamburger_icon = QPixmap(icon_path)
+        except Exception:
+            self.hamburger_icon = None
+    
+    def _load_menu_item_icons(self):
+        """Load icons for menu items."""
+        self.menu_item_icons = {}
+        for item in self.menu_items:
+            try:
+                icon_path = get_asset_path(item['icon'])
+                self.menu_item_icons[item['id']] = QPixmap(icon_path)
+            except Exception:
+                self.menu_item_icons[item['id']] = None
+    
     def _draw_hamburger_icon(self, painter):
         """Draw the hamburger icon."""
         # Draw background circle
@@ -182,21 +255,39 @@ class MenuWidget(QWidget):
         # Draw circular background
         painter.drawEllipse(self.rect())
         
-        # Draw hamburger lines
-        painter.setPen(QPen(QColor(255, 255, 255), 2))
-        
-        center_x = self.width() // 2
-        center_y = self.height() // 2
-        line_width = 12
-        line_spacing = 4
-        
-        # Three horizontal lines
-        for i in range(3):
-            y = center_y - line_spacing + (i * line_spacing)
-            painter.drawLine(
-                center_x - line_width // 2, y,
-                center_x + line_width // 2, y
+        # Draw hamburger icon from file if available, otherwise fallback to lines
+        if self.hamburger_icon and not self.hamburger_icon.isNull():
+            # Calculate icon size with minimal padding for larger icon
+            icon_size = min(self.width(), self.height()) - 6  # 3px padding on each side
+            center_x = self.width() // 2
+            center_y = self.height() // 2
+            
+            # Create target rectangle for the icon
+            icon_rect = QRect(
+                center_x - icon_size // 2,
+                center_y - icon_size // 2,
+                icon_size,
+                icon_size
             )
+            
+            # Draw the scaled hamburger icon
+            painter.drawPixmap(icon_rect, self.hamburger_icon)
+        else:
+            # Fallback to drawing hamburger lines
+            painter.setPen(QPen(QColor(255, 255, 255), 2))
+            
+            center_x = self.width() // 2
+            center_y = self.height() // 2
+            line_width = 12
+            line_spacing = 4
+            
+            # Three horizontal lines
+            for i in range(3):
+                y = center_y - line_spacing + (i * line_spacing)
+                painter.drawLine(
+                    center_x - line_width // 2, y,
+                    center_x + line_width // 2, y
+                )
     
     def _draw_expanded_menu(self, painter):
         """Draw the expanded menu with items in circular layout around hamburger icon."""
@@ -206,7 +297,7 @@ class MenuWidget(QWidget):
         hamburger_center = QPoint(hamburger_center_x, hamburger_center_y)
         
         # Draw hamburger icon at center
-        hamburger_size = 20
+        hamburger_size = 30  # Increased size for better visibility
         hamburger_rect = QRect(hamburger_center_x - hamburger_size//2, hamburger_center_y - hamburger_size//2, 
                               hamburger_size, hamburger_size)
         
@@ -222,17 +313,29 @@ class MenuWidget(QWidget):
             
         painter.drawEllipse(hamburger_rect)
         
-        # Draw hamburger lines
-        painter.setPen(QPen(QColor(255, 255, 255), 1))
-        line_width = 8
-        line_spacing = 3
-        
-        for i in range(3):
-            y = hamburger_center_y - line_spacing + (i * line_spacing)
-            painter.drawLine(
-                hamburger_center_x - line_width // 2, y,
-                hamburger_center_x + line_width // 2, y
+        # Draw hamburger icon from file if available, otherwise fallback to lines
+        if self.hamburger_icon and not self.hamburger_icon.isNull():
+            # Use the icon file for the hamburger in expanded menu
+            icon_size = hamburger_size - 4  # Small padding within the background circle
+            icon_rect = QRect(
+                hamburger_center_x - icon_size // 2,
+                hamburger_center_y - icon_size // 2,
+                icon_size,
+                icon_size
             )
+            painter.drawPixmap(icon_rect, self.hamburger_icon)
+        else:
+            # Fallback to drawing hamburger lines
+            painter.setPen(QPen(QColor(255, 255, 255), 1))
+            line_width = 8
+            line_spacing = 3
+            
+            for i in range(3):
+                y = hamburger_center_y - line_spacing + (i * line_spacing)
+                painter.drawLine(
+                    hamburger_center_x - line_width // 2, y,
+                    hamburger_center_x + line_width // 2, y
+                )
         
         # Draw menu items in a circle around hamburger icon using animated radius
         for i, item in enumerate(self.menu_items):
@@ -281,12 +384,26 @@ class MenuWidget(QWidget):
         
         painter.drawEllipse(item_rect)
         
-        # Draw item text with animated alpha
-        text_color = QColor(item_color) if is_hovered or self._is_item_active_state(item) else QColor(255, 255, 255)
-        text_color.setAlpha(min(255, base_alpha + 55))  # Ensure text is visible
-        painter.setPen(QPen(text_color))
-        painter.setFont(QFont("Helvetica Neue", 9, QFont.Weight.Bold))
-        painter.drawText(item_rect, Qt.AlignmentFlag.AlignCenter, item['label'])
+        # Draw item icon if available, otherwise draw text
+        if item['id'] in self.menu_item_icons:
+            # Draw icon
+            icon = self.menu_item_icons[item['id']]
+            # Calculate icon size with padding
+            icon_size = min(item_rect.width(), item_rect.height()) - 8  # 4px padding on each side
+            icon_rect = QRect(
+                item_rect.center().x() - icon_size // 2,
+                item_rect.center().y() - icon_size // 2,
+                icon_size,
+                icon_size
+            )
+            painter.drawPixmap(icon_rect, icon)
+        else:
+            # Fallback to text if icon not available
+            text_color = QColor(item_color) if is_hovered or self._is_item_active_state(item) else QColor(255, 255, 255)
+            text_color.setAlpha(min(255, base_alpha + 55))  # Ensure text is visible
+            painter.setPen(QPen(text_color))
+            painter.setFont(QFont("Helvetica Neue", 8, QFont.Weight.Bold))
+            painter.drawText(item_rect, Qt.AlignmentFlag.AlignCenter, item['label'])
     
     def _get_item_state_color(self, item):
         """Get the color for a menu item based on current UI state."""
@@ -341,36 +458,30 @@ class MenuWidget(QWidget):
         return False
     
     def _get_qt_cursor_position(self):
-        """Get cursor position using Qt's coordinate system for consistency."""
+        """Get cursor position using the coordinate manager for DPI-aware positioning."""
         try:
-            return QCursor.pos()
+            return get_cursor_position()
         except:
+            # Fallback to pynput if coordinate manager fails
             pos = self.mouse.position
             return QPoint(int(pos[0]), int(pos[1]))
     
-    def _convert_pynput_to_qt_coords(self, pynput_pos):
-        """Convert pynput coordinates to Qt coordinates for multi-monitor consistency."""
+    def _get_screen_geometry(self):
+        """Get the screen geometry that contains the current cursor position."""
         try:
+            screen = get_screen_at_cursor()
+            if screen:
+                return screen.geometry()
+            
+            # Fallback to QApplication if coordinate manager fails
             app = QApplication.instance()
-            if not app:
-                return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
+            if app:
+                return app.primaryScreen().geometry()
+            return None
             
-            # Try using Qt's cursor position as it should be more accurate
-            try:
-                qt_direct = QCursor.pos()
-                dx = abs(qt_direct.x() - pynput_pos[0])
-                dy = abs(qt_direct.y() - pynput_pos[1])
-                if dx < 10 and dy < 10:  # Within 10 pixels, use Qt directly
-                    return qt_direct
-            except:
-                pass
-            
-            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
-            
-        except Exception as e:
-            print(f"MenuWidget coordinate conversion error: {e}")
-            return QPoint(int(pynput_pos[0]), int(pynput_pos[1]))
-
+        except Exception:
+            return None
+    
     def set_coordinated_position(self, position):
         """Set widget position using coordinated positioning (for multi-widget layouts)."""
         if not self.is_active:
@@ -385,12 +496,18 @@ class MenuWidget(QWidget):
         if not self.is_active:
             return
         
-        # If in coordinated mode, skip normal positioning logic
+        # If in coordinated mode, skip normal positioning logic but track cursor
         if coordinated_mode:
+            # Get DPI-aware cursor position from coordinate manager
+            qt_cursor_pos = self._get_qt_cursor_position()
+            cursor_x, cursor_y = qt_cursor_pos.x(), qt_cursor_pos.y()
+            
+            # Update cursor tracking for hover detection
+            self.last_cursor_pos = (cursor_x, cursor_y)
             return
         
-        # Convert pynput coordinates to Qt coordinates for consistency
-        qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
+        # Get DPI-aware cursor position from coordinate manager
+        qt_cursor_pos = self._get_qt_cursor_position()
         cursor_x, cursor_y = qt_cursor_pos.x(), qt_cursor_pos.y()
         
         # Track cursor velocity for hover detection
@@ -429,10 +546,11 @@ class MenuWidget(QWidget):
         dy = cursor_y - widget_global_center.y()
         distance_to_widget = math.sqrt(dx * dx + dy * dy)
         
-        # Lock/unlock logic
+        # Lock/unlock logic - simplified to prevent getting stuck
         if not self.is_locked:
             if distance_to_widget < self.lock_threshold:
                 self.is_locked = True
+                self.last_lock_time = time.time()
                 return
             
             # Position widget so hamburger icon is centered under cursor
@@ -465,7 +583,12 @@ class MenuWidget(QWidget):
                 self.move(new_x, new_y)
         else:
             # Widget is locked - check if cursor moved far enough to unlock
-            if distance_to_widget > self.unlock_threshold:
+            # Also check if we've been locked too long (safety mechanism)
+            current_time = time.time()
+            should_unlock = (distance_to_widget > self.unlock_threshold or 
+                           (current_time - self.last_lock_time) > self.max_lock_duration)
+            
+            if should_unlock:
                 self.is_locked = False
                 
                 # Immediately update to new position centered under cursor
@@ -507,8 +630,8 @@ class MenuWidget(QWidget):
                     self._set_expanded(False)
                 return None
         
-        # Convert pynput coordinates to Qt coordinates
-        qt_cursor_pos = self._convert_pynput_to_qt_coords(cursor_pos)
+        # Get DPI-aware cursor position from coordinate manager
+        qt_cursor_pos = self._get_qt_cursor_position()
         
         # Convert cursor position to widget coordinates
         widget_pos = self.mapFromGlobal(qt_cursor_pos)
@@ -592,6 +715,10 @@ class MenuWidget(QWidget):
                     new_y = int(cursor_y - self.expanded_size // 2)
                     self.move(new_x, new_y)
                     
+                    # Update last widget position to prevent conflicts
+                    self.last_widget_pos = (new_x, new_y)
+                    self.last_move_time = time.time()
+                    
                     # Start with radius 0 for animation
                     self.current_radius = 0
                 except:
@@ -637,7 +764,13 @@ class MenuWidget(QWidget):
                 current_pos = self.pos()
                 
                 self.setFixedSize(self.hamburger_size, self.hamburger_size)
-                self.move(current_pos.x() + offset, current_pos.y() + offset)
+                new_x = current_pos.x() + offset
+                new_y = current_pos.y() + offset
+                self.move(new_x, new_y)
+                
+                # Update last widget position to prevent conflicts
+                self.last_widget_pos = (new_x, new_y)
+                self.last_move_time = time.time()
 
     def trigger_menu_item(self, item_id):
         """Trigger a menu item action."""
@@ -655,7 +788,7 @@ class MenuWidget(QWidget):
             if sys.platform != "darwin":
                 self.raise_()
             try:
-                pos = self.mouse.position
+                pos = self._get_qt_cursor_position()
                 self.update_position(pos)
             except:
                 pass
@@ -689,33 +822,6 @@ class MenuWidget(QWidget):
         # Update current opacity if not hovering
         if self.current_hover is None:
             self.setWindowOpacity(self.base_opacity)
-    
-    def _get_screen_geometry(self):
-        """Get the screen geometry that contains the current cursor position."""
-        try:
-            app = QApplication.instance()
-            if not app:
-                return None
-            
-            # Get all screens
-            screens = app.screens()
-            if not screens:
-                return None
-            
-            # Get current cursor position
-            cursor_pos = QCursor.pos()
-            
-            # Find which screen contains the cursor
-            for screen in screens:
-                geometry = screen.geometry()
-                if geometry.contains(cursor_pos):
-                    return geometry
-            
-            # If no screen contains cursor, return primary screen
-            return app.primaryScreen().geometry()
-            
-        except Exception:
-            return None
     
     def _detect_off_screen_position(self, proposed_pos, widget_size):
         """
@@ -802,3 +908,16 @@ class MenuWidget(QWidget):
         if self.is_expanded:
             self.setFixedSize(self.expanded_size, self.expanded_size)
             self.update()
+
+    def set_unlock_threshold(self, threshold: int):
+        """Update the unlock threshold for the widget."""
+        self.unlock_threshold = threshold
+    
+    def force_unlock(self):
+        """Force unlock the widget if it gets stuck."""
+        if self.is_locked:
+            self.is_locked = False
+            self.last_lock_time = 0
+            # Force a position update
+            if self.last_cursor_pos is not None:
+                self.update_position(self.last_cursor_pos)

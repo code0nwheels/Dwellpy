@@ -4,20 +4,11 @@ import os
 import sys
 import signal
 import psutil
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                           QPushButton, QFrame, QApplication)
+from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon
-from ..utils import center_window
-from ..utils.helpers import get_asset_path
 
-# Dark theme color constants
-DARK_BG = "#222222"         # Dark background
-DARK_BUTTON_BG = "#2d2d2d"  # Dark button background
-TEXT_COLOR = "#ffffff"      # White text
-BLUE_ACCENT = "#0078d7"     # Blue accent color
-RED_ACCENT = "#d83638"      # Red accent/title color
-BORDER_COLOR = "#3c3c3c"    # Slight border color for depth
+# Import the ExitDialog class
+from ..ui.dialogs.exit_dialog import ExitDialog
 
 class ExitManager:
     """Manages exit confirmation dialog and exit functionality."""
@@ -77,121 +68,15 @@ class ExitManager:
             self.confirm_dialog.activateWindow()
             return
         
-        # Create confirmation dialog
-        self.confirm_dialog = QDialog(self.parent_window)
-        self.confirm_dialog.setFixedSize(350, 180)
-        
-        # Set window flags to frameless
-        self.confirm_dialog.setWindowFlags(
-            Qt.WindowType.Dialog | 
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.FramelessWindowHint  # No title bar
-        )
-        
-        # Make dialog non-modal to allow dwell clicking to continue
-        self.confirm_dialog.setModal(False)
-        
-        # Set window icon for taskbar display
-        try:
-            # Use platform-appropriate icon format
-            if os.name == 'nt':  # Windows
-                icon_path = get_asset_path("Dwellpy.ico")
-            else:  # Linux/macOS
-                icon_path = get_asset_path("Dwellpy.png")
-                
-            if os.path.exists(icon_path):
-                self.confirm_dialog.setWindowIcon(QIcon(icon_path))
-        except Exception:
-            pass  # Silently fail if icon can't be loaded
-        
-        # Apply dark theme with red border
-        self.confirm_dialog.setStyleSheet(f"""
-            QDialog {{
-                background-color: {DARK_BG};
-                color: {TEXT_COLOR};
-                border: 1px solid {RED_ACCENT};
-                border-radius: 3px;
-            }}
-            QLabel {{
-                color: {TEXT_COLOR};
-            }}
-        """)
-        
-        # Main layout
-        main_layout = QVBoxLayout(self.confirm_dialog)
-        main_layout.setContentsMargins(20, 25, 20, 20)
-        main_layout.setSpacing(20)
-        
-        # Message
-        message = QLabel("Are you sure you want to exit?", self.confirm_dialog)
-        message.setStyleSheet(f"""
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 14pt;
-            color: {TEXT_COLOR};
-        """)
-        message.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(message)
-        
-        # Buttons
-        buttons_frame = QFrame(self.confirm_dialog)
-        buttons_layout = QHBoxLayout(buttons_frame)
-        buttons_layout.setContentsMargins(0, 0, 0, 0)
-        buttons_layout.setSpacing(20)
-        buttons_frame.setStyleSheet(f"background-color: {DARK_BG};")
-        
-        # Yes button - red styling
-        yes_button = QPushButton("Yes", buttons_frame)
-        yes_button.setFixedSize(100, 40)
-        yes_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        yes_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {RED_ACCENT};
-                color: {TEXT_COLOR};
-                border: none;
-                border-radius: 3px;
-                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                font-size: 12pt;
-                font-weight: bold;
-                padding: 5px 15px;
-            }}
-            QPushButton:hover {{
-                background-color: #c0392b;
-            }}
-        """)
-        buttons_layout.addWidget(yes_button)
-        
-        # No button - blue styling
-        no_button = QPushButton("No", buttons_frame)
-        no_button.setFixedSize(100, 40)
-        no_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        no_button.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {BLUE_ACCENT};
-                color: {TEXT_COLOR};
-                border: none;
-                border-radius: 3px;
-                font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                font-size: 12pt;
-                font-weight: bold;
-                padding: 5px 15px;
-            }}
-            QPushButton:hover {{
-                background-color: #0069c0;
-            }}
-        """)
-        buttons_layout.addWidget(no_button)
-        
-        main_layout.addWidget(buttons_frame, 0, Qt.AlignmentFlag.AlignCenter)
+        # Create confirmation dialog using the ExitDialog class
+        self.confirm_dialog = ExitDialog(self.parent_window)
         
         # Connect signals
-        yes_button.clicked.connect(self.confirm_exit)
-        no_button.clicked.connect(self.cancel_exit)
+        self.confirm_dialog.yes_button.clicked.connect(self.confirm_exit)
+        self.confirm_dialog.no_button.clicked.connect(self.cancel_exit)
         
-        # Center the dialog on screen
-        center_window(self.confirm_dialog)
-        
-        # Show the dialog (non-modal)
-        self.confirm_dialog.show()  # Use show() instead of exec() to make it non-modal
+        # Show the dialog
+        self.confirm_dialog.show()
     
     def confirm_exit(self):
         """Exit the application after confirmation with force kill."""

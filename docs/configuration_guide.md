@@ -12,20 +12,19 @@ A small circular hamburger menu (☰) that appears when you dwell (pause cursor)
 ### Scroll Widget  
 A floating scroll helper with up/down arrows that appears alongside the menu widget when you dwell. Allows easy scrolling without precise targeting of scroll bars.
 
-Both widgets use the same appearance delay setting (configurable in the Scroll tab).
+Both widgets use the same appearance delay setting (configurable in the Widgets tab).
 
 ## Opening Settings
 
-Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog. The settings are organized into four main tabs for easy navigation:
+Click the **SETUP** button on the Dwellpy toolbar to open the settings dialog. The settings are organized into three main tabs for easy navigation:
 
-- **Dwell**: Movement detection and timing settings
-- **Visual**: Appearance and click feedback options  
-- **Scroll**: Scroll widget configuration
-- **General**: Startup and UI behavior settings
+- **Behavior**: Core dwell detection, timing, and startup behavior settings
+- **Visual**: Appearance, click feedback, and UI customization options  
+- **Widgets**: Menu and scroll widget configuration
 
-## Dwell Tab
+## Behavior Tab
 
-The Dwell tab contains the core settings that control how dwell clicking works.
+The Behavior tab contains the core settings that control how dwell clicking works and how Dwellpy behaves on startup.
 
 ### Movement Detection
 This section controls how much your cursor can move while still counting as "dwelling" in one spot.
@@ -62,6 +61,60 @@ This section controls how long you must hold your cursor still before a click ha
 - Shorter times = faster but more accidental clicks
 - Longer times = slower but more deliberate
 - Most users find 0.6-0.8 seconds works well
+
+### Startup Behavior
+This section controls how Dwellpy should behave when first launched.
+
+#### Start Active on Launch
+**What it does**: Automatically turns on dwell clicking when Dwellpy starts.
+
+**When to enable**: If you always want dwell clicking active immediately.
+
+**When to disable**: If you prefer to manually turn it on when needed.
+
+### UI Behavior
+This section controls how the toolbar behaves when you're not using it.
+
+#### Auto Collapse UI
+**What it does**: Automatically shrinks the Dwellpy toolbar to a single button when your cursor moves away from it.
+
+**How it works**: 
+- When enabled, the toolbar contracts to a small button showing current status after 1 second
+- The contracted button shows current mode (e.g., "LEFT", "OFF", "DRAG*" for temporary mode)
+- Hover over the contracted button to expand back to full toolbar
+- Auto-expands when cursor returns to the area
+
+**When to enable**:
+- Reduce screen clutter during regular computer use
+- Maximize available screen real estate
+- Minimize visual distractions while keeping Dwellpy accessible
+
+**When to disable**:
+- Prefer having all controls always visible
+- Frequently switch between click modes
+
+**Default setting**: Disabled
+
+#### Expansion Direction
+**What it controls**: Which direction the UI expands when auto-collapse is enabled.
+
+**Options** (dropdown selection):
+- **Auto (recommended)**: Automatically chooses the best direction based on screen position and available space
+- **Horizontal (left-to-right)**: Always expands left-to-right (traditional toolbar layout)
+- **Vertical (top-to-bottom)**: Always expands top-to-bottom (column layout)
+
+**Auto mode logic**:
+- Analyzes available screen space in all directions
+- Prefers horizontal expansion when space permits
+- Falls back to vertical if horizontal space is limited
+- Considers screen edges and multi-monitor setups
+
+**When to use specific directions**:
+- **Horizontal**: Wide screens, traditional desktop layouts
+- **Vertical**: Narrow screens, side-mounted positioning, ultrawide monitors
+- **Auto**: Most users - let Dwellpy choose the optimal layout
+
+**Note**: This setting only applies when "Auto Collapse UI" is enabled.
 
 ## Visual Tab
 
@@ -126,9 +179,9 @@ This section controls visual indicators to show where and what type of clicks ar
 
 **Default colors** are designed to be vibrant and distinct from typical system feedback, making it clear when Dwellpy is performing intentional actions rather than accidental system responses.
 
-## Scroll Tab
+## Widgets Tab
 
-The Scroll tab contains settings for the floating scroll widget and menu widget appearance.
+The Widgets tab contains settings for the floating scroll widget and menu widget appearance and behavior.
 
 **Note on Widget Behavior**: The scroll and menu widgets are designed to work together. When the menu widget expands (by hovering over the hamburger icon), the scroll widget will automatically hide to reduce clutter, unless you are actively hovering over the scroll widget itself. It will reappear when the menu widget contracts.
 
@@ -199,64 +252,6 @@ This section controls the appearance and behavior of the hamburger menu widget.
 - **Increase threshold**: If you find the widgets move too easily when you're trying to interact with them.
 - **Decrease threshold**: If the widgets feel sluggish or hard to move.
 
-## General Tab
-
-The General tab contains startup and UI behavior settings.
-
-### Startup Behavior
-This section controls how Dwellpy should behave when first launched.
-
-#### Start Active on Launch
-**What it does**: Automatically turns on dwell clicking when Dwellpy starts.
-
-**When to enable**: If you always want dwell clicking active immediately.
-
-**When to disable**: If you prefer to manually turn it on when needed.
-
-### UI Behavior
-This section controls how the toolbar behaves when you're not using it.
-
-#### Auto Collapse UI
-**What it does**: Automatically shrinks the Dwellpy toolbar to a single button when your cursor moves away from it.
-
-**How it works**: 
-- When enabled, the toolbar contracts to a small button showing current status after 1 second
-- The contracted button shows current mode (e.g., "LEFT", "OFF", "DRAG*" for temporary mode)
-- Hover over the contracted button to expand back to full toolbar
-- Auto-expands when cursor returns to the area
-
-**When to enable**:
-- Reduce screen clutter during regular computer use
-- Maximize available screen real estate
-- Minimize visual distractions while keeping Dwellpy accessible
-
-**When to disable**:
-- Prefer having all controls always visible
-- Frequently switch between click modes
-
-**Default setting**: Disabled
-
-#### Expansion Direction
-**What it controls**: Which direction the UI expands when auto-collapse is enabled.
-
-**Options** (radio button selection):
-- **Auto (recommended)**: Automatically chooses the best direction based on screen position and available space
-- **Horizontal (left-to-right)**: Always expands left-to-right (traditional toolbar layout)
-- **Vertical (top-to-bottom)**: Always expands top-to-bottom (column layout)
-
-**Auto mode logic**:
-- Analyzes available screen space in all directions
-- Prefers horizontal expansion when space permits
-- Falls back to vertical if horizontal space is limited
-- Considers screen edges and multi-monitor setups
-
-**When to use specific directions**:
-- **Horizontal**: Wide screens, traditional desktop layouts
-- **Vertical**: Narrow screens, side-mounted positioning, ultrawide monitors
-- **Auto**: Most users - let Dwellpy choose the optimal layout
-
-**Note**: This setting only applies when "Contract UI when cursor is outside" is enabled.
-
 ## Click Mode Settings
 
 ### Understanding Click Modes
@@ -292,10 +287,15 @@ You can change which mode serves as your default (the one you return to after te
 - **Color buttons** open color pickers immediately for customization
 
 ### Tab Organization
-- **Dwell tab**: Start here for basic functionality setup
+- **Behavior tab**: Start here for basic functionality setup and startup behavior
 - **Visual tab**: Customize appearance and feedback
-- **Scroll tab**: Configure scrolling helper
-- **General tab**: Set startup and advanced UI behavior
+- **Widgets tab**: Configure scrolling helper and menu appearance
+
+### Accessibility Features
+- **Keyboard navigation**: Use Tab to move between controls, Enter to activate buttons, Escape to cancel
+- **Tooltips**: Hover over tab names and controls for helpful descriptions
+- **Consistent sizing**: All controls use appropriately sized fonts and spacing for easy reading
+- **High contrast**: Settings use clear visual hierarchy with proper contrast ratios
 
 ## Troubleshooting Settings
 
@@ -349,47 +349,3 @@ After changing settings:
 Your settings are saved automatically, but if you find settings that work well, note them down in case you need to reinstall.
 
 **Future Enhancement**: Multiple user profiles for different activities (reading vs. productivity) would be a useful addition.
-
-## UI Behavior Settings
-
-### Auto Collapse UI
-**What it does**: Automatically shrinks the Dwellpy toolbar to a single button when your cursor moves away from it.
-
-**How it works**: 
-- When enabled, the toolbar contracts to a small button showing current status after 1 second
-- The contracted button shows current mode (e.g., "LEFT", "OFF", "DRAG*" for temporary mode)
-- Hover over the contracted button to expand back to full toolbar
-- Auto-expands when cursor returns to the area
-
-**When to enable**:
-- Reduce screen clutter during regular computer use
-- Maximize available screen real estate
-- Minimize visual distractions while keeping Dwellpy accessible
-
-**When to disable**:
-- Prefer having all controls always visible
-- Frequently switch between click modes
-- Using touch screen or other direct input methods
-
-**Default setting**: Disabled
-
-### Expansion Direction
-**What it controls**: Which direction the UI expands when auto-collapse is enabled.
-
-**Options**:
-- **Auto (Default)**: Automatically chooses the best direction based on screen position and available space
-- **Horizontal**: Always expands left-to-right (traditional toolbar layout)
-- **Vertical**: Always expands top-to-bottom (column layout)
-
-**Auto mode logic**:
-- Analyzes available screen space in all directions
-- Prefers horizontal expansion when space permits
-- Falls back to vertical if horizontal space is limited
-- Considers screen edges and multi-monitor setups
-
-**When to use specific directions**:
-- **Horizontal**: Wide screens, traditional desktop layouts
-- **Vertical**: Narrow screens, side-mounted positioning, ultrawide monitors
-- **Auto**: Most users - let Dwellpy choose the optimal layout
-
-**Note**: This setting only applies when "Contract UI when cursor is outside" is enabled.

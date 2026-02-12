@@ -380,7 +380,7 @@ class SettingsManager:
 		
 		# Apply contraction change immediately if UI manager is available
 		if self.ui_manager:
-			self.ui_manager.apply_contraction_settings()
+			self.ui_manager.contraction_manager.apply_contraction_settings()
 		
 		self.logger.info(f"UI contraction enabled: {enabled}")
 	
@@ -786,8 +786,8 @@ Keywords=accessibility;dwell;click;motor;disability;
 		if self.ui_manager:
 			self.ui_manager.apply_transparency_settings()
 			self.ui_manager.apply_scroll_settings()
-			self.ui_manager.apply_contraction_settings()
-			self.ui_manager.apply_expansion_settings()
+			self.ui_manager.contraction_manager.apply_contraction_settings()
+			self.ui_manager.contraction_manager.apply_expansion_settings()
 		
 		self.logger.info("Settings reset to defaults")
 	
@@ -845,8 +845,8 @@ Keywords=accessibility;dwell;click;motor;disability;
 		self.settings['widget_unlock_threshold'] = clamped_threshold
 		
 		# Apply immediately to UI manager if it exists
-		# if self.ui_manager:
-		# 	self.ui_manager.set_unlock_threshold(clamped_threshold)
+		if self.ui_manager:
+			self.ui_manager.set_unlock_threshold(clamped_threshold)
 		
 		self.logger.info(f"Widget unlock threshold updated to: {clamped_threshold}px")
 	

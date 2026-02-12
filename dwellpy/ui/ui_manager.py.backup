@@ -18,10 +18,9 @@ try:
         Colors, BUTTON_SIZE, LAYOUT_MARGIN, LAYOUT_SPACING, BORDER_RADIUS, Fonts,
         CONTRACT_DELAY, EXPAND_DELAY, CONTRACT_BUTTON_SIZE, CONTRACT_BUTTON_TEXT,
         EXPANSION_DIRECTIONS, DEFAULT_EXPANSION_DIRECTION, SCREEN_EDGE_MARGIN,
-        WIDGET_UNLOCK_THRESHOLD_DEFAULT, ICON_MAPPING
+        WIDGET_UNLOCK_THRESHOLD_DEFAULT
     )
     from ..utils.helpers import get_asset_path
-    from ..utils.coordinate_manager import get_cursor_position, get_cursor_position_tuple, get_screen_at_cursor
 except ImportError:
     # Fallback constants for testing
     class Colors:
@@ -61,23 +60,6 @@ except ImportError:
         else:
             base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         return os.path.join(base_path, 'assets', 'icons', asset_name)
-    
-    # Fallback coordinate manager functions
-    def get_cursor_position():
-        from PyQt6.QtGui import QCursor
-        return QCursor.pos()
-    
-    def get_cursor_position_tuple():
-        from PyQt6.QtGui import QCursor
-        pos = QCursor.pos()
-        return (pos.x(), pos.y())
-    
-    def get_screen_at_cursor():
-        from PyQt6.QtWidgets import QApplication
-        app = QApplication.instance()
-        if app:
-            return app.primaryScreen()
-        return None
 
 
 class DwellClickerUI:
@@ -113,11 +95,6 @@ class DwellClickerUI:
         self.opacity_timer = QTimer()
         self.opacity_timer.setSingleShot(True)
         self.opacity_timer.timeout.connect(self.set_transparent)
-
-        # Stuck widget detection timer
-        self.stuck_widget_timer = QTimer()
-        self.stuck_widget_timer.timeout.connect(self._check_for_stuck_widgets)
-        self.stuck_widget_timer.start(2000)  # Check every 2 seconds
 
         # UI Contraction state
         self.contraction_manager = UIContractionManager(self)
@@ -172,6 +149,9 @@ class DwellClickerUI:
         # Apply transparency settings once settings manager is connected
         self.apply_transparency_settings()
         
+        # Apply contraction settings
+        self.contraction_manager.apply_contraction_settings()
+        
         # Apply expansion settings to ensure proper initial layout
         self.contraction_manager.apply_expansion_settings()
         
@@ -191,9 +171,6 @@ class DwellClickerUI:
         
         # Apply widget unlock threshold settings
         self.apply_widget_unlock_threshold_settings()
-        
-        # Apply contraction settings LAST, after all button states are set
-        self.contraction_manager.apply_contraction_settings()
     
     def register_button_commands(self):
         """Register button commands with the button manager."""
@@ -422,228 +399,27 @@ class DwellClickerUI:
                 opacity = (100 - transparency_level) / 100.0
                 self.window.setWindowOpacity(opacity)
     
-    def update_contracted_button_state(self):
-        """Update the icon and style of the contracted button to match current status."""
-        if not self.contraction_manager.contracted_button or not self.contraction_manager.is_contracted:
-            return
-            
-        # Determine which icon to use based on current state
-        if not self.is_active:
-            icon_id = "ON_OFF"  # Will use off.png
-        else:
-            icon_id = self.current_mode  # Use current mode icon
-        
-        # Set the icon and clear any text
-        icon_path = self._get_icon_path(icon_id)
-        if icon_path and os.path.exists(icon_path):
-            icon = QIcon(icon_path)
-            # Scale icon to fit button size minus padding
-            icon_size = min(CONTRACT_BUTTON_SIZE[0], CONTRACT_BUTTON_SIZE[1]) - 10
-            self.contraction_manager.contracted_button.setIcon(icon)
-            self.contraction_manager.contracted_button.setIconSize(QSize(icon_size, icon_size))
-            self.contraction_manager.contracted_button.setText("")  # Clear text to show only icon
-        
-        # Update button style to match current state (remove font styling)
-        if not self.is_active:
-            # OFF state - red like the ON/OFF button when off
-            self.contraction_manager.contracted_button.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {Colors.RED_ACCENT};
-                    border: 1px solid {Colors.RED_ACCENT};
-                    border-radius: {BORDER_RADIUS}px;
-                }}
-                QPushButton:hover {{
-                    background-color: {Colors.RED_HOVER};
-                    border: 1px solid {Colors.RED_HOVER};
-                }}
-            """)
-        elif self.is_temporary_mode:
-            # Temporary mode - red like temporary mode buttons
-            self.contraction_manager.contracted_button.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {Colors.RED_ACCENT};
-                    border: 1px solid {Colors.RED_ACCENT};
-                    border-radius: {BORDER_RADIUS}px;
-                }}
-                QPushButton:hover {{
-                    background-color: {Colors.RED_HOVER};
-                    border: 1px solid {Colors.RED_HOVER};
-                }}
-            """)
-        else:
-            # Default/permanent mode - blue like default mode buttons
-            self.contraction_manager.contracted_button.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {Colors.BLUE_ACCENT};
-                    border: 1px solid {Colors.BLUE_ACCENT};
-                    border-radius: {BORDER_RADIUS}px;
-                }}
-                QPushButton:hover {{
-                    background-color: {Colors.BLUE_HOVER};
-                    border: 1px solid {Colors.BLUE_HOVER};
-                }}
-            """)
-    
-    def contract_ui(self):
-        """Contract the UI to a single button."""
-        if self.contraction_manager.is_contracted or not self.settings_manager:
-            return
-        
-        # Don't contract if cursor is over window
-        if self.is_cursor_over_window:
-            return
-        
-        self.contraction_manager.is_contracted = True
-        
-        # Store current window position before resizing
-        current_pos = self.window.pos()
-        
-        # Determine and store expansion direction
-        self.contraction_manager.current_expansion_direction = self.determine_expansion_direction()
-        
-        # Store original window size
-        self.contraction_manager.original_window_size = self.window.size()
-        
-        # Hide all existing buttons
-        for button in self.buttons.values():
-            button.hide()
-        
-        # Create contracted button if it doesn't exist
-        if not self.contraction_manager.contracted_button:
-            self.contraction_manager.contracted_button = self.create_contracted_button()
-            self.contraction_manager.original_layout.addWidget(self.contraction_manager.contracted_button)
-        else:
-            # Update the text to show current status
-            self.update_contracted_button_state()
-        
-        # Show contracted button
-        self.contraction_manager.contracted_button.show()
-        
-        # Resize window to fit contracted button
-        self.window.setFixedSize(
-            CONTRACT_BUTTON_SIZE[0] + (LAYOUT_MARGIN * 2),
-            CONTRACT_BUTTON_SIZE[1] + (LAYOUT_MARGIN * 2)
-        )
-        
-        # Ensure window stays within screen bounds after resizing to contracted form
-        self._ensure_window_in_bounds(current_pos)
-    
-    def expand_ui(self):
-        """Expand the UI to show all buttons in the determined direction."""
-        if not self.contraction_manager.is_contracted:
-            return
-        
-        # Set flag to indicate we're expanding from contracted state
-        self.contraction_manager._expanding_from_contracted = True
-        
-        self.contraction_manager.is_contracted = False
-        
-        # Hide contracted button
-        if self.contraction_manager.contracted_button:
-            self.contraction_manager.contracted_button.hide()
-        
-        # Get the expansion direction
-        direction = self.contraction_manager.current_expansion_direction or 'horizontal'
-        
-        # Use the shared rebuild layout method
-        self._rebuild_layout(direction)
-        
-        # Update scroll widget position if active
-        if self.is_active and self.settings_manager and self.settings_manager.get_setting('scroll_enabled', True):
-            try:
-                from pynput.mouse import Controller
-                mouse = Controller()
-                pos = mouse.position
-                self.update_scroll_widget_position(pos)
-            except Exception:
-                pass
-    
-    def clear_layout(self, layout):
-        """Clear all widgets from a layout."""
-        if layout is not None:
-            while layout.count():
-                child = layout.takeAt(0)
-                if child.widget():
-                    # Remove widget from layout but don't delete it
-                    widget = child.widget()
-                    widget.setParent(None)
-                elif child.layout():
-                    # Recursively clear nested layouts
-                    self.clear_layout(child.layout())
-    
-    def get_current_status_text(self):
-        """Get the current status text for the contracted button."""
-        if not self.is_active:
-            return "OFF"
-        
-        # Show current mode, with indicator for temporary mode
-        if self.is_temporary_mode:
-            return f"{self.current_mode}*"  # Asterisk indicates temporary
-        else:
-            return self.current_mode
-    
-    def create_contracted_button(self):
-        """Create the contracted button showing current status."""
-        button = QPushButton()
-        button.setFixedSize(CONTRACT_BUTTON_SIZE[0], CONTRACT_BUTTON_SIZE[1])
-        button.setObjectName("CONTRACTED")  # Give it an ID for button manager
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        # Connect click to expand
-        button.clicked.connect(self.contraction_manager.expand_ui)
-        
-        # Add hover events for dwell detection
-        original_enter_event = button.enterEvent
-        original_leave_event = button.leaveEvent
-        
-        def custom_enter_event(event):
-            self.button_manager.set_hover("CONTRACTED")
-            if original_enter_event:
-                original_enter_event(event)
-        
-        def custom_leave_event(event):
-            self.button_manager.clear_hover("CONTRACTED")
-            if original_leave_event:
-                original_leave_event(event)
-        
-        button.enterEvent = custom_enter_event
-        button.leaveEvent = custom_leave_event
-        
-        # Hide initially
-        button.hide()
-        
-        # Store the button reference before applying state-based styling
-        self.contraction_manager.contracted_button = button
-        
-        # Apply initial state-based styling
-        self.update_contracted_button_state()
-        
-        return button
+
     
     def create_button(self, text, color, button_id):
         """Create a styled button with hover behavior."""
-        # Create button with fixed size (no text, will use icon)
-        button = QPushButton()
+        # Create button with fixed size
+        button = QPushButton(text)
         button.setFixedSize(QSize(BUTTON_SIZE[0], BUTTON_SIZE[1]))
         button.setObjectName(button_id)  # Store ID as object name
         button.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        # Load and set icon
-        icon_path = self._get_icon_path(button_id)
-        if icon_path and os.path.exists(icon_path):
-            icon = QIcon(icon_path)
-            # Scale icon to fit button size minus padding
-            icon_size = min(BUTTON_SIZE[0], BUTTON_SIZE[1]) - 10
-            button.setIcon(icon)
-            button.setIconSize(QSize(icon_size, icon_size))
         
         # Style the button using Qt stylesheets
         if color == "blue":
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.DARK_BUTTON_BG};
+                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 9pt;
+                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.DARK_BUTTON_BG};
@@ -654,8 +430,12 @@ class DwellClickerUI:
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.DARK_BUTTON_BG};
+                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 9pt;
+                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.DARK_BUTTON_BG};
@@ -666,8 +446,12 @@ class DwellClickerUI:
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.DARK_BUTTON_BG};
+                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 9pt;
+                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: #3d3d3d;
@@ -678,8 +462,12 @@ class DwellClickerUI:
             button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.DARK_BUTTON_BG};
+                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BORDER_COLOR};
                     border-radius: {BORDER_RADIUS}px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 9pt;
+                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.DARK_BUTTON_BG};
@@ -828,17 +616,15 @@ class DwellClickerUI:
         
         # Update ON/OFF button
         if self.is_active:
-            # Update button icon to "on" state
-            icon_path = self._get_icon_path("ON_OFF")
-            if icon_path and os.path.exists(icon_path):
-                icon = QIcon(icon_path)
-                self.buttons["ON_OFF"].setIcon(icon)
-            
             self.buttons["ON_OFF"].setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.GREEN_ACCENT};
+                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.GREEN_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 9pt;
+                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.GREEN_HOVER};
@@ -846,17 +632,15 @@ class DwellClickerUI:
                 }}
             """)
         else:
-            # Update button icon to "off" state
-            icon_path = self._get_icon_path("ON_OFF")
-            if icon_path and os.path.exists(icon_path):
-                icon = QIcon(icon_path)
-                self.buttons["ON_OFF"].setIcon(icon)
-            
             self.buttons["ON_OFF"].setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.RED_ACCENT};
+                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.RED_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
+                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+                    font-size: 9pt;
+                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.RED_HOVER};
@@ -1137,7 +921,7 @@ class DwellClickerUI:
             
             # Handle contracted button - always allow expansion
             if button_id == "CONTRACTED":
-                self.contraction_manager.expand_ui()
+                self.expand_ui()
                 return
                 
             # For all other buttons (except MOVE), only act if clicker is active
@@ -1263,16 +1047,11 @@ class DwellClickerUI:
         import math
         from PyQt6.QtCore import QPoint, QSize
         
-        # Get DPI-aware cursor position from coordinate manager
-        try:
-            qt_cursor_pos = get_cursor_position()
-            cursor_x, cursor_y = qt_cursor_pos.x(), qt_cursor_pos.y()
-        except:
-            # Fallback to provided cursor_pos if coordinate manager fails
-            if hasattr(cursor_pos, '__iter__'):
-                cursor_x, cursor_y = cursor_pos
-            else:
-                cursor_x, cursor_y = cursor_pos.x(), cursor_pos.y()
+        # Convert pynput coordinates to Qt coordinates
+        if hasattr(cursor_pos, '__iter__'):
+            cursor_x, cursor_y = cursor_pos
+        else:
+            cursor_x, cursor_y = cursor_pos.x(), cursor_pos.y()
         
         # Initialize coordinated lock state if not exists
         if not hasattr(self, '_coordinated_locked'):
@@ -1286,8 +1065,7 @@ class DwellClickerUI:
         if menu_expanded and not scroll_activated:
             if self.scroll_widget.isVisible():
                 self.scroll_widget.hide()
-            # When menu is expanded, don't reposition it but still track cursor for hover detection
-            # This allows the widget to stay in place while maintaining hover functionality
+            # Only position menu widget in this case
             self.menu_widget.update_position(cursor_pos, coordinated_mode=True)
             return
         
@@ -1782,7 +1560,7 @@ class DwellClickerUI:
                 # The movement detection system will show it after the configured delay
                 self.menu_widget.is_active = True
                 # Don't call show() here - let _show_widgets_for_movement() handle it
-            else:
+        else:
                 # When disabling, immediately hide
                 self.menu_widget.set_active(False)
         
@@ -1815,12 +1593,6 @@ class DwellClickerUI:
     def set_unlock_threshold(self, threshold: int):
         """Set the widget unlock threshold."""
         self.widget_unlock_threshold = threshold
-        
-        # Update the unlock threshold on individual widgets
-        if hasattr(self, 'menu_widget') and self.menu_widget:
-            self.menu_widget.set_unlock_threshold(threshold)
-        if hasattr(self, 'scroll_widget') and self.scroll_widget:
-            self.scroll_widget.set_unlock_threshold(threshold)
     
     def _is_cursor_near_widgets(self, cursor_pos):
         """
@@ -1919,60 +1691,8 @@ class DwellClickerUI:
         # This is more forgiving for small movements during interaction
         movement_threshold = 8  # pixels - increased threshold for more forgiveness
         return current_distance > last_distance + movement_threshold
-    
-    def _check_for_stuck_widgets(self):
-        """Periodically check if widgets are stuck and fix them."""
-        if not self.is_active:
-            return
-        
-        current_time = time.time()
-        
-        # Check menu widget for stuck state
-        menu_enabled = self.settings_manager.get_setting('menu_enabled', True)
-        if menu_enabled and self.menu_widget.isVisible():
-            # Check if menu widget has been locked too long
-            if (hasattr(self.menu_widget, 'is_locked') and 
-                self.menu_widget.is_locked and 
-                hasattr(self.menu_widget, 'last_lock_time') and
-                self.menu_widget.last_lock_time > 0):
-                
-                lock_duration = current_time - self.menu_widget.last_lock_time
-                if lock_duration > 10.0:  # If locked for more than 10 seconds, force unlock
-                    self.menu_widget.force_unlock()
-        
-        # Check scroll widget for stuck state
-        scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True)
-        if scroll_enabled and self.scroll_widget.isVisible():
-            # Check if scroll widget has been locked too long
-            if (hasattr(self.scroll_widget, 'is_locked') and 
-                self.scroll_widget.is_locked and 
-                hasattr(self.scroll_widget, 'last_lock_time') and
-                self.scroll_widget.last_lock_time > 0):
-                
-                lock_duration = current_time - self.scroll_widget.last_lock_time
-                if lock_duration > 10.0:  # If locked for more than 10 seconds, force unlock
-                    # Add a force_unlock method to scroll widget if it doesn't exist
-                    if hasattr(self.scroll_widget, 'force_unlock'):
-                        self.scroll_widget.force_unlock()
-                    else:
-                        # Fallback: manually unlock
-                        self.scroll_widget.is_locked = False
-                        self.scroll_widget.last_lock_time = 0
 
     def update_menu_item_size(self, size):
         """Update the menu item size."""
         if self.menu_widget:
             self.menu_widget.set_item_size(size)
-    
-    def _get_icon_path(self, button_id):
-        """Get the icon path for a button ID."""
-        # Special case for ON_OFF button - use different icon based on state
-        if button_id == "ON_OFF":
-            icon_file = "on.png" if self.is_active else "off.png"
-        else:
-            icon_file = ICON_MAPPING.get(button_id, "setup.png")  # Default to setup icon
-            
-        try:
-            return get_asset_path(icon_file)
-        except Exception:
-            return None
