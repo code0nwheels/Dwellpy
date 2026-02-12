@@ -126,7 +126,7 @@ class MenuWidget(QWidget):
             {'id': 'RIGHT', 'label': 'Right', 'color': Colors.RED_ACCENT, 'icon': ICON_MAPPING.get('RIGHT', 'right.png')},
             {'id': 'DRAG', 'label': 'Drag', 'color': Colors.BLUE_ACCENT, 'icon': ICON_MAPPING.get('DRAG', 'drag.png')},
             {'id': 'SETUP', 'label': 'Settings', 'color': Colors.TEXT_COLOR, 'icon': ICON_MAPPING.get('SETUP', 'setup.png')},
-            {'id': 'OFF', 'label': 'Turn Off', 'color': Colors.RED_ACCENT, 'icon': ICON_MAPPING.get('ON_OFF', 'off.png')}  # Use OFF state icon
+            {'id': 'OFF', 'label': 'Turn Off', 'color': Colors.RED_ACCENT, 'icon': 'off.png'}  # Explicitly use off.png icon
         ]
         
         # Layout configuration - circular layout around hamburger icon
@@ -235,7 +235,7 @@ class MenuWidget(QWidget):
         self.menu_item_icons = {}
         for item in self.menu_items:
             try:
-                icon_path = get_asset_path(ICON_MAPPING.get(item['id'], "setup.png"))
+                icon_path = get_asset_path(item['icon'])
                 self.menu_item_icons[item['id']] = QPixmap(icon_path)
             except Exception:
                 self.menu_item_icons[item['id']] = None

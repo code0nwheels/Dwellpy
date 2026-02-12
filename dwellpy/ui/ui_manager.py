@@ -424,7 +424,7 @@ class DwellClickerUI:
     
     def update_contracted_button_state(self):
         """Update the icon and style of the contracted button to match current status."""
-        if not self.contracted_button or not self.is_contracted:
+        if not self.contraction_manager.contracted_button or not self.contraction_manager.is_contracted:
             return
             
         # Determine which icon to use based on current state
@@ -433,19 +433,20 @@ class DwellClickerUI:
         else:
             icon_id = self.current_mode  # Use current mode icon
         
-        # Set the icon
+        # Set the icon and clear any text
         icon_path = self._get_icon_path(icon_id)
         if icon_path and os.path.exists(icon_path):
             icon = QIcon(icon_path)
             # Scale icon to fit button size minus padding
             icon_size = min(CONTRACT_BUTTON_SIZE[0], CONTRACT_BUTTON_SIZE[1]) - 10
-            self.contracted_button.setIcon(icon)
-            self.contracted_button.setIconSize(QSize(icon_size, icon_size))
+            self.contraction_manager.contracted_button.setIcon(icon)
+            self.contraction_manager.contracted_button.setIconSize(QSize(icon_size, icon_size))
+            self.contraction_manager.contracted_button.setText("")  # Clear text to show only icon
         
         # Update button style to match current state (remove font styling)
         if not self.is_active:
             # OFF state - red like the ON/OFF button when off
-            self.contracted_button.setStyleSheet(f"""
+            self.contraction_manager.contracted_button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.RED_ACCENT};
                     border: 1px solid {Colors.RED_ACCENT};
@@ -458,7 +459,7 @@ class DwellClickerUI:
             """)
         elif self.is_temporary_mode:
             # Temporary mode - red like temporary mode buttons
-            self.contracted_button.setStyleSheet(f"""
+            self.contraction_manager.contracted_button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.RED_ACCENT};
                     border: 1px solid {Colors.RED_ACCENT};
@@ -471,7 +472,7 @@ class DwellClickerUI:
             """)
         else:
             # Default/permanent mode - blue like default mode buttons
-            self.contracted_button.setStyleSheet(f"""
+            self.contraction_manager.contracted_button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.BLUE_ACCENT};
                     border: 1px solid {Colors.BLUE_ACCENT};
@@ -485,38 +486,38 @@ class DwellClickerUI:
     
     def contract_ui(self):
         """Contract the UI to a single button."""
-        if self.is_contracted or not self.settings_manager:
+        if self.contraction_manager.is_contracted or not self.settings_manager:
             return
         
         # Don't contract if cursor is over window
         if self.is_cursor_over_window:
             return
         
-        self.is_contracted = True
+        self.contraction_manager.is_contracted = True
         
         # Store current window position before resizing
         current_pos = self.window.pos()
         
         # Determine and store expansion direction
-        self.current_expansion_direction = self.determine_expansion_direction()
+        self.contraction_manager.current_expansion_direction = self.determine_expansion_direction()
         
         # Store original window size
-        self.original_window_size = self.window.size()
+        self.contraction_manager.original_window_size = self.window.size()
         
         # Hide all existing buttons
         for button in self.buttons.values():
             button.hide()
         
         # Create contracted button if it doesn't exist
-        if not self.contracted_button:
-            self.contracted_button = self.create_contracted_button()
-            self.original_layout.addWidget(self.contracted_button)
+        if not self.contraction_manager.contracted_button:
+            self.contraction_manager.contracted_button = self.create_contracted_button()
+            self.contraction_manager.original_layout.addWidget(self.contraction_manager.contracted_button)
         else:
             # Update the text to show current status
             self.update_contracted_button_state()
         
         # Show contracted button
-        self.contracted_button.show()
+        self.contraction_manager.contracted_button.show()
         
         # Resize window to fit contracted button
         self.window.setFixedSize(
@@ -529,20 +530,20 @@ class DwellClickerUI:
     
     def expand_ui(self):
         """Expand the UI to show all buttons in the determined direction."""
-        if not self.is_contracted:
+        if not self.contraction_manager.is_contracted:
             return
         
         # Set flag to indicate we're expanding from contracted state
-        self._expanding_from_contracted = True
+        self.contraction_manager._expanding_from_contracted = True
         
-        self.is_contracted = False
+        self.contraction_manager.is_contracted = False
         
         # Hide contracted button
-        if self.contracted_button:
-            self.contracted_button.hide()
+        if self.contraction_manager.contracted_button:
+            self.contraction_manager.contracted_button.hide()
         
         # Get the expansion direction
-        direction = self.current_expansion_direction or 'horizontal'
+        direction = self.contraction_manager.current_expansion_direction or 'horizontal'
         
         # Use the shared rebuild layout method
         self._rebuild_layout(direction)
@@ -589,7 +590,7 @@ class DwellClickerUI:
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         
         # Connect click to expand
-        button.clicked.connect(self.expand_ui)
+        button.clicked.connect(self.contraction_manager.expand_ui)
         
         # Add hover events for dwell detection
         original_enter_event = button.enterEvent
@@ -612,7 +613,7 @@ class DwellClickerUI:
         button.hide()
         
         # Store the button reference before applying state-based styling
-        self.contracted_button = button
+        self.contraction_manager.contracted_button = button
         
         # Apply initial state-based styling
         self.update_contracted_button_state()
@@ -1136,7 +1137,7 @@ class DwellClickerUI:
             
             # Handle contracted button - always allow expansion
             if button_id == "CONTRACTED":
-                self.expand_ui()
+                self.contraction_manager.expand_ui()
                 return
                 
             # For all other buttons (except MOVE), only act if clicker is active

@@ -39,21 +39,39 @@ class MenuDrawingManager:
         # Draw circular background
         painter.drawEllipse(self.menu_widget.rect())
         
-        # Draw hamburger lines
-        painter.setPen(QPen(QColor(255, 255, 255), 2))
-        
-        center_x = self.menu_widget.width() // 2
-        center_y = self.menu_widget.height() // 2
-        line_width = 12
-        line_spacing = 4
-        
-        # Three horizontal lines
-        for i in range(3):
-            y = center_y - line_spacing + (i * line_spacing)
-            painter.drawLine(
-                center_x - line_width // 2, y,
-                center_x + line_width // 2, y
+        # Draw hamburger icon from file if available, otherwise fallback to lines
+        if self.menu_widget.hamburger_icon and not self.menu_widget.hamburger_icon.isNull():
+            # Calculate icon size with minimal padding for larger icon
+            icon_size = min(self.menu_widget.width(), self.menu_widget.height()) - 6  # 3px padding on each side
+            center_x = self.menu_widget.width() // 2
+            center_y = self.menu_widget.height() // 2
+            
+            # Create target rectangle for the icon
+            icon_rect = QRect(
+                center_x - icon_size // 2,
+                center_y - icon_size // 2,
+                icon_size,
+                icon_size
             )
+            
+            # Draw the scaled hamburger icon
+            painter.drawPixmap(icon_rect, self.menu_widget.hamburger_icon)
+        else:
+            # Fallback to drawing hamburger lines
+            painter.setPen(QPen(QColor(255, 255, 255), 2))
+            
+            center_x = self.menu_widget.width() // 2
+            center_y = self.menu_widget.height() // 2
+            line_width = 12
+            line_spacing = 4
+            
+            # Three horizontal lines
+            for i in range(3):
+                y = center_y - line_spacing + (i * line_spacing)
+                painter.drawLine(
+                    center_x - line_width // 2, y,
+                    center_x + line_width // 2, y
+                )
     
     def draw_expanded_menu(self, painter):
         """Draw the expanded menu with items in circular layout around hamburger icon."""
@@ -63,7 +81,7 @@ class MenuDrawingManager:
         hamburger_center = QPoint(hamburger_center_x, hamburger_center_y)
         
         # Draw hamburger icon at center
-        hamburger_size = 20
+        hamburger_size = 30  # Increased size for better visibility
         hamburger_rect = QRect(hamburger_center_x - hamburger_size//2, hamburger_center_y - hamburger_size//2, 
                               hamburger_size, hamburger_size)
         
@@ -79,17 +97,29 @@ class MenuDrawingManager:
             
         painter.drawEllipse(hamburger_rect)
         
-        # Draw hamburger lines
-        painter.setPen(QPen(QColor(255, 255, 255), 1))
-        line_width = 8
-        line_spacing = 3
-        
-        for i in range(3):
-            y = hamburger_center_y - line_spacing + (i * line_spacing)
-            painter.drawLine(
-                hamburger_center_x - line_width // 2, y,
-                hamburger_center_x + line_width // 2, y
+        # Draw hamburger icon from file if available, otherwise fallback to lines
+        if self.menu_widget.hamburger_icon and not self.menu_widget.hamburger_icon.isNull():
+            # Use the icon file for the hamburger in expanded menu
+            icon_size = hamburger_size - 4  # Small padding within the background circle
+            icon_rect = QRect(
+                hamburger_center_x - icon_size // 2,
+                hamburger_center_y - icon_size // 2,
+                icon_size,
+                icon_size
             )
+            painter.drawPixmap(icon_rect, self.menu_widget.hamburger_icon)
+        else:
+            # Fallback to drawing hamburger lines
+            painter.setPen(QPen(QColor(255, 255, 255), 1))
+            line_width = 8
+            line_spacing = 3
+            
+            for i in range(3):
+                y = hamburger_center_y - line_spacing + (i * line_spacing)
+                painter.drawLine(
+                    hamburger_center_x - line_width // 2, y,
+                    hamburger_center_x + line_width // 2, y
+                )
         
         # Draw menu items in a circle around hamburger icon using animated radius
         for i, item in enumerate(self.menu_widget.menu_items):
@@ -138,12 +168,34 @@ class MenuDrawingManager:
         
         painter.drawEllipse(item_rect)
         
-        # Draw item text with animated alpha
-        text_color = QColor(item_color) if is_hovered or self.is_item_active_state(item) else QColor(255, 255, 255)
-        text_color.setAlpha(min(255, base_alpha + 55))  # Ensure text is visible
-        painter.setPen(QPen(text_color))
-        painter.setFont(QFont("Helvetica Neue", 9, QFont.Weight.Bold))
-        painter.drawText(item_rect, Qt.AlignmentFlag.AlignCenter, item['label'])
+        # Draw item icon if available, otherwise draw text
+        if item['id'] in self.menu_widget.menu_item_icons:
+            # Draw icon
+            icon = self.menu_widget.menu_item_icons[item['id']]
+            if icon and not icon.isNull():
+                # Calculate icon size with padding
+                icon_size = min(item_rect.width(), item_rect.height()) - 8  # 4px padding on each side
+                icon_rect = QRect(
+                    item_rect.center().x() - icon_size // 2,
+                    item_rect.center().y() - icon_size // 2,
+                    icon_size,
+                    icon_size
+                )
+                painter.drawPixmap(icon_rect, icon)
+            else:
+                # Fallback to text if icon failed to load
+                text_color = QColor(item_color) if is_hovered or self.is_item_active_state(item) else QColor(255, 255, 255)
+                text_color.setAlpha(min(255, base_alpha + 55))
+                painter.setPen(QPen(text_color))
+                painter.setFont(QFont("Helvetica Neue", 8, QFont.Weight.Bold))
+                painter.drawText(item_rect, Qt.AlignmentFlag.AlignCenter, item['label'])
+        else:
+            # Fallback to text if icon not available
+            text_color = QColor(item_color) if is_hovered or self.is_item_active_state(item) else QColor(255, 255, 255)
+            text_color.setAlpha(min(255, base_alpha + 55))  # Ensure text is visible
+            painter.setPen(QPen(text_color))
+            painter.setFont(QFont("Helvetica Neue", 8, QFont.Weight.Bold))
+            painter.drawText(item_rect, Qt.AlignmentFlag.AlignCenter, item['label'])
     
     def get_item_state_color(self, item):
         """Get the color for a menu item based on current UI state."""

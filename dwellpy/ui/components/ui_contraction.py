@@ -1,16 +1,19 @@
 """UI contraction and expansion management."""
 
+import os
 from PyQt6.QtWidgets import QPushButton, QWidget, QHBoxLayout, QVBoxLayout
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtCore import Qt, QTimer, QSize
+from PyQt6.QtGui import QGuiApplication, QIcon
 
 # Import constants
 try:
     from ...config.constants import (
         Colors, BUTTON_SIZE, LAYOUT_MARGIN, LAYOUT_SPACING, BORDER_RADIUS,
         CONTRACT_DELAY, EXPAND_DELAY, CONTRACT_BUTTON_SIZE, CONTRACT_BUTTON_TEXT,
-        EXPANSION_DIRECTIONS, DEFAULT_EXPANSION_DIRECTION, SCREEN_EDGE_MARGIN
+        EXPANSION_DIRECTIONS, DEFAULT_EXPANSION_DIRECTION, SCREEN_EDGE_MARGIN,
+        ICON_MAPPING
     )
+    from ...utils.helpers import get_asset_path
 except ImportError:
     # Fallback constants for testing
     class Colors:
@@ -39,6 +42,19 @@ except ImportError:
     EXPANSION_DIRECTIONS = ['auto', 'horizontal', 'vertical']
     DEFAULT_EXPANSION_DIRECTION = 'auto'
     SCREEN_EDGE_MARGIN = 50
+    
+    ICON_MAPPING = {
+        "ON_OFF": "on.png",
+        "LEFT": "left.png",
+        "DOUBLE": "double.png",
+        "DRAG": "drag.png",
+        "RIGHT": "right.png",
+        "SETUP": "setup.png"
+    }
+    
+    def get_asset_path(asset_name):
+        """Fallback get_asset_path function"""
+        return os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'icons', asset_name)
 
 
 class UIContractionManager:
@@ -301,25 +317,34 @@ class UIContractionManager:
             pass
     
     def update_contracted_button_state(self):
-        """Update the text and style of the contracted button to match current status."""
+        """Update the icon and style of the contracted button to match current status."""
         if not self.contracted_button or not self.is_contracted:
             return
             
-        status_text = self.get_current_status_text()
-        self.contracted_button.setText(status_text)
+        # Determine which icon to use based on current state
+        if not self.ui_manager.is_active:
+            icon_id = "ON_OFF"  # Will use off.png
+        else:
+            icon_id = self.ui_manager.current_mode  # Use current mode icon
         
-        # Update button style to match current state
+        # Set the icon and clear any text
+        icon_path = self._get_icon_path(icon_id)
+        if icon_path and os.path.exists(icon_path):
+            icon = QIcon(icon_path)
+            # Scale icon to fit button size minus padding
+            icon_size = min(CONTRACT_BUTTON_SIZE[0], CONTRACT_BUTTON_SIZE[1]) - 10
+            self.contracted_button.setIcon(icon)
+            self.contracted_button.setIconSize(QSize(icon_size, icon_size))
+            self.contracted_button.setText("")  # Clear text to show only icon
+        
+        # Update button style to match current state (no font styling for icons)
         if not self.ui_manager.is_active:
             # OFF state - red like the ON/OFF button when off
             self.contracted_button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.RED_ACCENT};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.RED_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 8pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.RED_HOVER};
@@ -331,12 +356,8 @@ class UIContractionManager:
             self.contracted_button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.RED_ACCENT};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.RED_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 8pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.RED_HOVER};
@@ -348,18 +369,27 @@ class UIContractionManager:
             self.contracted_button.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {Colors.BLUE_ACCENT};
-                    color: {Colors.TEXT_COLOR};
                     border: 1px solid {Colors.BLUE_ACCENT};
                     border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 8pt;
-                    font-weight: bold;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.BLUE_HOVER};
                     border: 1px solid {Colors.BLUE_HOVER};
                 }}
             """)
+    
+    def _get_icon_path(self, button_id):
+        """Get the icon path for a button ID."""
+        # Special case for ON_OFF button - use different icon based on state
+        if button_id == "ON_OFF":
+            icon_file = "on.png" if self.ui_manager.is_active else "off.png"
+        else:
+            icon_file = ICON_MAPPING.get(button_id, "setup.png")  # Default to setup icon
+            
+        try:
+            return get_asset_path(icon_file)
+        except Exception:
+            return None
     
     def contract_ui(self, force_contract=False):
         """Contract the UI to a single button."""
@@ -462,10 +492,7 @@ class UIContractionManager:
     
     def create_contracted_button(self):
         """Create the contracted button showing current status."""
-        # Get current status text
-        status_text = self.get_current_status_text()
-        
-        button = QPushButton(status_text)
+        button = QPushButton()  # No text - will use icon
         button.setFixedSize(CONTRACT_BUTTON_SIZE[0], CONTRACT_BUTTON_SIZE[1])
         button.setObjectName("CONTRACTED")  # Give it an ID for button manager
         button.setCursor(Qt.CursorShape.PointingHandCursor)
