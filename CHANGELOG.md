@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/code0nwheels/Dwellpy/compare/v0.11.0...v0.12.0) (2026-02-26)
+
+
+### Features
+
+* merge feature branch changes ([7e71a6e](https://github.com/code0nwheels/Dwellpy/commit/7e71a6e6e49ce6bf32578634d947aaf2e90b8a6a))
+
 ## [0.11.0](https://github.com/code0nwheels/Dwellpy/compare/v0.10.0...v0.11.0) (2025-06-24)
 
 
