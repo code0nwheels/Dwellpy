@@ -65,7 +65,7 @@ jobs:
             
           # macOS build
           - target: macos-x64
-            runner: macos-13
+            runner: macos-14
             python-version: '3.11'
             shell: bash
             arch: x64
