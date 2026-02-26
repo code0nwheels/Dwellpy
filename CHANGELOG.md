@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.1](https://github.com/code0nwheels/Dwellpy/compare/v0.12.0...v0.12.1) (2026-02-26)
+
+
+### Bug Fixes
+
+* update macOS runner to macos-14 for GitHub Actions ([99c32dd](https://github.com/code0nwheels/Dwellpy/commit/99c32dde515bc3480f7dc6c5f55e60c1b90a801a))
+
 ## [0.12.0](https://github.com/code0nwheels/Dwellpy/compare/v0.11.0...v0.12.0) (2026-02-26)
 
 
