@@ -108,21 +108,21 @@ class GeneralTab:
         expansion_layout.addWidget(expansion_direction_label)
         
         # Dropdown below the label
-        self.expansion_direction_combo = QComboBox()
-        self.expansion_direction_combo.addItem("Auto (detects available space)", "auto")
-        self.expansion_direction_combo.addItem("Expand Up", "up")
-        self.expansion_direction_combo.addItem("Expand Down", "down")
-        self.expansion_direction_combo.addItem("Expand Left", "left")
-        self.expansion_direction_combo.addItem("Expand Right", "right")
+        self.dialog.expansion_direction_combo = QComboBox()
+        self.dialog.expansion_direction_combo.addItem("Auto (detects available space)", "auto")
+        self.dialog.expansion_direction_combo.addItem("Expand Up", "up")
+        self.dialog.expansion_direction_combo.addItem("Expand Down", "down")
+        self.dialog.expansion_direction_combo.addItem("Expand Left", "left")
+        self.dialog.expansion_direction_combo.addItem("Expand Right", "right")
         
         # Set current value
         current_direction = self.settings_manager.get_setting('expansion_direction', 'auto')
-        index = self.expansion_direction_combo.findData(current_direction)
+        index = self.dialog.expansion_direction_combo.findData(current_direction)
         if index >= 0:
-            self.expansion_direction_combo.setCurrentIndex(index)
+            self.dialog.expansion_direction_combo.setCurrentIndex(index)
         
         # Style the dropdown
-        self.expansion_direction_combo.setStyleSheet(f"""
+        self.dialog.expansion_direction_combo.setStyleSheet(f"""
             QComboBox {{
                 background-color: {Colors.DARK_BUTTON_BG};
                 color: {Colors.TEXT_COLOR};
@@ -151,10 +151,10 @@ class GeneralTab:
             }}
         """)
         
-        expansion_layout.addWidget(self.expansion_direction_combo)
+        expansion_layout.addWidget(self.dialog.expansion_direction_combo)
         layout.addWidget(expansion_frame)
         
         # Connect the dropdown signal to save changes
-        self.expansion_direction_combo.currentIndexChanged.connect(
+        self.dialog.expansion_direction_combo.currentIndexChanged.connect(
             lambda index: self.dialog.event_handlers.on_expansion_direction_changed(index)
         ) 
