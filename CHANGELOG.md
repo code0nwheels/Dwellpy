@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.2](https://github.com/code0nwheels/Dwellpy/compare/v0.12.1...v0.12.2) (2026-02-28)
+
+
+### Bug Fixes
+
+* correct expansion_direction_combo attribute reference in GeneralTab ([1532164](https://github.com/code0nwheels/Dwellpy/commit/15321643d4587f8345e745c37a4edbc681180dff))
+
 ## [0.12.1](https://github.com/code0nwheels/Dwellpy/compare/v0.12.0...v0.12.1) (2026-02-26)
 
 
