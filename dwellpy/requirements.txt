@@ -6,7 +6,7 @@ PyQt6>=6.4.0
 pynput>=1.7.6
 
 # Process management for clean exit handling
-psutil>=5.9.0
+psutil>=7.2.2
 
 # Optional: Better JSON handling (built-in json module is sufficient)
 # Development dependencies would go in requirements-dev.txt if needed
