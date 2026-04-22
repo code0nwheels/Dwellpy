@@ -3,7 +3,7 @@
 PyQt6>=6.4.0
 
 # Cross-platform input handling
-pynput>=1.7.6
+pynput>=1.8.1
 
 # Process management for clean exit handling
 psutil>=5.9.0
