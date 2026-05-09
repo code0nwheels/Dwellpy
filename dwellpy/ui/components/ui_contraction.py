@@ -117,66 +117,67 @@ class UIContractionManager:
     
     def _rebuild_layout(self, direction):
         """Rebuild the UI layout with the specified direction."""
-        # Store current window position before resizing
-        current_pos = self.ui_manager.window.pos()
+        window = self.ui_manager.window
+        current_pos = window.pos()
+        total_buttons = len(self.ui_manager.buttons)
 
-        # Create a new central widget to avoid layout conflicts
+        # Compute new size and create the new layout container
+        if direction == 'vertical':
+            new_layout = QVBoxLayout()
+            window_width = BUTTON_SIZE[0] + (LAYOUT_MARGIN * 2)
+            window_height = (total_buttons * BUTTON_SIZE[1] +
+                             (total_buttons - 1) * LAYOUT_SPACING +
+                             LAYOUT_MARGIN * 2)
+        else:  # horizontal
+            new_layout = QHBoxLayout()
+            window_width = (total_buttons * BUTTON_SIZE[0] +
+                            (total_buttons - 1) * LAYOUT_SPACING +
+                            LAYOUT_MARGIN * 2)
+            window_height = BUTTON_SIZE[1] + (LAYOUT_MARGIN * 2)
+        new_layout.setContentsMargins(LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN)
+        new_layout.setSpacing(LAYOUT_SPACING)
+
+        # Compute the target on-screen position for the new size BEFORE any visible
+        # change to the window. This lets us combine move + resize into one geometry
+        # update so the window never paints at its old position with the new size.
+        target = self._compute_in_bounds_position(current_pos, QSize(window_width, window_height))
+        if target is None:
+            target_x, target_y = current_pos.x(), current_pos.y()
+        else:
+            target_x, target_y = target
+
+        # Build the new central widget fully BEFORE installing it. Buttons get
+        # reparented into new_layout first, then shown — so they never paint as
+        # children of the still-installed (smaller) old central widget.
         new_central_widget = QWidget()
         new_central_widget.setStyleSheet(f"background-color: {Colors.DARK_BG};")
-        
-        # Create new layout based on direction
-        if direction == 'vertical':
-            # Create vertical layout
-            new_layout = QVBoxLayout()
-            new_layout.setContentsMargins(LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN)
-            new_layout.setSpacing(LAYOUT_SPACING)
-            
-            # Calculate window size for vertical layout
-            total_buttons = len(self.ui_manager.buttons)
-            window_height = (total_buttons * BUTTON_SIZE[1] + 
-                           (total_buttons - 1) * LAYOUT_SPACING + 
-                           LAYOUT_MARGIN * 2)
-            window_width = BUTTON_SIZE[0] + (LAYOUT_MARGIN * 2)
-            
-            self.ui_manager.window.setFixedSize(window_width, window_height)
-            
-        else:  # horizontal
-            # Create horizontal layout
-            new_layout = QHBoxLayout()
-            new_layout.setContentsMargins(LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN, LAYOUT_MARGIN)
-            new_layout.setSpacing(LAYOUT_SPACING)
-            
-            # Calculate window size for horizontal layout
-            total_buttons = len(self.ui_manager.buttons)
-            window_width = (total_buttons * BUTTON_SIZE[0] + 
-                           (total_buttons - 1) * LAYOUT_SPACING + 
-                           LAYOUT_MARGIN * 2)
-            window_height = BUTTON_SIZE[1] + (LAYOUT_MARGIN * 2)
-            
-            self.ui_manager.window.setFixedSize(window_width, window_height)
-        
-        # Ensure window stays within screen bounds after resizing
-        self._ensure_window_in_bounds(current_pos)
-
-        # Set the layout to the new central widget
         new_central_widget.setLayout(new_layout)
 
-        # Add all buttons to the new layout
         button_order = ["ON_OFF", "LEFT", "DOUBLE", "DRAG", "RIGHT", "SCROLL", "MENU", "SETUP", "MOVE", "EXIT"]
         for button_id in button_order:
             if button_id in self.ui_manager.buttons:
                 button = self.ui_manager.buttons[button_id]
-                button.show()
                 new_layout.addWidget(button)
+                button.show()
 
-        # Add the contracted button back to layout (hidden)
         if self.contracted_button:
             new_layout.addWidget(self.contracted_button)
 
-        # Replace the central widget
-        self.ui_manager.window.setCentralWidget(new_central_widget)
+        # Apply geometry + central widget swap with paints suppressed so the WM
+        # delivers a single update instead of (resize-in-place) → (move).
+        window.setUpdatesEnabled(False)
+        try:
+            # Relax the existing fixed-size constraints before resizing, otherwise
+            # setGeometry would clamp to the old fixed size.
+            window.setMinimumSize(0, 0)
+            window.setMaximumSize(16777215, 16777215)
+            window.setGeometry(target_x, target_y, window_width, window_height)
+            window.setMinimumSize(window_width, window_height)
+            window.setMaximumSize(window_width, window_height)
+            window.setCentralWidget(new_central_widget)
+        finally:
+            window.setUpdatesEnabled(True)
 
-        # Store the new layout
         self.original_layout = new_layout
     
     def _calculate_optimal_expansion_position(self, contracted_pos, expanded_size):
@@ -250,14 +251,15 @@ class UIContractionManager:
             # Fallback to original position
             return contracted_pos.x(), contracted_pos.y()
 
-    def _ensure_window_in_bounds(self, preferred_pos):
-        """Ensure the window stays within screen bounds, adjusting position if necessary."""
+    def _compute_in_bounds_position(self, preferred_pos, window_size):
+        """Compute an in-bounds position for the given window size without moving the window.
+
+        Returns (x, y) or None if screen info is unavailable.
+        """
         try:
-            # Get all available screens
             app = QGuiApplication.instance()
             screens = app.screens()
-            
-            # Calculate the combined desktop geometry (all monitors)
+
             desktop_rect = None
             for screen in screens:
                 screen_geometry = screen.geometry()
@@ -265,55 +267,51 @@ class UIContractionManager:
                     desktop_rect = screen_geometry
                 else:
                     desktop_rect = desktop_rect.united(screen_geometry)
-            
-            # If we couldn't get screen info, keep current position
+
             if desktop_rect is None:
-                return
-            
-            window_size = self.ui_manager.window.size()
-            
-            # If we're expanding from a contracted state, use optimal positioning
+                return None
+
             if self._expanding_from_contracted:
                 new_x, new_y = self._calculate_optimal_expansion_position(preferred_pos, window_size)
-                self._expanding_from_contracted = False  # Reset flag
-            else:
-                # Calculate the bounds across all monitors
-                min_x = desktop_rect.left()
-                min_y = desktop_rect.top()
-                max_x = desktop_rect.right() - window_size.width()
-                max_y = desktop_rect.bottom() - window_size.height()
-                
-                # For horizontal expansion near screen edges, we need special handling
-                if not self.is_contracted:  # Only during expansion
-                    # If we're expanding and the preferred position would put us off-screen
-                    if preferred_pos.x() < min_x:
-                        # Too far left - position at left edge
-                        new_x = min_x
-                    elif preferred_pos.x() > max_x:
-                        # Too far right - position at right edge
-                        new_x = max_x
-                    else:
-                        # Position is fine horizontally
-                        new_x = preferred_pos.x()
-                    
-                    if preferred_pos.y() < min_y:
-                        # Too far up - position at top edge
-                        new_y = min_y
-                    elif preferred_pos.y() > max_y:
-                        # Too far down - position at bottom edge
-                        new_y = max_y
-                    else:
-                        # Position is fine vertically
-                        new_y = preferred_pos.y()
+                self._expanding_from_contracted = False
+                return new_x, new_y
+
+            min_x = desktop_rect.left()
+            min_y = desktop_rect.top()
+            max_x = desktop_rect.right() - window_size.width()
+            max_y = desktop_rect.bottom() - window_size.height()
+
+            if not self.is_contracted:
+                if preferred_pos.x() < min_x:
+                    new_x = min_x
+                elif preferred_pos.x() > max_x:
+                    new_x = max_x
                 else:
-                    # For contraction, just ensure within bounds
-                    new_x = max(min_x, min(preferred_pos.x(), max_x))
-                    new_y = max(min_y, min(preferred_pos.y(), max_y))
-            
-            # Move window to the adjusted position
+                    new_x = preferred_pos.x()
+
+                if preferred_pos.y() < min_y:
+                    new_y = min_y
+                elif preferred_pos.y() > max_y:
+                    new_y = max_y
+                else:
+                    new_y = preferred_pos.y()
+            else:
+                new_x = max(min_x, min(preferred_pos.x(), max_x))
+                new_y = max(min_y, min(preferred_pos.y(), max_y))
+
+            return new_x, new_y
+        except Exception:
+            return None
+
+    def _ensure_window_in_bounds(self, preferred_pos):
+        """Ensure the window stays within screen bounds, adjusting position if necessary."""
+        result = self._compute_in_bounds_position(preferred_pos, self.ui_manager.window.size())
+        if result is None:
+            return
+        new_x, new_y = result
+        try:
             self.ui_manager.window.move(new_x, new_y)
         except Exception:
-            # If there's any error, keep the window at its current position
             pass
     
     def update_contracted_button_state(self):
