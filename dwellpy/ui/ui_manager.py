@@ -294,9 +294,19 @@ class DwellClickerUI:
         
         self.buttons["EXIT"] = self.create_button("EXIT", "red", "EXIT")
         button_layout.addWidget(self.buttons["EXIT"])
-        
+
         # Highlight initial mode
         self.update_button_states()
+
+        # Pre-warm the widget tree so Qt's one-time stylesheet/layout/icon-decode
+        # work happens at startup rather than on the first hover-to-expand. Without
+        # this, when contraction is enabled the buttons are hidden before the
+        # window is ever shown, and the first .show() call after expansion stalls
+        # the GUI thread for a few hundred ms.
+        central_widget.ensurePolished()
+        for button in self.buttons.values():
+            button.ensurePolished()
+            button.grab()
     
     def setup_transparency_events(self):
         """Set up window transparency based on cursor presence."""
@@ -375,10 +385,10 @@ class DwellClickerUI:
         self.is_cursor_over_window = True
         self.opacity_timer.stop()  # Cancel any pending transparency change
         self.contraction_manager.contract_timer.stop()  # Cancel any pending contraction
-        
+
         # Always make opaque when cursor is over window
         self.set_opaque()
-        
+
         # Expand UI if contracted and contraction is enabled
         if self.contraction_manager.is_contracted and self.settings_manager and self.settings_manager.get_setting('contract_ui_enabled', False):
             self.contraction_manager.expand_timer.start(EXPAND_DELAY)

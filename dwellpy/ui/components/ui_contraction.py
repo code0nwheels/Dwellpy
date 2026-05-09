@@ -119,7 +119,7 @@ class UIContractionManager:
         """Rebuild the UI layout with the specified direction."""
         # Store current window position before resizing
         current_pos = self.ui_manager.window.pos()
-        
+
         # Create a new central widget to avoid layout conflicts
         new_central_widget = QWidget()
         new_central_widget.setStyleSheet(f"background-color: {Colors.DARK_BG};")
@@ -157,10 +157,10 @@ class UIContractionManager:
         
         # Ensure window stays within screen bounds after resizing
         self._ensure_window_in_bounds(current_pos)
-        
+
         # Set the layout to the new central widget
         new_central_widget.setLayout(new_layout)
-        
+
         # Add all buttons to the new layout
         button_order = ["ON_OFF", "LEFT", "DOUBLE", "DRAG", "RIGHT", "SCROLL", "MENU", "SETUP", "MOVE", "EXIT"]
         for button_id in button_order:
@@ -168,14 +168,14 @@ class UIContractionManager:
                 button = self.ui_manager.buttons[button_id]
                 button.show()
                 new_layout.addWidget(button)
-        
+
         # Add the contracted button back to layout (hidden)
         if self.contracted_button:
             new_layout.addWidget(self.contracted_button)
-        
+
         # Replace the central widget
         self.ui_manager.window.setCentralWidget(new_central_widget)
-        
+
         # Store the new layout
         self.original_layout = new_layout
     
@@ -185,7 +185,7 @@ class UIContractionManager:
             # Get all available screens
             app = QGuiApplication.instance()
             screens = app.screens()
-            
+
             # Calculate the combined desktop geometry (all monitors)
             desktop_rect = None
             for screen in screens:
@@ -439,24 +439,24 @@ class UIContractionManager:
         """Expand the UI to show all buttons in the determined direction."""
         if not self.is_contracted:
             return
-        
+
         # Set flag to indicate we're expanding from contracted state
         self._expanding_from_contracted = True
-        
+
         self.is_contracted = False
-        
+
         # Hide contracted button
         if self.contracted_button:
             self.contracted_button.hide()
-        
+
         # Get the expansion direction
         direction = self.current_expansion_direction or 'horizontal'
-        
+
         # Use the shared rebuild layout method
         self._rebuild_layout(direction)
-        
+
         # Update scroll widget position if active
-        if (self.ui_manager.is_active and self.ui_manager.settings_manager and 
+        if (self.ui_manager.is_active and self.ui_manager.settings_manager and
             self.ui_manager.settings_manager.get_setting('scroll_enabled', True)):
             try:
                 from pynput.mouse import Controller
