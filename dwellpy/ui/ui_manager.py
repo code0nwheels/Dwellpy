@@ -113,6 +113,10 @@ class DwellClickerUI:
         self.opacity_timer = QTimer()
         self.opacity_timer.setSingleShot(True)
         self.opacity_timer.timeout.connect(self.set_transparent)
+        # Cached transparency values - refreshed by apply_transparency_settings()
+        # so the hot mouse-enter/leave path doesn't re-read settings on every event.
+        self._transparency_enabled = False
+        self._transparent_opacity = 1.0
 
         # Stuck widget detection timer
         self.stuck_widget_timer = QTimer()
@@ -152,11 +156,101 @@ class DwellClickerUI:
         # Add a property to store the unlock threshold
         self.widget_unlock_threshold = WIDGET_UNLOCK_THRESHOLD_DEFAULT
         
+        # Precompute button stylesheets and per-button last-applied cache
+        # so update_button_states() only re-applies a stylesheet when it
+        # actually changes (avoiding redundant Qt restyle passes). Must run
+        # before setup_ui() because setup_ui calls update_button_states.
+        self._styles = self._build_button_styles()
+        self._last_applied_style = {}
+
         # UI setup
         self.setup_ui()
-        
+
         # Register button commands
         self.register_button_commands()
+
+    def _build_button_styles(self):
+        """Precompute the small set of stylesheets used by update_button_states()."""
+        base = (
+            f"border-radius: {BORDER_RADIUS}px;\n"
+            "font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;\n"
+            "font-size: 9pt;\n"
+            "font-weight: bold;"
+        )
+
+        def make(bg, color, border, hover_bg, hover_border, include_font=True):
+            body = (
+                f"background-color: {bg};\n"
+                f"color: {color};\n"
+                f"border: 1px solid {border};\n"
+                + (base if include_font else f"border-radius: {BORDER_RADIUS}px;")
+            )
+            return (
+                "QPushButton {\n" + body + "\n}\n"
+                "QPushButton:hover {\n"
+                f"background-color: {hover_bg};\n"
+                f"border: 1px solid {hover_border};\n"
+                "}"
+            )
+
+        # Distinct visual states used across all buttons.
+        return {
+            # Click-mode buttons (LEFT/DOUBLE/DRAG/RIGHT)
+            "click_blue_default": make(
+                Colors.BLUE_ACCENT, Colors.TEXT_COLOR, Colors.BLUE_ACCENT,
+                Colors.BLUE_HOVER, Colors.BLUE_HOVER,
+            ),
+            "click_dark_normal": make(
+                Colors.DARK_BUTTON_BG, Colors.TEXT_COLOR, Colors.BORDER_COLOR,
+                "#3d3d3d", Colors.BLUE_ACCENT,
+            ),
+            "click_red_temporary": make(
+                Colors.RED_ACCENT, Colors.TEXT_COLOR, Colors.RED_ACCENT,
+                Colors.RED_HOVER, Colors.RED_HOVER,
+            ),
+            # Disabled / inactive style: shared by click buttons when inactive,
+            # by SETUP/MOVE when inactive, and by SCROLL/MENU when inactive.
+            "inactive_gray": make(
+                Colors.DARK_BUTTON_BG, Colors.DISABLED_TEXT, Colors.BORDER_COLOR,
+                "#3d3d3d", "#5d5d5d",
+            ),
+            # EXIT button variants
+            "util_active_exit": make(
+                Colors.DARK_BUTTON_BG, Colors.TEXT_COLOR, Colors.BORDER_COLOR,
+                "#3d3d3d", Colors.RED_ACCENT,
+            ),
+            "util_inactive_exit": make(
+                Colors.DARK_BUTTON_BG, Colors.DISABLED_TEXT, Colors.BORDER_COLOR,
+                "#3d3d3d", Colors.RED_ACCENT,
+            ),
+            # SETUP/MOVE/SCROLL/MENU active-but-feature-disabled style
+            "util_active_normal": make(
+                Colors.DARK_BUTTON_BG, Colors.TEXT_COLOR, Colors.BORDER_COLOR,
+                "#3d3d3d", "#5d5d5d",
+            ),
+            # Feature-enabled green style (SCROLL/MENU when active and enabled)
+            "feature_active_green": make(
+                Colors.GREEN_ACCENT, Colors.TEXT_COLOR, Colors.GREEN_ACCENT,
+                Colors.GREEN_HOVER, Colors.GREEN_HOVER,
+            ),
+            # ON/OFF button — no color/font; only bg + border + radius
+            "on_green": make(
+                Colors.GREEN_ACCENT, Colors.TEXT_COLOR, Colors.GREEN_ACCENT,
+                Colors.GREEN_HOVER, Colors.GREEN_HOVER, include_font=False,
+            ),
+            "off_red": make(
+                Colors.RED_ACCENT, Colors.TEXT_COLOR, Colors.RED_ACCENT,
+                Colors.RED_HOVER, Colors.RED_HOVER, include_font=False,
+            ),
+        }
+
+    def _apply_style(self, button_id, style_key):
+        """Set a button's stylesheet only if it differs from the last applied one."""
+        style = self._styles[style_key]
+        if self._last_applied_style.get(button_id) is style:
+            return
+        self.buttons[button_id].setStyleSheet(style)
+        self._last_applied_style[button_id] = style
     
     def connect_managers(self, settings_manager, exit_manager):
         """Connect to the settings and exit managers after initialization."""
@@ -322,19 +416,25 @@ class DwellClickerUI:
         self.apply_transparency_settings()
     
     def apply_transparency_settings(self):
-        """Apply transparency settings from the settings manager."""
+        """Refresh the cached transparency values and apply them to the window.
+
+        Called once at startup and again whenever the transparency settings
+        change (via SettingsManager.apply_setting). The hot mouse-enter/leave
+        path then reads the cached values instead of the settings dict.
+        """
         if not self.settings_manager:
-            # Default to opaque if settings not available yet
+            self._transparency_enabled = False
+            self._transparent_opacity = 1.0
             self.window.setWindowOpacity(1.0)
             return
-            
-        transparency_enabled = self.settings_manager.get_setting('transparency_enabled', False)
-        
-        if transparency_enabled and not self.is_cursor_over_window:
-            transparency_level = self.settings_manager.get_setting('transparency_level', 70)
-            # Convert percentage to opacity (70% transparent = 0.3 opaque)
-            opacity = (100 - transparency_level) / 100.0
-            self.window.setWindowOpacity(opacity)
+
+        self._transparency_enabled = self.settings_manager.get_setting('transparency_enabled', False)
+        transparency_level = self.settings_manager.get_setting('transparency_level', 70)
+        # Convert percentage to opacity (70% transparent = 0.3 opaque)
+        self._transparent_opacity = (100 - transparency_level) / 100.0
+
+        if self._transparency_enabled and not self.is_cursor_over_window:
+            self.window.setWindowOpacity(self._transparent_opacity)
         else:
             self.window.setWindowOpacity(1.0)
     
@@ -401,9 +501,9 @@ class DwellClickerUI:
         """Handle cursor leaving the window area."""
         self.is_cursor_over_window = False
         self.contraction_manager.expand_timer.stop()  # Cancel any pending expansion
-        
-        # Only set transparency if enabled in settings
-        if self.settings_manager and self.settings_manager.get_setting('transparency_enabled', False):
+
+        # Only set transparency if enabled in settings (cached value)
+        if self._transparency_enabled:
             # Add a small delay before making transparent to avoid flickering
             # when cursor moves between buttons
             self.opacity_timer.start(100)  # 100ms delay
@@ -424,13 +524,8 @@ class DwellClickerUI:
     
     def set_transparent(self):
         """Make the window transparent if cursor is not over it and transparency is enabled."""
-        if not self.is_cursor_over_window and self.settings_manager:
-            transparency_enabled = self.settings_manager.get_setting('transparency_enabled', False)
-            if transparency_enabled:
-                transparency_level = self.settings_manager.get_setting('transparency_level', 70)
-                # Convert percentage to opacity (70% transparent = 0.3 opaque)
-                opacity = (100 - transparency_level) / 100.0
-                self.window.setWindowOpacity(opacity)
+        if not self.is_cursor_over_window and self._transparency_enabled:
+            self.window.setWindowOpacity(self._transparent_opacity)
     
     def update_contracted_button_state(self):
         """Update the icon and style of the contracted button to match current status."""
@@ -758,292 +853,55 @@ class DwellClickerUI:
     
     def update_button_states(self):
         """Update button appearances to show temporary vs default modes."""
-        # Reset all click type buttons
-        for button_name in ["LEFT", "DOUBLE", "DRAG", "RIGHT"]:
-            # Get the button
-            button = self.buttons[button_name]
-            
-            # Check if clicker is inactive - if so, gray out all click buttons
+        # Click-mode buttons (LEFT/DOUBLE/DRAG/RIGHT)
+        for button_name in ("LEFT", "DOUBLE", "DRAG", "RIGHT"):
             if not self.is_active:
-                button.setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {Colors.DARK_BUTTON_BG};
-                        color: {Colors.DISABLED_TEXT};
-                        border: 1px solid {Colors.BORDER_COLOR};
-                        border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                        font-size: 9pt;
-                        font-weight: bold;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #3d3d3d;
-                        border: 1px solid #5d5d5d;
-                    }}
-                """)
+                self._apply_style(button_name, "inactive_gray")
+            elif button_name == self.default_mode:
+                self._apply_style(button_name, "click_blue_default")
             else:
-                # Set default styling when active
-                if button_name == self.default_mode:
-                    # Default mode button - blue
-                    button.setStyleSheet(f"""
-                        QPushButton {{
-                            background-color: {Colors.BLUE_ACCENT};
-                            color: {Colors.TEXT_COLOR};
-                            border: 1px solid {Colors.BLUE_ACCENT};
-                            border-radius: {BORDER_RADIUS}px;
-                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                            font-size: 9pt;
-                            font-weight: bold;
-                        }}
-                        QPushButton:hover {{
-                            background-color: {Colors.BLUE_HOVER};
-                            border: 1px solid {Colors.BLUE_HOVER};
-                        }}
-                    """)
-                else:
-                    # Non-default modes - dark gray
-                    button.setStyleSheet(f"""
-                        QPushButton {{
-                            background-color: {Colors.DARK_BUTTON_BG};
-                            color: {Colors.TEXT_COLOR};
-                            border: 1px solid {Colors.BORDER_COLOR};
-                            border-radius: {BORDER_RADIUS}px;
-                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                            font-size: 9pt;
-                            font-weight: bold;
-                        }}
-                        QPushButton:hover {{
-                            background-color: #3d3d3d;
-                            border: 1px solid {Colors.BLUE_ACCENT};
-                        }}
-                    """)
-        
-        # Highlight current mode (only when active)
+                self._apply_style(button_name, "click_dark_normal")
+
+        # Temporary mode override - red
         if self.is_active and self.is_temporary_mode:
-            # Temporary mode - red
-            self.buttons[self.current_mode].setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {Colors.RED_ACCENT};
-                    color: {Colors.TEXT_COLOR};
-                    border: 1px solid {Colors.RED_ACCENT};
-                    border-radius: {BORDER_RADIUS}px;
-                    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                    font-size: 9pt;
-                    font-weight: bold;
-                }}
-                QPushButton:hover {{
-                    background-color: {Colors.RED_HOVER};
-                    border: 1px solid {Colors.RED_HOVER};
-                }}
-            """)
-        
-        # Update ON/OFF button
-        if self.is_active:
-            # Update button icon to "on" state
-            icon_path = self._get_icon_path("ON_OFF")
-            if icon_path and os.path.exists(icon_path):
-                icon = QIcon(icon_path)
-                self.buttons["ON_OFF"].setIcon(icon)
-            
-            self.buttons["ON_OFF"].setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {Colors.GREEN_ACCENT};
-                    border: 1px solid {Colors.GREEN_ACCENT};
-                    border-radius: {BORDER_RADIUS}px;
-                }}
-                QPushButton:hover {{
-                    background-color: {Colors.GREEN_HOVER};
-                    border: 1px solid {Colors.GREEN_HOVER};
-                }}
-            """)
-        else:
-            # Update button icon to "off" state
-            icon_path = self._get_icon_path("ON_OFF")
-            if icon_path and os.path.exists(icon_path):
-                icon = QIcon(icon_path)
-                self.buttons["ON_OFF"].setIcon(icon)
-            
-            self.buttons["ON_OFF"].setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {Colors.RED_ACCENT};
-                    border: 1px solid {Colors.RED_ACCENT};
-                    border-radius: {BORDER_RADIUS}px;
-                }}
-                QPushButton:hover {{
-                    background-color: {Colors.RED_HOVER};
-                    border: 1px solid {Colors.RED_HOVER};
-                }}
-            """)
-        
-        # Style utility buttons - gray out when inactive
-        for button_name in ["SETUP", "MOVE", "EXIT"]:
+            self._apply_style(self.current_mode, "click_red_temporary")
+
+        # ON/OFF button - icon + style
+        icon_path = self._get_icon_path("ON_OFF")
+        if icon_path and os.path.exists(icon_path):
+            self.buttons["ON_OFF"].setIcon(QIcon(icon_path))
+        self._apply_style("ON_OFF", "on_green" if self.is_active else "off_red")
+
+        # Utility buttons
+        for button_name in ("SETUP", "MOVE", "EXIT"):
             if self.is_active:
-                if button_name == "EXIT":
-                    # EXIT button gets red hover
-                    self.buttons[button_name].setStyleSheet(f"""
-                        QPushButton {{
-                            background-color: {Colors.DARK_BUTTON_BG};
-                            color: {Colors.TEXT_COLOR};
-                            border: 1px solid {Colors.BORDER_COLOR};
-                            border-radius: {BORDER_RADIUS}px;
-                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                            font-size: 9pt;
-                            font-weight: bold;
-                        }}
-                        QPushButton:hover {{
-                            background-color: #3d3d3d;
-                            border: 1px solid {Colors.RED_ACCENT};
-                        }}
-                    """)
-                else:
-                    # SETUP and MOVE buttons
-                    self.buttons[button_name].setStyleSheet(f"""
-                        QPushButton {{
-                            background-color: {Colors.DARK_BUTTON_BG};
-                            color: {Colors.TEXT_COLOR};
-                            border: 1px solid {Colors.BORDER_COLOR};
-                            border-radius: {BORDER_RADIUS}px;
-                            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                            font-size: 9pt;
-                            font-weight: bold;
-                        }}
-                        QPushButton:hover {{
-                            background-color: #3d3d3d;
-                            border: 1px solid #5d5d5d;
-                        }}
-                    """)
+                key = "util_active_exit" if button_name == "EXIT" else "util_active_normal"
             else:
-                # Grayed out when inactive
-                hover_border = Colors.RED_ACCENT if button_name == "EXIT" else "#5d5d5d"
-                self.buttons[button_name].setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {Colors.DARK_BUTTON_BG};
-                        color: {Colors.DISABLED_TEXT};
-                        border: 1px solid {Colors.BORDER_COLOR};
-                        border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                        font-size: 9pt;
-                        font-weight: bold;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #3d3d3d;
-                        border: 1px solid {hover_border};
-                    }}
-                """)
-        
-        # Handle SCROLL button state separately
+                key = "util_inactive_exit" if button_name == "EXIT" else "inactive_gray"
+            self._apply_style(button_name, key)
+
+        # SCROLL button - depends on active state + scroll_enabled setting
         if "SCROLL" in self.buttons:
             scroll_enabled = self.settings_manager.get_setting('scroll_enabled', True) if self.settings_manager else True
-            
-            # Consider both app active state and scroll enabled setting
             if self.is_active and scroll_enabled:
-                # App is active and scroll is enabled - show as active (green)
-                self.buttons["SCROLL"].setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {Colors.GREEN_ACCENT};
-                        color: {Colors.TEXT_COLOR};
-                        border: 1px solid {Colors.GREEN_ACCENT};
-                        border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                        font-size: 9pt;
-                        font-weight: bold;
-                    }}
-                    QPushButton:hover {{
-                        background-color: {Colors.GREEN_HOVER};
-                        border: 1px solid {Colors.GREEN_HOVER};
-                    }}
-                """)
-            elif self.is_active and not scroll_enabled:
-                # App is active but scroll is disabled - show as normal inactive button
-                self.buttons["SCROLL"].setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {Colors.DARK_BUTTON_BG};
-                        color: {Colors.TEXT_COLOR};
-                        border: 1px solid {Colors.BORDER_COLOR};
-                        border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                        font-size: 9pt;
-                        font-weight: bold;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #3d3d3d;
-                        border: 1px solid #5d5d5d;
-                    }}
-                """)
+                key = "feature_active_green"
+            elif self.is_active:
+                key = "util_active_normal"
             else:
-                # App is inactive - show as grayed out (same as other buttons when inactive)
-                self.buttons["SCROLL"].setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {Colors.DARK_BUTTON_BG};
-                        color: {Colors.DISABLED_TEXT};
-                        border: 1px solid {Colors.BORDER_COLOR};
-                        border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                        font-size: 9pt;
-                        font-weight: bold;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #3d3d3d;
-                        border: 1px solid #5d5d5d;
-                    }}
-                """)
-        
-        # Handle MENU button state separately
+                key = "inactive_gray"
+            self._apply_style("SCROLL", key)
+
+        # MENU button - depends on active state + menu_enabled setting
         if "MENU" in self.buttons:
             menu_enabled = self.settings_manager.get_setting('menu_enabled', True) if self.settings_manager else True
-            
-            # Consider both app active state and menu enabled setting
             if self.is_active and menu_enabled:
-                # App is active and menu is enabled - show as active (green)
-                self.buttons["MENU"].setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {Colors.GREEN_ACCENT};
-                        color: {Colors.TEXT_COLOR};
-                        border: 1px solid {Colors.GREEN_ACCENT};
-                        border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                        font-size: 9pt;
-                        font-weight: bold;
-                    }}
-                    QPushButton:hover {{
-                        background-color: {Colors.GREEN_HOVER};
-                        border: 1px solid {Colors.GREEN_HOVER};
-                    }}
-                """)
-            elif self.is_active and not menu_enabled:
-                # App is active but menu is disabled - show as normal inactive button
-                self.buttons["MENU"].setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {Colors.DARK_BUTTON_BG};
-                        color: {Colors.TEXT_COLOR};
-                        border: 1px solid {Colors.BORDER_COLOR};
-                        border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                        font-size: 9pt;
-                        font-weight: bold;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #3d3d3d;
-                        border: 1px solid #5d5d5d;
-                    }}
-                """)
+                key = "feature_active_green"
+            elif self.is_active:
+                key = "util_active_normal"
             else:
-                # App is inactive - show as grayed out (same as other buttons when inactive)
-                self.buttons["MENU"].setStyleSheet(f"""
-                    QPushButton {{
-                        background-color: {Colors.DARK_BUTTON_BG};
-                        color: {Colors.DISABLED_TEXT};
-                        border: 1px solid {Colors.BORDER_COLOR};
-                        border-radius: {BORDER_RADIUS}px;
-                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                        font-size: 9pt;
-                        font-weight: bold;
-                    }}
-                    QPushButton:hover {{
-                        background-color: #3d3d3d;
-                        border: 1px solid #5d5d5d;
-                    }}
-                """)
-    
+                key = "inactive_gray"
+            self._apply_style("MENU", key)
+
     def toggle_active(self):
         """Modified toggle_active to also control scroll and menu widgets."""
         self.is_active = not self.is_active

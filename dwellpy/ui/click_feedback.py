@@ -8,6 +8,7 @@ from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QCursor
 
 try:
     from ..config.constants import Colors
+    from ..utils.platform import ensure_windows_dpi_awareness
 except ImportError:
     # Fallback if constants not available
     class Colors:
@@ -16,26 +17,10 @@ except ImportError:
         RED_ACCENT = "#d70000"
         TEXT_COLOR = "#ffffff"
 
-# Windows DPI awareness for better multi-monitor support
-if sys.platform == "win32":
-    try:
-        import ctypes
-        # Set DPI awareness to handle multiple monitors properly
-        try:
-            # Try the newer SetProcessDpiAwarenessContext first (Windows 10 1703+)
-            ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)  # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
-        except:
-            try:
-                # Fallback to SetProcessDpiAwareness (Windows 8.1+)
-                ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
-            except:
-                try:
-                    # Final fallback to SetProcessDPIAware (Windows Vista+)
-                    ctypes.windll.user32.SetProcessDPIAware()
-                except:
-                    pass  # DPI awareness not available
-    except ImportError:
-        pass  # ctypes not available
+    def ensure_windows_dpi_awareness():
+        pass
+
+ensure_windows_dpi_awareness()
 
 class ClickFeedbackWidget(QWidget):
     """

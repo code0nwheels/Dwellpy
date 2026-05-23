@@ -88,20 +88,5 @@ class DwellDetector:
             
             # Return dwell event with current position
             return True, self.last_position
-            
-        return False, None
 
-    def calculate_distance(self, position1, position2):
-        """
-        Calculate the Euclidean distance between two positions.
-        
-        Args:
-            position1: Tuple (x, y) representing the first position.
-            position2: Tuple (x, y) representing the second position.
-        
-        Returns:
-            float: The Euclidean distance between the two positions.
-        """
-        dx = position1[0] - position2[0]
-        dy = position1[1] - position2[1]
-        return (dx ** 2 + dy ** 2) ** 0.5
+        return False, None

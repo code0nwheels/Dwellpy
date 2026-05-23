@@ -13,6 +13,7 @@ import time
 try:
     from ..config.constants import Colors
     from ..config.constants import WIDGET_UNLOCK_THRESHOLD_DEFAULT
+    from ..utils.platform import ensure_windows_dpi_awareness
 except ImportError:
     # Fallback if constants not available
     class Colors:
@@ -20,28 +21,10 @@ except ImportError:
         BLUE_ACCENT = "#0078d7"
         TEXT_COLOR = "#ffffff"
 
-# Windows DPI awareness for better multi-monitor support
-if sys.platform == "win32":
-    try:
-        import ctypes
-        from ctypes import wintypes
-        
-        # Set DPI awareness to handle multiple monitors properly
-        try:
-            # Try the newer SetProcessDpiAwarenessContext first (Windows 10 1703+)
-            ctypes.windll.user32.SetProcessDpiAwarenessContext(-4)  # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
-        except:
-            try:
-                # Fallback to SetProcessDpiAwareness (Windows 8.1+)
-                ctypes.windll.shcore.SetProcessDpiAwareness(2)  # PROCESS_PER_MONITOR_DPI_AWARE
-            except:
-                try:
-                    # Final fallback to SetProcessDPIAware (Windows Vista+)
-                    ctypes.windll.user32.SetProcessDPIAware()
-                except:
-                    pass  # DPI awareness not available
-    except ImportError:
-        pass  # ctypes not available
+    def ensure_windows_dpi_awareness():
+        pass
+
+ensure_windows_dpi_awareness()
 
 class ScrollWidget(QWidget):
     """
@@ -260,6 +243,28 @@ class ScrollWidget(QWidget):
         
         return QPoint(adjusted_x, adjusted_y)
 
+    def _compute_offset_position(self, cursor_x, cursor_y):
+        """Return the (new_x, new_y) for the widget's top-left, applying the
+        configured offset and the minimum-safe-distance correction."""
+        angle_rad = math.radians(self.offset_angle)
+        offset_x = int(self.offset_distance * math.cos(angle_rad))
+        offset_y = int(self.offset_distance * math.sin(angle_rad))
+
+        new_x = int(cursor_x + offset_x)
+        new_y = int(cursor_y - offset_y - self.height() // 2)
+
+        # Safety check: keep the widget at least min_safe_distance from cursor
+        widget_center_x = new_x + self.width() // 2
+        widget_center_y = new_y + self.height() // 2
+        distance_to_cursor = math.sqrt(
+            (widget_center_x - cursor_x) ** 2 + (widget_center_y - cursor_y) ** 2
+        )
+        if distance_to_cursor < self.min_safe_distance:
+            angle_to_cursor = math.atan2(widget_center_y - cursor_y, widget_center_x - cursor_x)
+            new_x = int(cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2)
+            new_y = int(cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2)
+        return new_x, new_y
+
     def update_position(self, cursor_pos, coordinated_mode=False):
         """Update widget position relative to cursor, with optional coordinated mode."""
         if not self.is_active:
@@ -323,26 +328,9 @@ class ScrollWidget(QWidget):
                 self.last_lock_time = time.time()
                 return
             
-            # Otherwise, update position normally
-            angle_rad = math.radians(self.offset_angle)
-            offset_x = int(self.offset_distance * math.cos(angle_rad))
-            offset_y = int(self.offset_distance * math.sin(angle_rad))
-            
-            # Set new position using Qt coordinates - ensure integers
-            new_x = int(cursor_x + offset_x)
-            new_y = int(cursor_y - offset_y - self.height()//2)
-            
-            # Safety check: ensure widget doesn't end up too close to cursor
-            widget_center_x = new_x + self.width() // 2
-            widget_center_y = new_y + self.height() // 2
-            distance_to_cursor = math.sqrt((widget_center_x - cursor_x) ** 2 + (widget_center_y - cursor_y) ** 2)
-            
-            if distance_to_cursor < self.min_safe_distance:
-                # Adjust position to maintain safe distance
-                angle_to_cursor = math.atan2(widget_center_y - cursor_y, widget_center_x - cursor_x)
-                new_x = int(cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2)
-                new_y = int(cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2)
-            
+            # Otherwise, compute new position via the shared helper
+            new_x, new_y = self._compute_offset_position(cursor_x, cursor_y)
+
             # Check if widget actually needs to move (prevent unnecessary updates)
             if self.last_widget_pos is not None:
                 widget_dx = new_x - self.last_widget_pos[0]
@@ -364,25 +352,9 @@ class ScrollWidget(QWidget):
                 self.is_locked = False
                 self.last_lock_time = 0
                 
-                # Immediately update to new position
-                angle_rad = math.radians(self.offset_angle)
-                offset_x = int(self.offset_distance * math.cos(angle_rad))
-                offset_y = int(self.offset_distance * math.sin(angle_rad))
-                
-                new_x = int(cursor_x + offset_x)
-                new_y = int(cursor_y - offset_y - self.height()//2)
-                
-                # Safety check: ensure widget doesn't end up too close to cursor
-                widget_center_x = new_x + self.width() // 2
-                widget_center_y = new_y + self.height() // 2
-                distance_to_cursor = math.sqrt((widget_center_x - cursor_x) ** 2 + (widget_center_y - cursor_y) ** 2)
-                
-                if distance_to_cursor < self.min_safe_distance:
-                    # Adjust position to maintain safe distance
-                    angle_to_cursor = math.atan2(widget_center_y - cursor_y, widget_center_x - cursor_x)
-                    new_x = int(cursor_x + int(self.min_safe_distance * math.cos(angle_to_cursor)) - self.width() // 2)
-                    new_y = int(cursor_y + int(self.min_safe_distance * math.sin(angle_to_cursor)) - self.height() // 2)
-                
+                # Immediately update to new position via the shared helper
+                new_x, new_y = self._compute_offset_position(cursor_x, cursor_y)
+
                 # Track when we move to prevent false hover detection
                 self.last_move_time = time.time()
                 self.last_widget_pos = (new_x, new_y)
