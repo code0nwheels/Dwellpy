@@ -14,6 +14,9 @@ class ClickManager:
         
         # Click feedback manager - will be set by main application
         self.feedback_manager = None
+
+        # True while we are holding the left button down for a dwell drag
+        self.left_button_held = False
     
     def can_click(self):
         """
@@ -123,7 +126,8 @@ class ClickManager:
             
             # Use pynput to press the mouse button
             self.mouse.press(Button.left)
-            
+            self.left_button_held = True
+
             # Show visual feedback for drag start
             if self.feedback_manager:
                 self.feedback_manager.show_feedback(current_pos, 'drag_down')
@@ -141,11 +145,22 @@ class ClickManager:
             
             # Use pynput to release the mouse button
             self.mouse.release(Button.left)
-            
+            self.left_button_held = False
+
             # Show visual feedback for drag end
             if self.feedback_manager:
                 self.feedback_manager.show_feedback(current_pos, 'drag_up')
-            
+
             return True
         except Exception as e:
             return False
+
+    def release_if_held(self):
+        """Release the left button if a dwell drag left it pressed.
+
+        Safety net for paths that abandon a drag (mode change, turning the
+        clicker off, exiting) so the system is never left with the button stuck down.
+        """
+        if not self.left_button_held:
+            return False
+        return self.mouse_up()
