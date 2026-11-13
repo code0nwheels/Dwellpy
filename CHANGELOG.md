@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.3](https://github.com/code0nwheels/Dwellpy/compare/v0.12.2...v0.12.3) (2026-11-13)
+
+
+### Bug Fixes
+
+* release held dwell drag instead of leaving mouse button stuck ([#56](https://github.com/code0nwheels/Dwellpy/issues/56)) ([d6cd549](https://github.com/code0nwheels/Dwellpy/commit/d6cd549fe238be87e5cfdcf8ba4d944230c9c7b1))
+
 ## [0.12.2](https://github.com/code0nwheels/Dwellpy/compare/v0.12.1...v0.12.2) (2026-02-28)
 
 
