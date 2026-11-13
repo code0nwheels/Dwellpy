@@ -36,6 +36,7 @@ a = Analysis(
         'PyQt6.QtCore',
         'PyQt6.QtWidgets',
         'PyQt6.QtGui',
+        'PyQt6.QtNetwork',
         # Include all your package modules explicitly
         'dwellpy',
         'dwellpy.main',
@@ -53,6 +54,9 @@ a = Analysis(
         'dwellpy.managers.button_manager',
         'dwellpy.managers.settings_manager',
         'dwellpy.managers.exit_manager',
+        'dwellpy.managers.update_manager',
+        'dwellpy.utils.updater',
+        'dwellpy.ui.dialogs.update_dialog',
         'dwellpy.config',
         'dwellpy.config.constants',
         'dwellpy.utils', 

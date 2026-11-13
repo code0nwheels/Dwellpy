@@ -579,7 +579,19 @@ class SettingsDialog(QDialog):
         self.general_tab.create_active_state_section(app_settings_layout)
         self.general_tab.create_ui_contraction_section(app_settings_layout)
         layout.addWidget(app_settings_frame)
-        
+
+        # Updates Section
+        from dwellpy import __version__
+        updates_header = self.create_section_header("Updates",
+                                                   f"You are running Dwellpy {__version__}")
+        layout.addWidget(updates_header)
+
+        updates_frame = QFrame()
+        updates_layout = QVBoxLayout(updates_frame)
+        updates_layout.setContentsMargins(10, 8, 10, 8)
+        self.general_tab.create_updates_section(updates_layout)
+        layout.addWidget(updates_frame)
+
         # Add minimal stretch to push content to the top
         layout.addStretch(1)
         
@@ -690,6 +702,8 @@ class SettingsDialog(QDialog):
         self.active_check.toggled.connect(self.event_handlers.on_active_toggle)
         self.contract_ui_check.toggled.connect(self.event_handlers.on_contract_ui_toggle)
         self.auto_start_check.toggled.connect(self.event_handlers.on_auto_start_toggle)
+        if hasattr(self, 'auto_update_check'):
+            self.auto_update_check.toggled.connect(self.event_handlers.on_auto_update_toggle)
         
         # Color button clicks are handled in the VisualFeedbackTab
     

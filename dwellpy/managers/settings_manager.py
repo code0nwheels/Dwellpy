@@ -48,6 +48,9 @@ class SettingsManager:
 		# Reference to UI manager for immediate updates (set by UI manager)
 		self.ui_manager = None
 		
+		# Reference to the update manager for "check now" (set by component initializer)
+		self.update_manager = None
+		
 		# Load settings from disk
 		self.load_settings()
 		

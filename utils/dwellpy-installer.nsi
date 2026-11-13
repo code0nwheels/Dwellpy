@@ -4,6 +4,7 @@
 !include "MUI2.nsh"
 !include "x64.nsh"
 !include "FileFunc.nsh"
+!include "Sections.nsh"
 
 ; Installer configuration
 !define PRODUCT_NAME "Dwellpy"
@@ -19,6 +20,9 @@ OutFile "dwellpy-installer.exe"
 ; Installation directory
 InstallDir "$PROGRAMFILES64\${PRODUCT_NAME}"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
+
+; Set to 1 when run by Dwellpy's auto-updater ("/S /UPDATE")
+Var IS_UPDATE
 
 ; Request administrator privileges
 RequestExecutionLevel admin
@@ -85,6 +89,20 @@ Section "!Dwellpy Application" SEC01
   SectionIn RO
   SetOutPath "$INSTDIR"
   SetOverwrite ifnewer
+  
+  ; Wait (up to 60s) for a running Dwellpy to exit so its executable can be
+  ; replaced. The auto-updater starts this installer and then quits.
+  StrCpy $R1 0
+  wait_for_exit:
+    IfFileExists "$INSTDIR\Dwellpy.exe" 0 exe_free
+    ClearErrors
+    Delete "$INSTDIR\Dwellpy.exe"
+    IfErrors 0 exe_free
+    IntOp $R1 $R1 + 1
+    IntCmp $R1 120 exe_free 0 exe_free
+    Sleep 500
+    Goto wait_for_exit
+  exe_free:
   
   ; Copy main executable
   File "dist\Dwellpy.exe"
@@ -184,6 +202,21 @@ SectionEnd
 
 ; Functions
 Function .onInit
+  ; Auto-update mode: install over the existing copy without prompts and
+  ; without re-creating shortcuts the user may have removed.
+  StrCpy $IS_UPDATE "0"
+  ${GetParameters} $R2
+  ClearErrors
+  ${GetOptions} $R2 "/UPDATE" $R3
+  IfErrors not_update
+    StrCpy $IS_UPDATE "1"
+    !insertmacro UnselectSection ${SEC02}
+    !insertmacro UnselectSection ${SEC03}
+  not_update:
+
+  ; Silent installs upgrade in place instead of asking to uninstall first
+  IfSilent done
+
   ; Check if already installed
   ReadRegStr $R0 HKLM "${PRODUCT_UNINST_KEY}" "UninstallString"
   StrCmp $R0 "" done
@@ -202,6 +235,22 @@ Function .onInit
   no_remove_uninstaller:
   
   done:
+FunctionEnd
+
+Function .onInstSuccess
+  ; Relaunch Dwellpy after an auto-update. Starting it through Explorer runs it
+  ; as the signed-in user rather than with this installer's admin rights.
+  StrCmp $IS_UPDATE "1" 0 +2
+    Exec '"$WINDIR\explorer.exe" "$INSTDIR\Dwellpy.exe"'
+FunctionEnd
+
+Function .onInstFailed
+  ; If a silent update fails, still try to bring Dwellpy back so the user is
+  ; not left without it.
+  StrCmp $IS_UPDATE "1" 0 no_relaunch
+  IfFileExists "$INSTDIR\Dwellpy.exe" 0 no_relaunch
+    Exec '"$WINDIR\explorer.exe" "$INSTDIR\Dwellpy.exe"'
+  no_relaunch:
 FunctionEnd
 
 Function un.onInit
