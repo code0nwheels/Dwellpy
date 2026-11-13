@@ -11,6 +11,7 @@ from ...managers.button_manager import ButtonManager
 from ...managers.settings_manager import SettingsManager
 from ...managers.window_manager import WindowManager
 from ...managers.exit_manager import ExitManager
+from ...managers.update_manager import UpdateManager
 from ...ui.ui_manager import DwellClickerUI
 from ...ui.click_feedback import ClickFeedbackManager
 from ...config.constants import DEFAULT_MOVE_LIMIT, DEFAULT_DWELL_TIME
@@ -87,6 +88,11 @@ class ComponentInitializer:
         
         # Store exit manager
         self.components['exit_manager'] = exit_manager
+        
+        # Create update manager (checks GitHub Releases for new versions)
+        update_manager = UpdateManager(components['settings_manager'], ui.window)
+        components['settings_manager'].update_manager = update_manager
+        self.components['update_manager'] = update_manager
         
         # Connect managers to UI
         ui.connect_managers(components['settings_manager'], exit_manager)

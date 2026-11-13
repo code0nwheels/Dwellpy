@@ -203,7 +203,11 @@ DEFAULT_SETTINGS = {
     'polling_idle_threshold': 10,
     'click_color_drag_down': '#9c27b0',
     'click_color_drag_up': '#673ab7',
-    'click_color_middle': '#00bcd4'
+    'click_color_middle': '#00bcd4',
+    # Auto-update
+    'auto_update_check': True,
+    'update_skipped_version': '',
+    'update_last_check': 0
 }
 
 # Available Click Modes
