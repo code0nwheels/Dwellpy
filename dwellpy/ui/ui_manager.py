@@ -909,6 +909,9 @@ class DwellClickerUI:
         # Clear button hover state when turning off to prevent stuck hover states
         if not self.is_active:
             self.button_manager.clear_hover()
+            # Never leave the mouse button held down once the clicker is off -
+            # with dwell clicks disabled there would be no way to release it
+            self.release_held_drag()
         
         self.update_button_states()
           # Reset movement state when toggling - start with widgets hidden to respect appearance delay
@@ -962,9 +965,9 @@ class DwellClickerUI:
         self.last_mode_selection = mode
         self.last_selection_time = current_time
         
-        # Reset any active drag state
-        self.drag_state = None
-        
+        # Abandon any active drag - release the button rather than leaving it held
+        self.release_held_drag()
+
         # Update UI to reflect new state
         self.update_button_states()
         
@@ -973,6 +976,15 @@ class DwellClickerUI:
     
     def process_dwell_event(self, center):
         """Process a dwell event with scroll and menu widget support."""
+        # If a drag is in progress, the next dwell ALWAYS releases it - wherever it
+        # lands, including on toolbar buttons. Otherwise a dwell on a button (e.g.
+        # ON/OFF) would run that button's command and leave the mouse button held.
+        # While the button is held, Qt's implicit mouse grab also stops hover state
+        # updating, so button hover can't be trusted here anyway.
+        if self.drag_state == "down":
+            self.handle_drag(center)
+            return
+
         # Handle scroll widget dwell
         if self.scroll_hover:
             if not self.scroll_widget.is_scrolling:
@@ -1048,6 +1060,11 @@ class DwellClickerUI:
             if hasattr(self, 'menu_widget'):
                 self.menu_widget.update()
     
+    def release_held_drag(self):
+        """Release the mouse button if a dwell drag is holding it, and reset drag state."""
+        self.click_manager.release_if_held()
+        self.drag_state = None
+
     def handle_drag(self, center):
         """Handle drag operations that require two dwells."""
         
