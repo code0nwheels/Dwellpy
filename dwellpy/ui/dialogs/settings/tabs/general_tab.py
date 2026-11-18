@@ -1,8 +1,9 @@
 """General tab for settings dialog."""
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QCheckBox, QRadioButton, QButtonGroup, QComboBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QCheckBox, QRadioButton, QButtonGroup, QComboBox, QPushButton
 from PyQt6.QtCore import Qt
 from dwellpy.config.constants import Colors, Fonts, BORDER_RADIUS
+from dwellpy import __version__
 from dwellpy.ui.dialogs.settings.components.ui_components import (
     create_section_header, get_checkbox_style, get_radio_style, 
     get_label_style, get_small_label_style
@@ -38,6 +39,13 @@ class GeneralTab:
         layout.addWidget(ui_header)
         
         self.create_ui_contraction_section(layout)
+        
+        # Updates Section
+        updates_header = create_section_header("Updates",
+                                              f"You are running Dwellpy {__version__}")
+        layout.addWidget(updates_header)
+        
+        self.create_updates_section(layout)
         
         # Add stretch to push content to the top
         layout.addStretch()
@@ -157,4 +165,41 @@ class GeneralTab:
         # Connect the dropdown signal to save changes
         self.dialog.expansion_direction_combo.currentIndexChanged.connect(
             lambda index: self.dialog.event_handlers.on_expansion_direction_changed(index)
-        ) 
+        )
+
+    def create_updates_section(self, layout):
+        """Create the auto-update settings section."""
+        updates_frame = QFrame()
+        updates_layout = QHBoxLayout(updates_frame)
+        updates_layout.setContentsMargins(0, 0, 0, 0)
+        updates_layout.setSpacing(16)
+        updates_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        
+        self.dialog.auto_update_check = QCheckBox("Automatically check for updates")
+        self.dialog.auto_update_check.setChecked(self.settings_manager.get_setting('auto_update_check', True))
+        self.dialog.auto_update_check.setStyleSheet(get_checkbox_style())
+        self.dialog.auto_update_check.setToolTip(
+            "Check GitHub once a day for a new version of Dwellpy and offer to install it")
+        updates_layout.addWidget(self.dialog.auto_update_check)
+        
+        self.dialog.check_updates_button = QPushButton("Check now")
+        self.dialog.check_updates_button.setMinimumHeight(32)
+        self.dialog.check_updates_button.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {Colors.DARK_BUTTON_BG};
+                color: {Colors.TEXT_COLOR};
+                border: 1px solid {Colors.BORDER_COLOR};
+                border-radius: {BORDER_RADIUS}px;
+                padding: 6px 14px;
+                font-size: 11px;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.GRAY_HOVER};
+                border-color: {Colors.BLUE_HOVER};
+            }}
+        """)
+        self.dialog.check_updates_button.setToolTip("Check for a new version of Dwellpy now")
+        self.dialog.check_updates_button.clicked.connect(self.dialog.event_handlers.on_check_updates_clicked)
+        updates_layout.addWidget(self.dialog.check_updates_button)
+        
+        layout.addWidget(updates_frame)

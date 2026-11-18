@@ -202,6 +202,16 @@ class SettingsEventHandlers:
         # For now, just update the setting
         self.settings_manager.set_setting('auto_start', state)
     
+    def on_auto_update_toggle(self, state):
+        """Handle automatic update check toggle and save setting."""
+        self.settings_manager.set_setting('auto_update_check', state)
+    
+    def on_check_updates_clicked(self):
+        """Run a manual update check."""
+        update_manager = getattr(self.settings_manager, 'update_manager', None)
+        if update_manager:
+            update_manager.check_for_updates(manual=True)
+    
     # Hover event handlers for adjustment buttons
     def on_enter_minus_move(self):
         self.set_hover_action("move_limit", "minus")

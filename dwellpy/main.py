@@ -70,6 +70,9 @@ class DwellpyApplication:
         # Setup application icon
         self.lifecycle.setup_application_icon()
         
+        # Schedule automatic update checks (they run once the event loop starts)
+        self.components['update_manager'].start()
+        
         # Setup application state
         self.running = False
         

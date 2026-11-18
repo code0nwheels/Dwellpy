@@ -116,6 +116,26 @@ This section controls how the toolbar behaves when you're not using it.
 
 **Note**: This setting only applies when "Auto Collapse UI" is enabled.
 
+### Updates
+
+#### Automatically Check for Updates
+**What it controls**: Whether Dwellpy checks GitHub once a day for a new release.
+
+When a new version is found, Dwellpy shows a prompt with large buttons:
+- **Update now**: Downloads the update, checks it against the SHA-256 checksum GitHub publishes for it, then closes Dwellpy, installs the update and starts Dwellpy again
+- **Later**: Asks again next time
+- **Skip version**: Doesn't offer this version again (a newer one will still be offered)
+
+**Check now** runs a check immediately, whether or not automatic checks are on.
+
+**How updates install**:
+- **Windows**: Runs the installer silently, with no setup wizard. Windows asks for permission first, while Dwellpy is still running; press **Alt+Y** (or click **Yes**) to allow it. Dwell clicking can't click that prompt. Dwellpy then closes for a few seconds and restarts by itself.
+- **macOS**: Replaces `Dwellpy.app` in place. You may need to grant Accessibility permission again after an update.
+- **Linux (.deb)**: Installs the package with `pkexec`, which asks for your password. Dwellpy keeps running while that window is open, so you can still dwell click in it. Dwellpy restarts only after the update is installed; if you cancel, nothing changes.
+- **pip or source installs**: Dwellpy can't update itself. The prompt opens the download page instead.
+
+**Default setting**: Enabled
+
 ## Visual Tab
 
 The Visual tab contains settings for how Dwellpy looks and provides visual feedback.
